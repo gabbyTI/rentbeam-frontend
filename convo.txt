@@ -1,0 +1,11 @@
+I thinking seperation of concerns… in the react frontend, using aws cognito for login auth 
+Here is my user story in auth process… we will be using our own custom auth phages on react firstly. And i have a question in there for u
+
+
+Call the sign up cognito endpoint for land lord.. from the response grab the id and call create user endpoint in our nodejs backend. Call endpoint to also fill in the other lanlord field in the table (should this be one endpoint)
+
+When landlord invites tenants they
+ Get a link that diercts them to the website page to put in password and confirm password , when that is submitted the accept enpoint is canceled. The end point switches status to accepted and creates a cognito user and adds user record to our db with the cognito id… (or should i call the sign up endpoint 
+
+
+If the user email exists for thedge case what happens or how should it be handled best since all the need is accept and nothing needs to be created 
