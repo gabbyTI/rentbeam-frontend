@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useApi } from '../../hooks/useApi';
 import { AppShell } from '../ui/AppShell';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -11,7 +12,8 @@ import { useToast } from '../../context/ToastContext';
 import { getStripeConnectStatus } from '../../services/api';
 
 export const LandlordProperties: React.FC = () => {
-  const { currentUser, properties, units, tenants, updateState } = useApp();
+  const { currentUser, properties, units, tenants } = useApp();
+  const api = useApi();
   const { showToast } = useToast();
   const [isAddingProperty, setIsAddingProperty] = useState(false);
   const [isAddingUnit, setIsAddingUnit] = useState<string | null>(null);
@@ -53,7 +55,7 @@ export const LandlordProperties: React.FC = () => {
       }));
   }, [properties, units, currentUser]);
 
-  const handleAddProperty = () => {
+  const handleAddProperty = async () => {
     if (!stripeOnboarded) {
       showToast('Please connect your bank account before adding properties', 'error');
       return;
@@ -64,24 +66,21 @@ export const LandlordProperties: React.FC = () => {
       return;
     }
 
-    const newProperty = {
-      id: generateId('property'),
-      landlordId: currentUser!.id,
-      name: propertyForm.name,
-      address: propertyForm.address,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      await api.createProperty({
+        name: propertyForm.name,
+        address: propertyForm.address,
+      });
 
-    updateState({
-      properties: [...properties, newProperty],
-    });
-
-    showToast('Property added successfully');
-    setIsAddingProperty(false);
-    setPropertyForm({ name: '', address: '' });
+      showToast('Property added successfully');
+      setIsAddingProperty(false);
+      setPropertyForm({ name: '', address: '' });
+    } catch (error: any) {
+      showToast(error.message || 'Failed to add property', 'error');
+    }
   };
 
-  const handleAddUnit = (propertyId: string) => {
+  const handleAddUnit = async (propertyId: string) => {
     if (!stripeOnboarded) {
       showToast('Please connect your bank account before adding units', 'error');
       return;
@@ -92,23 +91,21 @@ export const LandlordProperties: React.FC = () => {
       return;
     }
 
-    const newUnit = {
-      id: generateId('unit'),
-      propertyId,
-      name: unitForm.name,
-      rentAmount: parseFloat(unitForm.rentAmount),
-      dueDay: parseInt(unitForm.dueDay),
-      gracePeriodDays: parseInt(unitForm.gracePeriodDays),
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      await api.createUnit({
+        propertyId,
+        name: unitForm.name,
+        rentAmount: parseFloat(unitForm.rentAmount),
+        dueDay: parseInt(unitForm.dueDay),
+        gracePeriodDays: parseInt(unitForm.gracePeriodDays),
+      });
 
-    updateState({
-      units: [...units, newUnit],
-    });
-
-    showToast('Unit added successfully');
-    setIsAddingUnit(null);
-    setUnitForm({ name: '', rentAmount: '', dueDay: '1', gracePeriodDays: '5' });
+      showToast('Unit added successfully');
+      setIsAddingUnit(null);
+      setUnitForm({ name: '', rentAmount: '', dueDay: '1', gracePeriodDays: '5' });
+    } catch (error: any) {
+      showToast(error.message || 'Failed to add unit', 'error');
+    }
   };
 
   const handleEditProperty = (propertyId: string) => {
@@ -119,28 +116,30 @@ export const LandlordProperties: React.FC = () => {
     }
   };
 
-  const handleUpdateProperty = () => {
+  const handleUpdateProperty = async () => {
     if (!propertyForm.name || !propertyForm.address) {
       showToast('Please fill in all fields', 'error');
       return;
     }
 
-    const updatedProperties = properties.map((p) =>
-      p.id === isEditingProperty
-        ? { ...p, name: propertyForm.name, address: propertyForm.address }
-        : p
-    );
+    try {
+      await api.updateProperty(isEditingProperty!, {
+        name: propertyForm.name,
+        address: propertyForm.address,
+      });
 
-    updateState({ properties: updatedProperties });
-    showToast('Property updated successfully');
-    setIsEditingProperty(null);
-    setPropertyForm({ name: '', address: '' });
+      showToast('Property updated successfully');
+      setIsEditingProperty(null);
+      setPropertyForm({ name: '', address: '' });
+    } catch (error: any) {
+      showToast(error.message || 'Failed to update property', 'error');
+    }
   };
 
-  const handleDeleteProperty = (propertyId: string) => {
+  const handleDeleteProperty = async (propertyId: string) => {
     const propertyUnits = units.filter((u) => u.propertyId === propertyId);
     const occupiedUnits = propertyUnits.filter((u) =>
-      tenants.some((t) => t.unitId === u.id && t.residencyStatus === 'current')
+      tenants.some((t) => t.unitId === u.id && t.status === 'ACTIVE')
     );
 
     if (occupiedUnits.length > 0) {
@@ -152,12 +151,12 @@ export const LandlordProperties: React.FC = () => {
       return;
     }
 
-    updateState({
-      properties: properties.filter((p) => p.id !== propertyId),
-      units: units.filter((u) => u.propertyId !== propertyId),
-    });
-
-    showToast('Property deleted');
+    try {
+      await api.deleteProperty(propertyId);
+      showToast('Property deleted');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to delete property', 'error');
+    }
   };
 
   const handleEditUnit = (unit: any) => {
@@ -170,33 +169,31 @@ export const LandlordProperties: React.FC = () => {
     setIsEditingUnit(unit.id);
   };
 
-  const handleUpdateUnit = () => {
+  const handleUpdateUnit = async () => {
     if (!unitForm.name || !unitForm.rentAmount || !unitForm.dueDay) {
       showToast('Please fill in all fields', 'error');
       return;
     }
 
-    const updatedUnits = units.map((u) =>
-      u.id === isEditingUnit
-        ? {
-            ...u,
-            name: unitForm.name,
-            rentAmount: parseFloat(unitForm.rentAmount),
-            dueDay: parseInt(unitForm.dueDay),
-            gracePeriodDays: parseInt(unitForm.gracePeriodDays),
-          }
-        : u
-    );
+    try {
+      await api.updateUnit(isEditingUnit!, {
+        name: unitForm.name,
+        rentAmount: parseFloat(unitForm.rentAmount),
+        dueDay: parseInt(unitForm.dueDay),
+        gracePeriodDays: parseInt(unitForm.gracePeriodDays),
+      });
 
-    updateState({ units: updatedUnits });
-    showToast('Unit updated successfully');
-    setIsEditingUnit(null);
-    setUnitForm({ name: '', rentAmount: '', dueDay: '1', gracePeriodDays: '5' });
+      showToast('Unit updated successfully');
+      setIsEditingUnit(null);
+      setUnitForm({ name: '', rentAmount: '', dueDay: '1', gracePeriodDays: '5' });
+    } catch (error: any) {
+      showToast(error.message || 'Failed to update unit', 'error');
+    }
   };
 
-  const handleDeleteUnit = (unitId: string) => {
+  const handleDeleteUnit = async (unitId: string) => {
     const hasActiveTenant = tenants.some(
-      (t) => t.unitId === unitId && t.residencyStatus === 'current'
+      (t) => t.unitId === unitId && t.status === 'ACTIVE'
     );
 
     if (hasActiveTenant) {
@@ -208,11 +205,12 @@ export const LandlordProperties: React.FC = () => {
       return;
     }
 
-    updateState({
-      units: units.filter((u) => u.id !== unitId),
-    });
-
-    showToast('Unit deleted');
+    try {
+      await api.deleteUnit(unitId);
+      showToast('Unit deleted');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to delete unit', 'error');
+    }
   };
 
   return (

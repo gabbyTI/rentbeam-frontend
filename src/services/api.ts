@@ -26,6 +26,25 @@ export const initializeApi = (updateState: UpdateStateFunction) => {
   updateStateFn = updateState;
 };
 
+// Global error handler for API responses
+const handleApiError = async (response: Response) => {
+  // If 401, token expired - logout user
+  if (response.status === 401) {
+    console.error('🔴 Token expired or invalid - logging out');
+    authService.clearAuth();
+    window.location.href = '/login';
+    throw new Error('Session expired. Please login again.');
+  }
+
+  // For other errors, try to get error message from response
+  try {
+    const error = await response.json();
+    throw new Error(error.message || `Request failed with status ${response.status}`);
+  } catch (e) {
+    throw new Error(`Request failed with status ${response.status}`);
+  }
+};
+
 // Helper to ensure API is initialized
 const getUpdateState = () => {
   if (!updateStateFn) {
@@ -69,8 +88,7 @@ export const signupLandlord = async (data: SignupLandlordRequest): Promise<Signu
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Signup failed');
+    await handleApiError(response);
   }
 
   const result = await response.json();
@@ -85,8 +103,7 @@ export const login = async (data: LoginRequest): Promise<LoginResponse> => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Login failed');
+    await handleApiError(response);
   }
 
   const result = await response.json();
@@ -101,8 +118,7 @@ export const resendVerification = async (email: string): Promise<void> => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to resend verification code');
+    await handleApiError(response);
   }
 };
 
@@ -114,8 +130,7 @@ export const confirmEmail = async (email: string, code: string): Promise<void> =
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Invalid verification code');
+    await handleApiError(response);
   }
 };
 
@@ -132,8 +147,7 @@ export const getStripeConnectStatus = async (): Promise<StripeConnectStatus> => 
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to get Stripe status');
+    await handleApiError(response);
   }
 
   const result = await response.json();
@@ -156,8 +170,7 @@ export const connectStripe = async (refreshUrl: string, returnUrl: string): Prom
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to connect Stripe');
+    await handleApiError(response);
   }
 
   const result = await response.json();
@@ -166,22 +179,55 @@ export const connectStripe = async (refreshUrl: string, returnUrl: string): Prom
 
 // ==================== Properties ====================
 
+export const fetchProperties = async (): Promise<Property[]> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/properties`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  return result.data || result;
+};
+
 export const createProperty = async (
-  property: Property,
+  property: Omit<Property, 'id' | 'createdAt' | 'updatedAt' | 'landlordId'>,
   existingProperties: Property[]
 ): Promise<Property> => {
-  // TODO: Replace with API call
-  // const response = await fetch('/api/properties', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(property)
-  // });
-  // const created = await response.json();
+  console.log('🔵 createProperty called with:', property);
+  const token = authService.getAccessToken();
+  console.log('🔵 Token:', token ? 'exists' : 'missing');
+  console.log('🔵 Making POST request to:', `${API_BASE_URL}/api/properties`);
+  
+  const response = await fetch(`${API_BASE_URL}/api/properties`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(property)
+  });
+
+  console.log('🔵 Response status:', response.status);
+
+  if (!response.ok) {
+    console.error('🔴 API Error - Status:', response.status);
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  console.log('🔵 API Response:', result);
+  const created = result.data || result;
   
   getUpdateState()({
-    properties: [...existingProperties, property],
+    properties: [...existingProperties, created],
   });
-  return property;
+  return created;
 };
 
 export const updateProperty = async (
@@ -189,19 +235,28 @@ export const updateProperty = async (
   updates: Partial<Property>,
   existingProperties: Property[]
 ): Promise<Property> => {
-  // TODO: Replace with API call
-  // const response = await fetch(`/api/properties/${propertyId}`, {
-  //   method: 'PATCH',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(updates)
-  // });
-  // const updated = await response.json();
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/properties/${propertyId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(updates)
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  const updated = result.data || result;
   
   const updatedProperties = existingProperties.map((p) =>
-    p.id === propertyId ? { ...p, ...updates } : p
+    p.id === propertyId ? updated : p
   );
   getUpdateState()({ properties: updatedProperties });
-  return updatedProperties.find(p => p.id === propertyId)!;
+  return updated;
 };
 
 export const deleteProperty = async (
@@ -209,8 +264,17 @@ export const deleteProperty = async (
   existingProperties: Property[],
   existingUnits: Unit[]
 ): Promise<void> => {
-  // TODO: Replace with API call
-  // await fetch(`/api/properties/${propertyId}`, { method: 'DELETE' });
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/properties/${propertyId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
   
   const updatedProperties = existingProperties.filter((p) => p.id !== propertyId);
   const updatedUnits = existingUnits.filter((u) => u.propertyId !== propertyId);
@@ -222,22 +286,47 @@ export const deleteProperty = async (
 
 // ==================== Units ====================
 
+export const fetchUnits = async (): Promise<Unit[]> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/units`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch units');
+  }
+
+  const result = await response.json();
+  return result.data || result;
+};
+
 export const createUnit = async (
-  unit: Unit,
+  unit: Omit<Unit, 'id' | 'createdAt' | 'updatedAt'>,
   existingUnits: Unit[]
 ): Promise<Unit> => {
-  // TODO: Replace with API call
-  // const response = await fetch('/api/units', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(unit)
-  // });
-  // const created = await response.json();
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/units`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(unit)
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  const created = result.data || result;
   
   getUpdateState()({
-    units: [...existingUnits, unit],
+    units: [...existingUnits, created],
   });
-  return unit;
+  return created;
 };
 
 export const updateUnit = async (
@@ -245,27 +334,45 @@ export const updateUnit = async (
   updates: Partial<Unit>,
   existingUnits: Unit[]
 ): Promise<Unit> => {
-  // TODO: Replace with API call
-  // const response = await fetch(`/api/units/${unitId}`, {
-  //   method: 'PATCH',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(updates)
-  // });
-  // const updated = await response.json();
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/units/${unitId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(updates)
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  const updated = result.data || result;
   
   const updatedUnits = existingUnits.map((u) =>
-    u.id === unitId ? { ...u, ...updates } : u
+    u.id === unitId ? updated : u
   );
   getUpdateState()({ units: updatedUnits });
-  return updatedUnits.find(u => u.id === unitId)!;
+  return updated;
 };
 
 export const deleteUnit = async (
   unitId: string,
   existingUnits: Unit[]
 ): Promise<void> => {
-  // TODO: Replace with API call
-  // await fetch(`/api/units/${unitId}`, { method: 'DELETE' });
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/units/${unitId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
   
   const updatedUnits = existingUnits.filter((u) => u.id !== unitId);
   getUpdateState()({ units: updatedUnits });
@@ -273,20 +380,46 @@ export const deleteUnit = async (
 
 // ==================== Tenants ====================
 
+export const fetchTenants = async (): Promise<Tenant[]> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/tenants`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch tenants');
+  }
+
+  const result = await response.json();
+  return result.data || result;
+};
+
 export const createTenant = async (
-  tenant: Tenant,
+  tenant: { email: string; name: string; phone?: string; unitId: string; rentAmount: number; moveInDate?: string },
   existingTenants: Tenant[]
-): Promise<Tenant> => {
-  // TODO: Replace with API call
-  // const response = await fetch('/api/tenants', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(tenant)
-  // });
-  // const created = await response.json();
+): Promise<any> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/tenants`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(tenant)
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  const data = result.data || result;
+  const created = data.membership || data;
   
   getUpdateState()({
-    tenants: [...existingTenants, tenant],
+    tenants: [...existingTenants, created],
   });
   return tenant;
 };
@@ -296,27 +429,45 @@ export const updateTenant = async (
   updates: Partial<Tenant>,
   existingTenants: Tenant[]
 ): Promise<Tenant> => {
-  // TODO: Replace with API call
-  // const response = await fetch(`/api/tenants/${tenantId}`, {
-  //   method: 'PATCH',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(updates)
-  // });
-  // const updated = await response.json();
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(updates)
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  const updated = result.data || result;
   
   const updatedTenants = existingTenants.map((t) =>
-    t.id === tenantId ? { ...t, ...updates } : t
+    t.id === tenantId ? updated : t
   );
   getUpdateState()({ tenants: updatedTenants });
-  return updatedTenants.find(t => t.id === tenantId)!;
+  return updated;
 };
 
 export const deleteTenant = async (
   tenantId: string,
   existingTenants: Tenant[]
 ): Promise<void> => {
-  // TODO: Replace with API call
-  // await fetch(`/api/tenants/${tenantId}`, { method: 'DELETE' });
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
   
   const updatedTenants = existingTenants.filter((t) => t.id !== tenantId);
   getUpdateState()({ tenants: updatedTenants });
@@ -324,47 +475,93 @@ export const deleteTenant = async (
 
 export const transferTenant = async (
   tenant: Tenant,
-  newTenantRecord: Tenant,
+  newTenantData: { email: string; name: string; phone?: string; moveInDate?: string },
   existingTenants: Tenant[]
 ): Promise<Tenant> => {
-  // TODO: Replace with API call
-  // const response = await fetch('/api/tenants/transfer', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ oldTenantId: tenant.id, newTenantRecord })
-  // });
-  // const created = await response.json();
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/tenants/transfer`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      oldTenantMembershipId: tenant.id,
+      newTenant: {
+        email: newTenantData.email,
+        name: newTenantData.name,
+        phone: newTenantData.phone,
+        unitId: tenant.unitId,
+        rentAmount: tenant.rentAmount,
+        moveInDate: newTenantData.moveInDate,
+      }
+    })
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  const data = result.data || result;
+  const oldMembership = data.oldMembership || data.old;
+  const newMembership = data.newMembership || data.new;
   
+  // Update old tenant's status to INACTIVE and add new tenant
   const updatedTenants = existingTenants.map((t) =>
-    t.id === tenant.id
-      ? { ...t, residencyStatus: 'past' as const, moveOutDate: new Date().toISOString().split('T')[0] }
-      : t
+    t.id === tenant.id ? oldMembership : t
   );
   
   getUpdateState()({
-    tenants: [...updatedTenants, newTenantRecord],
+    tenants: [...updatedTenants, newMembership],
   });
-  return newTenantRecord;
+  
+  return newMembership;
 };
 
 // ==================== Payments ====================
 
+export const fetchPayments = async (): Promise<Payment[]> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/payments`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch payments');
+  }
+
+  const result = await response.json();
+  return result.data || result;
+};
+
 export const createPayment = async (
-  payment: Payment,
+  payment: Omit<Payment, 'id' | 'createdAt'>,
   existingPayments: Payment[]
 ): Promise<Payment> => {
-  // TODO: Replace with API call
-  // const response = await fetch('/api/payments', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(payment)
-  // });
-  // const created = await response.json();
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/payments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(payment)
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  const created = result.data || result;
   
   getUpdateState()({
-    payments: [...existingPayments, payment],
+    payments: [...existingPayments, created],
   });
-  return payment;
+  return created;
 };
 
 // ==================== Landlords ====================

@@ -1,16 +1,30 @@
 export type UserRole = 'landlord' | 'tenant';
 
 export type PaymentStatus = 'paid' | 'pending' | 'due' | 'late';
-export type PaymentMethod = 'autopay' | 'manual';
-export type InviteStatus = 'pending' | 'accepted';
-export type ResidencyStatus = 'current' | 'past';
+export type PaymentMethod = 'AUTOPAY' | 'MANUAL'; // Backend uses uppercase
+export type InviteStatus = 'PENDING' | 'ACCEPTED'; // Backend uses uppercase
+export type MembershipStatus = 'ACTIVE' | 'INACTIVE'; // Backend enum
 
-export interface Landlord {
+// Basic User model (matches backend)
+export interface User {
   id: string;
-  name: string;
+  cognitoId?: string;
   email: string;
-  payoutsEnabled: boolean;
+  name: string;
+  phone?: string;
   createdAt: string;
+  updatedAt: string;
+}
+
+// LandlordAccount (matches backend)
+export interface LandlordAccount {
+  id: string;
+  userId: string;
+  user: User;
+  payoutsEnabled: boolean;
+  stripeAccountId?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Property {
@@ -19,40 +33,46 @@ export interface Property {
   name: string;
   address: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface Unit {
   id: string;
   propertyId: string;
+  property?: Property;
   name: string;
   rentAmount: number;
   dueDay: number; // Day of month (1-31)
   gracePeriodDays: number;
   createdAt: string;
+  updatedAt: string;
 }
 
-export interface Tenant {
+// TenantMembership (matches backend)
+export interface TenantMembership {
   id: string;
-  landlordId: string;
+  userId: string;
+  user: User;
   unitId: string;
-  email: string;
-  name: string;
-  phone?: string;
-  emergencyContact?: string;
-  inviteStatus: InviteStatus; // Portal access status
-  residencyStatus: ResidencyStatus; // Actual occupancy status
-  autopayEnabled: boolean;
-  paymentMethodLabel?: string; // e.g., "Card •••• 4242"
+  unit?: Unit;
+  landlordId: string;
   rentAmount: number;
-  inviteToken?: string;
   moveInDate: string;
   moveOutDate?: string;
+  inviteStatus: InviteStatus;
+  inviteToken?: string;
+  autopayEnabled: boolean;
+  stripeCustomerId?: string;
+  paymentMethodLabel?: string;
+  status: MembershipStatus;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface Payment {
   id: string;
-  tenantId: string;
+  tenantMembershipId: string; // Changed from tenantId
+  tenantMembership?: TenantMembership;
   amount: number;
   method: PaymentMethod;
   date: string;
@@ -62,13 +82,18 @@ export interface Payment {
 }
 
 export interface AppState {
-  landlords: Landlord[];
+  users: User[];
+  landlordAccounts: LandlordAccount[];
   properties: Property[];
   units: Unit[];
-  tenants: Tenant[];
+  tenantMemberships: TenantMembership[];
   payments: Payment[];
   currentUser: {
     role: UserRole;
     id: string;
   } | null;
 }
+
+// Legacy type aliases for backward compatibility during migration
+export type Landlord = LandlordAccount;
+export type Tenant = TenantMembership;

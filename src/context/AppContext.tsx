@@ -1,34 +1,33 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { AppState, UserRole } from '../types';
-import { initialMockData } from '../mock/data';
-import { initializeApi } from '../services/api';
-
-const STORAGE_KEY = 'renttrack-app-state';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import { AppState, UserRole, LandlordAccount, TenantMembership } from '../types';
+import { initializeApi, fetchProperties, fetchUnits, fetchTenants, fetchPayments } from '../services/api';
+import { authService } from '../services/auth';
 
 interface AppContextType extends AppState {
   updateState: (updates: Partial<AppState>) => void;
   login: (role: UserRole, id: string) => void;
   logout: () => void;
+  loading: boolean;
+  // Backward compatibility aliases
+  landlords: LandlordAccount[];
+  tenants: TenantMembership[];
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<AppState>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return initialMockData;
-      }
-    }
-    return initialMockData;
+  const [loading, setLoading] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [state, setState] = useState<AppState>({
+    users: [],
+    landlordAccounts: [],
+    properties: [],
+    units: [],
+    tenantMemberships: [],
+    payments: [],
+    currentUser: null,
   });
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
 
   const updateState = (updates: Partial<AppState>) => {
     setState((prev) => ({ ...prev, ...updates }));
@@ -39,6 +38,85 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     initializeApi(updateState);
   }, []);
 
+  // Restore user session on mount
+  useEffect(() => {
+    const restoreSession = () => {
+      console.log('🔵 Attempting to restore session...');
+      console.log('🔵 isAuthenticated:', authService.isAuthenticated());
+      
+      if (authService.isAuthenticated()) {
+        const memberships = authService.getMemberships();
+        console.log('🔵 Retrieved memberships:', memberships);
+        
+        if (memberships) {
+          // Determine role based on stored memberships
+          if (memberships.landlord) {
+            console.log('🔵 Setting landlord user, id:', memberships.landlord.id);
+            setState(prev => ({
+              ...prev,
+              currentUser: { role: 'landlord', id: memberships.landlord!.id },
+            }));
+          } else if (memberships.tenants && memberships.tenants.length > 0) {
+            console.log('🔵 Setting tenant user, id:', memberships.tenants[0].id);
+            setState(prev => ({
+              ...prev,
+              currentUser: { role: 'tenant', id: memberships.tenants[0].id },
+            }));
+          } else {
+            console.error('🔴 Memberships object exists but no landlord or tenant found');
+          }
+        } else {
+          console.error('🔴 No memberships found in localStorage');
+        }
+      } else {
+        console.log('🔵 User not authenticated, skipping session restore');
+      }
+      
+      // Mark session check as complete
+      setSessionReady(true);
+    };
+
+    restoreSession();
+  }, []);
+
+  // Fetch data when user is authenticated
+  useEffect(() => {
+    const loadData = async () => {
+      if (!authService.isAuthenticated() || !state.currentUser || dataLoaded) {
+        return;
+      }
+
+      console.log('🔵 Loading data from backend...');
+      setLoading(true);
+      try {
+        const [properties, units, tenants, payments] = await Promise.all([
+          fetchProperties(),
+          fetchUnits(),
+          fetchTenants(),
+          fetchPayments(),
+        ]);
+
+        console.log('🔵 Data loaded:', { properties, units, tenants, payments });
+
+        setState(prev => ({
+          ...prev,
+          properties,
+          units,
+          tenantMemberships: tenants,
+          payments,
+        }));
+        setDataLoaded(true);
+      } catch (error) {
+        console.error('🔴 Failed to load data:', error);
+        // Don't logout on data fetch failure - just show empty state
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [state.currentUser?.id, dataLoaded]);
+
   const login = (role: UserRole, id: string) => {
     setState((prev) => ({
       ...prev,
@@ -47,14 +125,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const logout = () => {
-    setState((prev) => ({
-      ...prev,
+    authService.clearAuth();
+    setDataLoaded(false);
+    setState({
+      users: [],
+      landlordAccounts: [],
+      properties: [],
+      units: [],
+      tenantMemberships: [],
+      payments: [],
       currentUser: null,
-    }));
+    });
   };
 
+  // Backward compatibility: expose aliases
+  const contextValue = useMemo(() => ({
+    ...state,
+    landlords: state.landlordAccounts,
+    tenants: state.tenantMemberships,
+    updateState,
+    login,
+    logout,
+    loading: !sessionReady || loading,
+  }), [state, loading, sessionReady]);
+
   return (
-    <AppContext.Provider value={{ ...state, updateState, login, logout }}>
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );

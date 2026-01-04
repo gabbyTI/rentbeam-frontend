@@ -1,4 +1,4 @@
-import { PaymentStatus, Tenant, Payment, Unit } from '../types';
+import { PaymentStatus, TenantMembership, Payment, Unit } from '../types';
 
 export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('en-CA', {
@@ -63,7 +63,7 @@ export const formatRentMonth = (monthString: string): string => {
 };
 
 export const getPaymentStatus = (
-  tenant: Tenant,
+  tenant: TenantMembership,
   payments: Payment[],
   unit?: Unit
 ): PaymentStatus => {
@@ -99,7 +99,7 @@ export const getPaymentStatus = (
   // Payment window is open - check for payment for this rent month
   const rentMonthString = `${rentYear}-${String(rentMonth + 1).padStart(2, '0')}`;
   const hasPayment = payments.some(
-    (p) => p.tenantId === tenant.id && p.month === rentMonthString
+    (p) => p.tenantMembershipId === tenant.id && p.month === rentMonthString
   );
   
   if (hasPayment) {

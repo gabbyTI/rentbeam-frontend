@@ -21,7 +21,19 @@ const ProtectedRoute: React.FC<{
   children: React.ReactNode;
   role?: 'landlord' | 'tenant';
 }> = ({ children, role }) => {
-  const { currentUser } = useApp();
+  const { currentUser, loading } = useApp();
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="inline-block w-12 h-12 border-4 border-t-transparent rounded-full animate-spin border-primary-600"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!currentUser) {
     return <Navigate to="/login" replace />;

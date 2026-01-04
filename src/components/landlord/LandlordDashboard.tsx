@@ -14,7 +14,7 @@ import { Input } from '../ui/Input';
 
 export const LandlordDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser, tenants, properties, units, payments } = useApp();
+  const { currentUser, tenants, properties, units, payments, loading } = useApp();
   const api = useApi();
   const { showToast } = useToast();
   const [markPaidModal, setMarkPaidModal] = useState<string | null>(null);
@@ -24,9 +24,22 @@ export const LandlordDashboard: React.FC = () => {
   );
   const [paymentNote, setPaymentNote] = useState('Paid via Interac e-Transfer');
 
+  if (loading) {
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="inline-block w-12 h-12 border-4 border-t-transparent rounded-full animate-spin border-primary-600"></div>
+            <p className="mt-4 text-gray-600">Loading your dashboard...</p>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
   const landlordTenants = useMemo(() => {
     return tenants
-      .filter((t) => t.landlordId === currentUser?.id && t.residencyStatus === 'current')
+      .filter((t) => t.landlordId === currentUser?.id && t.status === 'ACTIVE')
       .filter((t) => {
         const unit = units.find((u) => u.id === t.unitId);
         return isPaymentWindowOpen(unit);
@@ -37,6 +50,10 @@ export const LandlordDashboard: React.FC = () => {
         const status = getPaymentStatus(tenant, payments, unit);
         return {
           ...tenant,
+          // Flatten user fields for backward compatibility
+          email: tenant.user.email,
+          name: tenant.user.name,
+          phone: tenant.user.phone,
           unit,
           property,
           status,

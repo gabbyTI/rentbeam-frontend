@@ -25,44 +25,56 @@ export const Login: React.FC = () => {
     }
 
     setLoading(true);
+    console.log('🔵 Starting login for:', email);
 
     try {
-      // Call backend login API
+      // Step 1: Call backend login API
+      console.log('🔵 Step 1: Calling backend API...');
       const response = await apiLogin({ email, password });
+      console.log('🔵 Step 1: Backend response:', response);
 
-      // Store tokens and user data
+      // Step 2: Store auth data
+      console.log('🔵 Step 2: Storing tokens and user data...');
       authService.setTokens(response.tokens);
       authService.setUser(response.user);
+      authService.setMemberships(response.memberships);
+      console.log('🔵 Step 2: Auth data stored');
 
-      // Determine user role and redirect
+      // Step 3: Set current user in app context
+      console.log('🔵 Step 3: Setting current user...');
       if (response.memberships.landlord) {
-        // Landlord login
+        console.log('🔵 User is landlord, id:', response.memberships.landlord.id);
         login('landlord', response.memberships.landlord.id);
 
-        // Check if Stripe is connected
+        // Step 4: Check Stripe status
+        console.log('🔵 Step 4: Checking Stripe status...');
         try {
           const stripeStatus = await getStripeConnectStatus();
+          console.log('🔵 Stripe status:', stripeStatus);
+          
           if (!stripeStatus.onboarded) {
+            console.log('🔵 Redirecting to complete setup');
             navigate('/landlord/complete-setup');
           } else {
+            console.log('🔵 Redirecting to dashboard');
             navigate('/landlord/dashboard');
           }
-        } catch {
-          // If Stripe check fails, go to complete setup
+        } catch (stripeError) {
+          console.error('🔴 Stripe check failed:', stripeError);
           navigate('/landlord/complete-setup');
         }
-      } else if (response.memberships.tenants.length > 0) {
-        // Tenant login
-        const tenant = response.memberships.tenants[0];
-        login('tenant', tenant.id);
+      } else if (response.memberships.tenants && response.memberships.tenants.length > 0) {
+        console.log('🔵 User is tenant, id:', response.memberships.tenants[0].id);
+        login('tenant', response.memberships.tenants[0].id);
         navigate('/tenant/dashboard');
       } else {
+        console.error('🔴 No memberships found');
         showToast('No account found', 'error');
       }
     } catch (error: any) {
+      console.error('🔴 Login error:', error);
       const errorMessage = error.message || 'Login failed';
       
-      // Handle email not verified error
       if (errorMessage.includes('not confirmed') || errorMessage.includes('verify')) {
         showToast('Please verify your email first', 'error');
         navigate('/verify-email', { state: { email } });

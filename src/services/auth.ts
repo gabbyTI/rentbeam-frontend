@@ -7,6 +7,7 @@ const TOKEN_KEY = 'renttrack_access_token';
 const REFRESH_TOKEN_KEY = 'renttrack_refresh_token';
 const ID_TOKEN_KEY = 'renttrack_id_token';
 const USER_KEY = 'renttrack_user';
+const MEMBERSHIPS_KEY = 'renttrack_memberships';
 
 export interface AuthTokens {
   accessToken: string;
@@ -82,6 +83,26 @@ class AuthService {
   }
 
   /**
+   * Store memberships
+   */
+  setMemberships(memberships: { landlord: { id: string } | null; tenants: Array<{ id: string; unitId: string }> }): void {
+    localStorage.setItem(MEMBERSHIPS_KEY, JSON.stringify(memberships));
+  }
+
+  /**
+   * Get memberships
+   */
+  getMemberships(): { landlord: { id: string } | null; tenants: Array<{ id: string; unitId: string }> } | null {
+    const membershipsStr = localStorage.getItem(MEMBERSHIPS_KEY);
+    if (!membershipsStr) return null;
+    try {
+      return JSON.parse(membershipsStr);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Clear all auth data (logout)
    */
   clearAuth(): void {
@@ -89,6 +110,7 @@ class AuthService {
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(ID_TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(MEMBERSHIPS_KEY);
   }
 
   /**
