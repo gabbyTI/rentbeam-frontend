@@ -4,6 +4,9 @@ import { AppProvider, useApp } from './context/AppContext';
 import { ToastProvider } from './context/ToastContext';
 import { ToastContainer } from './components/ui/Toast';
 import { Login } from './components/Login';
+import { LandlordSignup } from './components/landlord/LandlordSignup';
+import { VerifyEmail } from './components/VerifyEmail';
+import { LandlordCompleteSetup } from './components/landlord/LandlordCompleteSetup';
 import { LandlordOnboarding } from './components/landlord/LandlordOnboarding';
 import { LandlordDashboard } from './components/landlord/LandlordDashboard';
 import { LandlordProperties } from './components/landlord/LandlordProperties';
@@ -37,6 +40,9 @@ const AppRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/landlord/signup" element={<LandlordSignup />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/landlord/complete-setup" element={<LandlordCompleteSetup />} />
       <Route path="/landlord/onboarding" element={<LandlordOnboarding />} />
       <Route path="/invite/:token" element={<InviteAccept />} />
       <Route path="/tenant/register" element={<TenantRegister />} />

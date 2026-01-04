@@ -7,6 +7,9 @@
  */
 
 import { Property, Unit, Tenant, Payment, Landlord } from '../types';
+import { authService, LoginResponse } from './auth';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
 type UpdateStateFunction = (updates: Partial<{
   landlords: Landlord[];
@@ -29,6 +32,136 @@ const getUpdateState = () => {
     throw new Error('API not initialized. Call initializeApi() first.');
   }
   return updateStateFn;
+};
+
+// ==================== Authentication ====================
+
+export interface SignupLandlordRequest {
+  email: string;
+  password: string;
+  name: string;
+}
+
+export interface SignupLandlordResponse {
+  message: string;
+  email: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface StripeConnectStatus {
+  connected: boolean;
+  accountId: string | null;
+  onboarded: boolean;
+  chargesEnabled: boolean;
+  detailsSubmitted: boolean;
+  payoutsEnabled: boolean;
+}
+
+export const signupLandlord = async (data: SignupLandlordRequest): Promise<SignupLandlordResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/signup-landlord`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Signup failed');
+  }
+
+  const result = await response.json();
+  return result.data || result;
+};
+
+export const login = async (data: LoginRequest): Promise<LoginResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Login failed');
+  }
+
+  const result = await response.json();
+  return result.data || result;
+};
+
+export const resendVerification = async (email: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/resend-verification`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to resend verification code');
+  }
+};
+
+export const confirmEmail = async (email: string, code: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/confirm-email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Invalid verification code');
+  }
+};
+
+export const getStripeConnectStatus = async (): Promise<StripeConnectStatus> => {
+  const token = authService.getAccessToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/stripe/connect/status`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to get Stripe status');
+  }
+
+  const result = await response.json();
+  return result.data || result;
+};
+
+export const connectStripe = async (refreshUrl: string, returnUrl: string): Promise<{ url: string; accountId: string }> => {
+  const token = authService.getAccessToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/stripe/connect/onboard`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ refreshUrl, returnUrl }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to connect Stripe');
+  }
+
+  const result = await response.json();
+  return result.data || result;
 };
 
 // ==================== Properties ====================

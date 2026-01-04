@@ -4,113 +4,128 @@ import { useApp } from '../context/AppContext';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Card, CardContent } from './ui/Card';
+import { login as apiLogin, getStripeConnectStatus } from '../services/api';
+import { authService } from '../services/auth';
+import { useToast } from '../context/ToastContext';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
-  const { landlords, tenants, login } = useApp();
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login } = useApp();
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
-  const handleLandlordLogin = () => {
-    if (!email) {
-      alert('Please enter an email');
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!email || !password) {
+      showToast('Please enter email and password', 'error');
       return;
     }
 
-    // Check if landlord exists
-    const landlord = landlords.find((l) => l.email === email);
+    setLoading(true);
 
-    if (landlord) {
-      login('landlord', landlord.id);
-      navigate('/landlord/dashboard');
-    } else {
-      // New landlord - go to onboarding
-      navigate('/landlord/onboarding');
+    try {
+      // Call backend login API
+      const response = await apiLogin({ email, password });
+
+      // Store tokens and user data
+      authService.setTokens(response.tokens);
+      authService.setUser(response.user);
+
+      // Determine user role and redirect
+      if (response.memberships.landlord) {
+        // Landlord login
+        login('landlord', response.memberships.landlord.id);
+
+        // Check if Stripe is connected
+        try {
+          const stripeStatus = await getStripeConnectStatus();
+          if (!stripeStatus.onboarded) {
+            navigate('/landlord/complete-setup');
+          } else {
+            navigate('/landlord/dashboard');
+          }
+        } catch {
+          // If Stripe check fails, go to complete setup
+          navigate('/landlord/complete-setup');
+        }
+      } else if (response.memberships.tenants.length > 0) {
+        // Tenant login
+        const tenant = response.memberships.tenants[0];
+        login('tenant', tenant.id);
+        navigate('/tenant/dashboard');
+      } else {
+        showToast('No account found', 'error');
+      }
+    } catch (error: any) {
+      const errorMessage = error.message || 'Login failed';
+      
+      // Handle email not verified error
+      if (errorMessage.includes('not confirmed') || errorMessage.includes('verify')) {
+        showToast('Please verify your email first', 'error');
+        navigate('/verify-email', { state: { email } });
+      } else {
+        showToast(errorMessage, 'error');
+      }
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const handleTenantLogin = () => {
-    if (!email) {
-      alert('Please enter an email');
-      return;
-    }
-
-    // Find tenant by email
-    const tenant = tenants.find((t) => t.email === email);
-
-    if (!tenant) {
-      alert('No tenant account found with this email');
-      return;
-    }
-
-    if (tenant.inviteStatus === 'pending') {
-      alert('Please accept your portal invite first');
-      return;
-    }
-
-    if (tenant.residencyStatus === 'past') {
-      alert('Your tenancy has ended. Please contact your landlord if this is incorrect.');
-      return;
-    }
-
-    login('tenant', tenant.id);
-    navigate('/tenant/dashboard');
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="flex items-center justify-center min-h-screen px-4 py-12 bg-gray-50 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-primary-600 mb-2">
+          <h1 className="mb-2 text-4xl font-bold text-primary-600">
             RentTrack Lite
           </h1>
-          <p className="text-gray-600">Simple rent tracking for small landlords</p>
+          <p className="text-gray-600">Welcome back</p>
         </div>
 
         <Card>
           <CardContent className="py-8">
-            <div className="space-y-6">
+            <form onSubmit={handleLogin} className="space-y-6">
               <Input
                 label="Email Address"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
+                required
               />
 
-              <div className="space-y-3">
-                <Button onClick={handleLandlordLogin} className="w-full">
-                  Continue as Landlord
-                </Button>
-                <Button
-                  onClick={handleTenantLogin}
-                  variant="secondary"
-                  className="w-full"
-                >
-                  Continue as Tenant
-                </Button>
-              </div>
+              <Input
+                label="Password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
+              />
 
-              <div className="mt-6 border-t pt-6">
-                <p className="text-xs text-gray-500 text-center mb-3">
-                  Demo Credentials (mock data):
-                </p>
-                <div className="space-y-2 text-xs text-gray-600">
-                  <p>
-                    <strong>Landlord:</strong> sarah@example.com or michael@example.com
-                  </p>
-                  <p>
-                    <strong>Tenant:</strong> emma.wilson@example.com or
-                    james.brown@example.com
-                  </p>
-                </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
+              >
+                {loading ? 'Logging in...' : 'Login'}
+              </Button>
+
+              <div className="text-sm text-center text-gray-600">
+                Don't have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => navigate('/landlord/signup')}
+                  className="font-medium text-primary-600 hover:text-primary-700"
+                >
+                  Sign up as Landlord
+                </button>
               </div>
-            </div>
+            </form>
           </CardContent>
         </Card>
-
-        <p className="text-center text-sm text-gray-500">
-          This is a demo app with mock data only. No real payments are processed.
-        </p>
       </div>
     </div>
   );
