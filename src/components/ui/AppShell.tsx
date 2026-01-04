@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { Button } from './Button';
+import { StripeOnboardingBanner } from './StripeOnboardingBanner';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -76,6 +77,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, title }) => {
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {currentUser?.role === 'landlord' && <StripeOnboardingBanner />}
         {children}
       </main>
     </div>

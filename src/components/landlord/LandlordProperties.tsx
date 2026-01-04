@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { AppShell } from '../ui/AppShell';
 import { Button } from '../ui/Button';
@@ -8,6 +8,7 @@ import { Modal } from '../ui/Modal';
 import { EmptyState } from '../ui/EmptyState';
 import { generateId } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
+import { getStripeConnectStatus } from '../../services/api';
 
 export const LandlordProperties: React.FC = () => {
   const { currentUser, properties, units, tenants, updateState } = useApp();
@@ -16,6 +17,20 @@ export const LandlordProperties: React.FC = () => {
   const [isAddingUnit, setIsAddingUnit] = useState<string | null>(null);
   const [isEditingProperty, setIsEditingProperty] = useState<string | null>(null);
   const [isEditingUnit, setIsEditingUnit] = useState<string | null>(null);
+  const [stripeOnboarded, setStripeOnboarded] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkStripeStatus = async () => {
+      try {
+        const status = await getStripeConnectStatus();
+        setStripeOnboarded(status.onboarded);
+      } catch (error) {
+        console.error('Failed to check Stripe status:', error);
+      }
+    };
+
+    checkStripeStatus();
+  }, []);
 
   const [propertyForm, setPropertyForm] = useState({
     name: '',
@@ -39,6 +54,11 @@ export const LandlordProperties: React.FC = () => {
   }, [properties, units, currentUser]);
 
   const handleAddProperty = () => {
+    if (!stripeOnboarded) {
+      showToast('Please connect your bank account before adding properties', 'error');
+      return;
+    }
+
     if (!propertyForm.name || !propertyForm.address) {
       showToast('Please fill in all fields', 'error');
       return;
@@ -62,6 +82,11 @@ export const LandlordProperties: React.FC = () => {
   };
 
   const handleAddUnit = (propertyId: string) => {
+    if (!stripeOnboarded) {
+      showToast('Please connect your bank account before adding units', 'error');
+      return;
+    }
+
     if (!unitForm.name || !unitForm.rentAmount || !unitForm.dueDay) {
       showToast('Please fill in all fields', 'error');
       return;
@@ -194,14 +219,26 @@ export const LandlordProperties: React.FC = () => {
     <AppShell title="Properties">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Properties</h2>
-        <Button onClick={() => setIsAddingProperty(true)}>Add Property</Button>
+        <Button 
+          onClick={() => setIsAddingProperty(true)}
+          disabled={!stripeOnboarded}
+        >
+          Add Property
+        </Button>
       </div>
 
       {landlordProperties.length === 0 ? (
         <EmptyState
           title="No properties yet"
           description="Add your first property to get started"
-          action={<Button onClick={() => setIsAddingProperty(true)}>Add Property</Button>}
+          action={
+            <Button 
+              onClick={() => setIsAddingProperty(true)}
+              disabled={!stripeOnboarded}
+            >
+              Add Property
+            </Button>
+          }
         />
       ) : (
         <div className="space-y-6">
@@ -224,6 +261,7 @@ export const LandlordProperties: React.FC = () => {
                     <Button
                       size="sm"
                       onClick={() => setIsAddingUnit(property.id)}
+                      disabled={!stripeOnboarded}
                     >
                       Add Unit
                     </Button>

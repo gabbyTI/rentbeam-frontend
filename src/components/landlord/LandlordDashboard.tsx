@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useApi } from '../../hooks/useApi';
 import { AppShell } from '../ui/AppShell';
@@ -8,11 +9,11 @@ import { Button } from '../ui/Button';
 import { formatCurrency } from '../../utils/helpers';
 import { getPaymentStatus, getCurrentMonth, generateId, getCurrentRentMonth, formatRentMonth, isPaymentWindowOpen } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
-import { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 
 export const LandlordDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { currentUser, tenants, properties, units, payments } = useApp();
   const api = useApi();
   const { showToast } = useToast();
