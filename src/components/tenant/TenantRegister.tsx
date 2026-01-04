@@ -1,51 +1,128 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useApp } from '../../context/AppContext';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardContent } from '../ui/Card';
 import { useToast } from '../../context/ToastContext';
+import { acceptInvite, fetchInviteDetails, InviteDetails } from '../../services/api';
+import { authService } from '../../services/auth';
 
 export const TenantRegister: React.FC = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
-  const { tenants, updateState } = useApp();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
+  const [inviteData, setInviteData] = useState<InviteDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
   const [formData, setFormData] = useState({
+    password: '',
+    confirmPassword: '',
     phone: '',
     emergencyContact: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [errors, setErrors] = useState({
+    password: '',
+    confirmPassword: '',
+  });
+
+  useEffect(() => {
+    const loadInvite = async () => {
+      if (!token) {
+        showToast('Invalid invite link', 'error');
+        navigate('/login');
+        return;
+      }
+
+      try {
+        const data = await fetchInviteDetails(token);
+        setInviteData(data);
+      } catch (err: any) {
+        showToast(err.message || 'Failed to load invite details', 'error');
+        navigate('/login');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInvite();
+  }, [token, navigate, showToast]);
+
+  const validatePassword = (password: string): string => {
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters';
+    }
+    if (!/[A-Z]/.test(password)) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (!/[a-z]/.test(password)) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    if (!/[0-9]/.test(password)) {
+      return 'Password must contain at least one number';
+    }
+    return '';
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const tenant = tenants.find((t) => t.inviteToken === token);
-    if (!tenant) {
+    // Validate passwords
+    const passwordError = validatePassword(formData.password);
+    const confirmError = formData.password !== formData.confirmPassword
+      ? 'Passwords do not match'
+      : '';
+
+    setErrors({
+      password: passwordError,
+      confirmPassword: confirmError,
+    });
+
+    if (passwordError || confirmError) {
+      return;
+    }
+
+    if (!token) {
       showToast('Invalid invite token', 'error');
       return;
     }
 
-    const updatedTenants = tenants.map((t) =>
-      t.id === tenant.id
-        ? {
-            ...t,
-            phone: formData.phone || undefined,
-            emergencyContact: formData.emergencyContact || undefined,
-            inviteStatus: 'accepted' as const,
-          }
-        : t
-    );
+    setSubmitting(true);
 
-    updateState({
-      tenants: updatedTenants,
-      currentUser: { role: 'tenant', id: tenant.id },
-    });
+    try {
+      await acceptInvite(token, {
+        password: formData.password,
+        phone: formData.phone || undefined,
+        emergencyContact: formData.emergencyContact || undefined,
+      });
 
-    showToast('Registration complete!');
-    navigate('/tenant/dashboard');
+      showToast('Registration complete! Please login with your credentials.');
+      navigate('/login');
+    } catch (err: any) {
+      showToast(err.message || 'Registration failed', 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="text-center py-12">
+            <p className="text-gray-500">Loading...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!inviteData) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
@@ -57,7 +134,49 @@ export const TenantRegister: React.FC = () => {
 
         <Card>
           <CardContent className="py-6">
+            <div className="mb-6 text-center">
+              <p className="text-sm text-gray-600">
+                Welcome, <span className="font-semibold">{inviteData.name}</span>
+              </p>
+              <p className="text-xs text-gray-500">{inviteData.email}</p>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                label="Password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => {
+                  setFormData({ ...formData, password: e.target.value });
+                  if (errors.password) {
+                    setErrors({ ...errors, password: validatePassword(e.target.value) });
+                  }
+                }}
+                placeholder="Enter your password"
+                required
+                error={errors.password}
+              />
+
+              <Input
+                label="Confirm Password"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={(e) => {
+                  setFormData({ ...formData, confirmPassword: e.target.value });
+                  if (errors.confirmPassword) {
+                    setErrors({
+                      ...errors,
+                      confirmPassword: formData.password !== e.target.value
+                        ? 'Passwords do not match'
+                        : ''
+                    });
+                  }
+                }}
+                placeholder="Confirm your password"
+                required
+                error={errors.confirmPassword}
+              />
+
               <Input
                 label="Phone Number (optional)"
                 type="tel"
@@ -78,8 +197,8 @@ export const TenantRegister: React.FC = () => {
                 placeholder="Jane Doe - 604-555-0101"
               />
 
-              <Button type="submit" className="w-full">
-                Complete Registration
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting ? 'Creating Account...' : 'Complete Registration'}
               </Button>
             </form>
           </CardContent>

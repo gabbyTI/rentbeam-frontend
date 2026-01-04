@@ -1,27 +1,51 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useApp } from '../../context/AppContext';
 import { Button } from '../ui/Button';
 import { Card, CardContent } from '../ui/Card';
 import { formatCurrency } from '../../utils/helpers';
+import { fetchInviteDetails, InviteDetails } from '../../services/api';
 
 export const InviteAccept: React.FC = () => {
   const { token } = useParams<{ token: string }>();
-  const { tenants, units, properties, landlords } = useApp();
   const navigate = useNavigate();
+  const [inviteData, setInviteData] = useState<InviteDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const inviteData = useMemo(() => {
-    const tenant = tenants.find((t) => t.inviteToken === token);
-    if (!tenant) return null;
+  useEffect(() => {
+    const loadInvite = async () => {
+      if (!token) {
+        setError('Invalid invite link');
+        setLoading(false);
+        return;
+      }
 
-    const unit = units.find((u) => u.id === tenant.unitId);
-    const property = properties.find((p) => p.id === unit?.propertyId);
-    const landlord = landlords.find((l) => l.id === tenant.landlordId);
+      try {
+        const data = await fetchInviteDetails(token);
+        setInviteData(data);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load invite details');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    return { tenant, unit, property, landlord };
-  }, [token, tenants, units, properties, landlords]);
+    loadInvite();
+  }, [token]);
 
-  if (!inviteData) {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="text-center py-12">
+            <p className="text-gray-500">Loading invite details...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error || !inviteData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
         <Card className="max-w-md w-full">
@@ -30,27 +54,7 @@ export const InviteAccept: React.FC = () => {
               Invalid Invite
             </h2>
             <p className="text-gray-500 mb-6">
-              This invite link is invalid or has already been used.
-            </p>
-            <Button onClick={() => navigate('/login')}>Go to Login</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const { tenant, unit, property, landlord } = inviteData;
-
-  if (tenant.inviteStatus === 'accepted') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="text-center py-12">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Invite Already Accepted
-            </h2>
-            <p className="text-gray-500 mb-6">
-              You've already accepted this invite.
+              {error || 'This invite link is invalid or has already been used.'}
             </p>
             <Button onClick={() => navigate('/login')}>Go to Login</Button>
           </CardContent>
@@ -76,27 +80,27 @@ export const InviteAccept: React.FC = () => {
             <div className="text-center mb-6">
               <h2 className="text-xl font-semibold mb-2">Tenant Invite</h2>
               <p className="text-gray-600">
-                {landlord?.name} has invited you to join RentTrack Lite
+                {inviteData.landlordName} has invited you to join RentTrack Lite
               </p>
             </div>
 
             <div className="space-y-4 bg-gray-50 p-4 rounded-lg mb-6">
               <div>
                 <label className="text-sm text-gray-500">Property</label>
-                <p className="font-medium">{property?.name}</p>
-                <p className="text-sm text-gray-600">{property?.address}</p>
+                <p className="font-medium">{inviteData.property.name}</p>
+                <p className="text-sm text-gray-600">{inviteData.property.address}</p>
               </div>
               <div>
                 <label className="text-sm text-gray-500">Unit</label>
-                <p className="font-medium">{unit?.name}</p>
+                <p className="font-medium">{inviteData.unit.name}</p>
               </div>
               <div>
                 <label className="text-sm text-gray-500">Monthly Rent</label>
-                <p className="font-medium">{formatCurrency(tenant.rentAmount)}</p>
+                <p className="font-medium">{formatCurrency(inviteData.rentAmount)}</p>
               </div>
               <div>
                 <label className="text-sm text-gray-500">Due Date</label>
-                <p className="font-medium">Day {unit?.dueDay ?? 1} of each month</p>
+                <p className="font-medium">Day {inviteData.dueDay} of each month</p>
               </div>
             </div>
 

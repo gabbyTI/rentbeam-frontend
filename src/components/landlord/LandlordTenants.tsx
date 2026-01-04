@@ -164,9 +164,9 @@ export const LandlordTenants: React.FC = () => {
                 <tr key={tenant.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      {tenant.name}
+                      {tenant.user?.name}
                     </div>
-                    <div className="text-sm text-gray-500">{tenant.email}</div>
+                    <div className="text-sm text-gray-500">{tenant.user?.email}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
@@ -178,21 +178,21 @@ export const LandlordTenants: React.FC = () => {
                     {formatCurrency(tenant.rentAmount)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge variant={tenant.residencyStatus}>
-                      {tenant.residencyStatus === 'current' ? 'Current' : 'Past'}
+                    <Badge variant={tenant.status === 'ACTIVE' ? 'current' : 'past'}>
+                      {tenant.status === 'ACTIVE' ? 'Current' : 'Past'}
                     </Badge>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {tenant.residencyStatus === 'current' ? (
-                      <Badge variant={tenant.inviteStatus}>
-                        {tenant.inviteStatus === 'accepted' ? 'Accepted' : 'Pending'}
+                    {tenant.status === 'ACTIVE' ? (
+                      <Badge variant={tenant.inviteStatus === 'ACCEPTED' ? 'accepted' : 'pending'}>
+                        {tenant.inviteStatus === 'ACCEPTED' ? 'Accepted' : 'Pending'}
                       </Badge>
                     ) : (
                       <span className="text-sm text-gray-400">—</span>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {tenant.inviteStatus === 'accepted' && tenant.residencyStatus === 'current' && (
+                    {tenant.inviteStatus === 'ACCEPTED' && tenant.status === 'ACTIVE' && (
                       <Badge variant={tenant.autopayEnabled ? 'autopay' : 'manual'}>
                         {tenant.autopayEnabled ? 'Enabled' : 'Disabled'}
                       </Badge>

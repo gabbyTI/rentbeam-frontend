@@ -134,6 +134,106 @@ export const confirmEmail = async (email: string, code: string): Promise<void> =
   }
 };
 
+export interface CurrentUserProfile {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    cognitoId: string;
+  };
+  memberships: {
+    landlord: { id: string } | null;
+    tenants: Array<{
+      id: string;
+      unitId: string;
+      unitName: string;
+      propertyName: string;
+      status: string;
+    }>;
+  };
+}
+
+export const getCurrentUser = async (): Promise<CurrentUserProfile> => {
+  const token = authService.getAccessToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  return result.data;
+};
+
+export interface TenantMembershipDetails {
+  id: string;
+  userId: string;
+  unitId: string;
+  landlordId: string;
+  rentAmount: number;
+  moveInDate: string;
+  moveOutDate: string | null;
+  inviteStatus: string;
+  autopayEnabled: boolean;
+  stripeCustomerId: string | null;
+  paymentMethodLabel: string | null;
+  status: string;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    phone: string | null;
+  };
+  unit: {
+    id: string;
+    name: string;
+    rentAmount: number;
+    dueDay: number;
+    gracePeriodDays: number;
+    property: {
+      id: string;
+      name: string;
+      address: string;
+      landlord: {
+        id: string;
+        user: {
+          id: string;
+          name: string;
+          email: string;
+        };
+      };
+    };
+  };
+}
+
+export const getTenantMembership = async (membershipId: string): Promise<TenantMembershipDetails> => {
+  const token = authService.getAccessToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/tenants/${membershipId}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  return result.data;
+};
+
 export const getStripeConnectStatus = async (): Promise<StripeConnectStatus> => {
   const token = authService.getAccessToken();
   if (!token) {
@@ -436,6 +536,68 @@ export const resendTenantInvite = async (tenantId: string): Promise<void> => {
   if (!response.ok) {
     await handleApiError(response);
   }
+};
+
+// ==================== Invites ====================
+
+export interface InviteDetails {
+  landlordName: string;
+  email: string;
+  name: string;
+  property: {
+    name: string;
+    address: string;
+  };
+  unit: {
+    name: string;
+  };
+  dueDay: number;
+  rentAmount: number;
+}
+
+export const fetchInviteDetails = async (token: string): Promise<InviteDetails> => {
+  const response = await fetch(`${API_BASE_URL}/api/invites/${token}`, {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  return result.data;
+};
+
+export interface AcceptInviteRequest {
+  password: string;
+  phone?: string;
+  emergencyContact?: string;
+}
+
+export interface AcceptInviteResponse {
+  tokens: {
+    idToken: string;
+    accessToken: string;
+    refreshToken: string;
+  };
+}
+
+export const acceptInvite = async (
+  token: string,
+  data: AcceptInviteRequest
+): Promise<AcceptInviteResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/invites/${token}/accept`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  return result.data;
 };
 
 export const updateTenant = async (
