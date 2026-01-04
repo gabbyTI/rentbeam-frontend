@@ -649,6 +649,41 @@ export const deleteTenant = async (
   getUpdateState()({ tenants: updatedTenants });
 };
 
+export const moveOutTenant = async (
+  tenantId: string,
+  moveOutDate: string,
+  existingTenants: Tenant[]
+): Promise<{ membership: Tenant; outstandingBalance: boolean; unpaidPeriods: string[] }> => {
+  const token = authService.getAccessToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}/move-out`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ moveOutDate }),
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  const movedOutTenant = result.data.membership;
+  
+  // Update local state - set tenant to INACTIVE
+  const updatedTenants = existingTenants.map((t) =>
+    t.id === tenantId ? movedOutTenant : t
+  );
+  getUpdateState()({ tenants: updatedTenants });
+  
+  return result.data;
+};
+
 export const transferTenant = async (
   tenant: Tenant,
   newTenantData: { email: string; name: string; phone?: string; moveInDate?: string },

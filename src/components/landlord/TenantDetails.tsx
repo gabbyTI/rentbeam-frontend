@@ -10,7 +10,7 @@ import { Select } from '../ui/Input';
 import { PaymentHistoryList } from '../ui/PaymentHistoryList';
 import { formatCurrency } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
-import { resendTenantInvite } from '../../services/api';
+import { resendTenantInvite, moveOutTenant } from '../../services/api';
 
 export const TenantDetails: React.FC = () => {
   const { tenantId } = useParams<{ tenantId: string }>();
@@ -48,25 +48,27 @@ export const TenantDetails: React.FC = () => {
     );
   }, [units, transferPropertyId, tenants, tenantId]);
 
-  const handleMoveOut = () => {
+  const handleMoveOut = async () => {
     if (!tenant) return;
 
-    const updatedTenants = tenants.map((t) =>
-      t.id === tenant.id
-        ? {
-            ...t,
-            status: 'INACTIVE' as const,
-            autopayEnabled: false,
-            paymentMethodLabel: undefined,
-            moveOutDate: new Date().toISOString().split('T')[0],
-          }
-        : t
-    );
-
-    updateState({ tenants: updatedTenants });
-    showToast('Tenant moved out successfully');
-    setShowMoveOutModal(false);
-    navigate('/landlord/tenants');
+    try {
+      const moveOutDate = new Date().toISOString().split('T')[0];
+      const result = await moveOutTenant(tenant.id, moveOutDate, tenants);
+      
+      if (result.outstandingBalance) {
+        showToast(
+          `Tenant moved out successfully. Warning: Unpaid rent for ${result.unpaidPeriods.join(', ')}`,
+          'warning'
+        );
+      } else {
+        showToast('Tenant moved out successfully');
+      }
+      
+      setShowMoveOutModal(false);
+      navigate('/landlord/tenants');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to move out tenant', 'error');
+    }
   };
 
   const handleTransfer = () => {
