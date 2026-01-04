@@ -424,6 +424,20 @@ export const createTenant = async (
   return tenant;
 };
 
+export const resendTenantInvite = async (tenantId: string): Promise<void> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}/resend-invite`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+};
+
 export const updateTenant = async (
   tenantId: string,
   updates: Partial<Tenant>,

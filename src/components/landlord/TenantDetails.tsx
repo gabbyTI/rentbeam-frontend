@@ -10,6 +10,7 @@ import { Select } from '../ui/Input';
 import { PaymentHistoryList } from '../ui/PaymentHistoryList';
 import { formatCurrency } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
+import { resendTenantInvite } from '../../services/api';
 
 export const TenantDetails: React.FC = () => {
   const { tenantId } = useParams<{ tenantId: string }>();
@@ -40,7 +41,7 @@ export const TenantDetails: React.FC = () => {
   const availableUnits = useMemo(() => {
     if (!transferPropertyId) return [];
     const occupiedUnitIds = tenants
-      .filter((t) => t.residencyStatus === 'current' && t.id !== tenantId)
+      .filter((t) => t.status === 'ACTIVE' && t.id !== tenantId)
       .map((t) => t.unitId);
     return units.filter(
       (u) => u.propertyId === transferPropertyId && !occupiedUnitIds.includes(u.id)
@@ -54,7 +55,7 @@ export const TenantDetails: React.FC = () => {
       t.id === tenant.id
         ? {
             ...t,
-            residencyStatus: 'past' as const,
+            status: 'INACTIVE' as const,
             autopayEnabled: false,
             paymentMethodLabel: undefined,
             moveOutDate: new Date().toISOString().split('T')[0],
@@ -83,7 +84,7 @@ export const TenantDetails: React.FC = () => {
       id: `tenant-${Date.now()}`,
       unitId: transferUnitId,
       rentAmount: newUnit.rentAmount,
-      residencyStatus: 'current' as const,
+      status: 'ACTIVE' as const,
       moveInDate: new Date().toISOString().split('T')[0],
       moveOutDate: undefined,
       createdAt: new Date().toISOString(),
@@ -94,7 +95,7 @@ export const TenantDetails: React.FC = () => {
       t.id === tenant.id
         ? {
             ...t,
-            residencyStatus: 'past' as const,
+            status: 'INACTIVE' as const,
             autopayEnabled: false,
             paymentMethodLabel: undefined,
             moveOutDate: new Date().toISOString().split('T')[0],
@@ -108,6 +109,17 @@ export const TenantDetails: React.FC = () => {
     setTransferPropertyId('');
     setTransferUnitId('');
     navigate('/landlord/tenants');
+  };
+
+  const handleResendInvite = async () => {
+    if (!tenant) return;
+
+    try {
+      await resendTenantInvite(tenant.id);
+      showToast('Invite resent successfully');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to resend invite', 'error');
+    }
   };
 
   if (!tenant) {
@@ -133,7 +145,7 @@ export const TenantDetails: React.FC = () => {
         >
           ← Back to Tenants
         </Button>
-        {tenant && tenant.residencyStatus === 'current' && (
+        {tenant && tenant.status === 'ACTIVE' && (
           <div className="flex space-x-2">
             <Button
               variant="secondary"
@@ -163,33 +175,42 @@ export const TenantDetails: React.FC = () => {
             <div className="space-y-3">
               <div>
                 <label className="text-sm text-gray-500">Name</label>
-                <p className="font-medium">{tenant.name}</p>
+                <p className="font-medium">{tenant.user?.name}</p>
               </div>
               <div>
                 <label className="text-sm text-gray-500">Email</label>
-                <p className="font-medium">{tenant.email}</p>
+                <p className="font-medium">{tenant.user?.email}</p>
               </div>
-              {tenant.phone && (
+              {tenant.user?.phone && (
                 <div>
                   <label className="text-sm text-gray-500">Phone</label>
-                  <p className="font-medium">{tenant.phone}</p>
+                  <p className="font-medium">{tenant.user.phone}</p>
                 </div>
               )}
               <div>
                 <label className="text-sm text-gray-500">Residency Status</label>
                 <div className="mt-1">
-                  <Badge variant={tenant.residencyStatus}>
-                    {tenant.residencyStatus === 'current' ? 'Current Resident' : 'Past Resident'}
+                  <Badge variant={tenant.status === 'ACTIVE' ? 'current' : 'past'}>
+                    {tenant.status === 'ACTIVE' ? 'Current Resident' : 'Past Resident'}
                   </Badge>
                 </div>
               </div>
-              {tenant.residencyStatus === 'current' && (
+              {tenant.status === 'ACTIVE' && (
                 <div>
                   <label className="text-sm text-gray-500">Portal Access</label>
-                  <div className="mt-1">
-                    <Badge variant={tenant.inviteStatus}>
-                      {tenant.inviteStatus === 'accepted' ? 'Accepted' : 'Pending Invite'}
+                  <div className="mt-1 flex items-center justify-between">
+                    <Badge variant={tenant.inviteStatus === 'ACCEPTED' ? 'accepted' : 'pending'}>
+                      {tenant.inviteStatus === 'ACCEPTED' ? 'Accepted' : 'Pending Invite'}
                     </Badge>
+                    {tenant.inviteStatus === 'PENDING' && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleResendInvite}
+                      >
+                        Resend Invite
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}

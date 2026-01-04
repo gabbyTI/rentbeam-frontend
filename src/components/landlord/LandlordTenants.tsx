@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useApi } from '../../hooks/useApi';
 import { AppShell } from '../ui/AppShell';
 import { Button } from '../ui/Button';
 import { Input, Select } from '../ui/Input';
@@ -8,11 +9,11 @@ import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
 import { EmptyState } from '../ui/EmptyState';
 import { formatCurrency } from '../../utils/helpers';
-import { generateId, generateToken } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
 
 export const LandlordTenants: React.FC = () => {
-  const { currentUser, tenants, properties, units, updateState } = useApp();
+  const { currentUser, tenants, properties, units } = useApp();
+  const api = useApi();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [isAdding, setIsAdding] = useState(false);
@@ -34,7 +35,7 @@ export const LandlordTenants: React.FC = () => {
   const availableUnits = useMemo(() => {
     if (!tenantForm.propertyId) return [];
     const occupiedUnitIds = tenants
-      .filter((t) => t.residencyStatus === 'current')
+      .filter((t) => t.status === 'ACTIVE')
       .map((t) => t.unitId);
     return units.filter(
       (u) => u.propertyId === tenantForm.propertyId && !occupiedUnitIds.includes(u.id)
@@ -42,9 +43,9 @@ export const LandlordTenants: React.FC = () => {
   }, [units, tenantForm.propertyId, tenants]);
 
   const landlordTenants = useMemo(() => {
-    const filterStatus = showArchive ? 'past' : 'current';
+    const filterStatus = showArchive ? 'INACTIVE' : 'ACTIVE';
     return tenants
-      .filter((t) => t.landlordId === currentUser?.id && t.residencyStatus === filterStatus)
+      .filter((t) => t.landlordId === currentUser?.id && t.status === filterStatus)
       .map((tenant) => {
         const unit = units.find((u) => u.id === tenant.unitId);
         const property = properties.find((p) => p.id === unit?.propertyId);
@@ -72,7 +73,7 @@ export const LandlordTenants: React.FC = () => {
     }
   };
 
-  const handleAddTenant = () => {
+  const handleAddTenant = async () => {
     if (
       !tenantForm.name ||
       !tenantForm.email ||
@@ -83,37 +84,29 @@ export const LandlordTenants: React.FC = () => {
       return;
     }
 
-    const token = generateToken();
-    const newTenant = {
-      id: generateId('tenant'),
-      landlordId: currentUser!.id,
-      unitId: tenantForm.unitId,
-      email: tenantForm.email,
-      name: tenantForm.name,
-      phone: tenantForm.phone || undefined,
-      inviteStatus: 'pending' as const,
-      residencyStatus: 'current' as const,
-      autopayEnabled: false,
-      rentAmount: parseFloat(tenantForm.rentAmount),
-      inviteToken: token,
-      moveInDate: new Date().toISOString().split('T')[0],
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      await api.createTenant({
+        email: tenantForm.email,
+        name: tenantForm.name,
+        phone: tenantForm.phone || undefined,
+        unitId: tenantForm.unitId,
+        rentAmount: parseFloat(tenantForm.rentAmount),
+        moveInDate: new Date().toISOString().split('T')[0],
+      });
 
-    updateState({
-      tenants: [...tenants, newTenant],
-    });
-
-    showToast(`Tenant added successfully. Invite sent to ${tenantForm.email}`);
-    setIsAdding(false);
-    setTenantForm({
-      name: '',
-      email: '',
-      phone: '',
-      propertyId: '',
-      unitId: '',
-      rentAmount: '',
-    });
+      showToast(`Tenant added successfully. Invite sent to ${tenantForm.email}`);
+      setIsAdding(false);
+      setTenantForm({
+        name: '',
+        email: '',
+        phone: '',
+        propertyId: '',
+        unitId: '',
+        rentAmount: '',
+      });
+    } catch (error: any) {
+      showToast(error.message || 'Failed to add tenant', 'error');
+    }
   };
 
   return (
