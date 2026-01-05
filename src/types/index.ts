@@ -1,7 +1,7 @@
 export type UserRole = 'landlord' | 'tenant';
 
 export type PaymentStatus = 'paid' | 'pending' | 'due' | 'late';
-export type PaymentMethod = 'AUTOPAY' | 'MANUAL'; // Backend uses uppercase
+export type PaymentMethod = 'CARD' | 'MANUAL'; // Backend uses uppercase
 export type InviteStatus = 'PENDING' | 'ACCEPTED'; // Backend uses uppercase
 export type MembershipStatus = 'ACTIVE' | 'INACTIVE'; // Backend enum
 
@@ -61,7 +61,9 @@ export interface TenantMembership {
   inviteStatus: InviteStatus;
   inviteToken?: string;
   autopayEnabled: boolean;
+  autopayConsentAt?: string;
   stripeCustomerId?: string;
+  defaultPaymentMethodId?: string;
   paymentMethodLabel?: string;
   status: MembershipStatus;
   createdAt: string;

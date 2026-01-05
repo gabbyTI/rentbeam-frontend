@@ -143,6 +143,9 @@ export const LandlordTenants: React.FC = () => {
                   Portal Access
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Payment Method
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Autopay
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -180,6 +183,16 @@ export const LandlordTenants: React.FC = () => {
                       </Badge>
                     ) : (
                       <span className="text-sm text-gray-400">—</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {tenant.defaultPaymentMethodId ? (
+                      <div className="flex items-center gap-1">
+                        <span>💳</span>
+                        <span className="text-gray-900">{tenant.paymentMethodLabel}</span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">No card</span>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Elements } from '@stripe/react-stripe-js';
+import stripePromise from '../../utils/stripeLoader';
 import { AppShell } from '../ui/AppShell';
 import { Card, CardHeader, CardContent } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { PaymentHistoryList } from '../ui/PaymentHistoryList';
+import { PayNowModal } from './PayNowModal';
 import { formatCurrency, getPaymentStatus } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
 import { getCurrentUser, getTenantMembership, TenantMembershipDetails, fetchPayments } from '../../services/api';
@@ -15,6 +18,7 @@ export const TenantDashboard: React.FC = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [showDisableModal, setShowDisableModal] = useState(false);
+  const [showPayNowModal, setShowPayNowModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tenantData, setTenantData] = useState<TenantMembershipDetails | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -136,12 +140,83 @@ export const TenantDashboard: React.FC = () => {
   const handleDisableAutopay = () => {
     // TODO: Implement API call to disable autopay
     showToast('Autopay disabled');
-    setShowDisableModal(false);
+    
+
+  const handlePaymentSuccess = async () => {
+    // Reload tenant data and payments
+    try {
+      const profile = await getCurrentUser();
+      const membershipId = profile.memberships.tenants[0].id;
+      const membership = await getTenantMembership(membershipId);
+      setTenantData(membership);
+
+      const allPayments = await fetchPayments();
+      const tenantPayments = allPayments.filter(p => p.tenantMembershipId === membershipId);
+      setPayments(tenantPayments);
+
+      const status = getPaymentStatus(
+        { id: membership.id } as TenantMembership,
+        tenantPayments,
+        { dueDay: membership.unit.dueDay, gracePeriodDays: membership.unit.gracePeriodDays } as any
+      );
+      setPaymentStatus(status);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to reload data', 'error');
+    }
+  };
+
+  const handlePayNowClick = () => {
+    if (!tenantData?.defaultPaymentMethodId) {
+      showToast('Please add a payment method first', 'error');
+      navigate('/tenant/payment-method');
+      return;
+    }
+    setShowPayNowModal(true);
+  };
+
+  // Get current month in YYYY-MM format
+  const getCurrentMonth = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  };setShowDisableModal(false);
   };
 
   return (
     <AppShell title="Dashboard">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="space-y-6">
+        {/* Payment Method Banner - show if no payment method set up */}
+        {!tenantData.defaultPaymentMethodId && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">💳</span>
+              <div className="flex-1">
+                <h4 className="font-medium text-blue-900 mb-1">Add a payment method</h4>
+                <p className="text-sm text-blue-800 mb-3">
+                  Set up your card to pay rent online with ease. Processing fees apply (2.9% + $0.30).
+                </p>
+                <Button
+                  size="sm"
+                  onClick={() => navigate('/tenant/payment-method')}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Add Payment Method
+                </Button
+                  className="w-full" 
+                  size="lg"
+                  onClick={handlePayNowClick}
+                  disabled={!tenantData.defaultPaymentMethodId}
+                >
+                  {tenantData.defaultPaymentMethodId 
+                    ? `Pay Now - ${formatCurrency(unit.rentAmount)}`
+                    : 'Add Payment Method to Pay'}
+                </Button>
+                {tenantData.defaultPaymentMethodId && (
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    Using {tenantData.paymentMethodLabel}
+                  </p>
+                )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
         {/* Main Info */}
         <Card className="lg:col-span-2">
           <CardHeader>
@@ -212,6 +287,21 @@ export const TenantDashboard: React.FC = () => {
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span className="text-sm font-medium text-green-700">Active</span>
                 </div>
+      {/* Pay Now Modal */}
+      {tenantData.defaultPaymentMethodId && (
+        <Elements stripe={stripePromise}>
+          <PayNowModal
+            isOpen={showPayNowModal}
+            onClose={() => setShowPayNowModal(false)}
+            onSuccess={handlePaymentSuccess}
+            rentAmount={Number(unit.rentAmount)}
+            paymentMethodLabel={tenantData.paymentMethodLabel || 'Card'}
+            month={getCurrentMonth()}
+          />
+        </Elements>
+      )}
+
+      {/* Disable Autopay Modal */}
                 <p className="text-sm text-gray-600 mb-4">
                   Rent will be automatically charged on the {unit.dueDay}
                   {unit.dueDay === 1 ? 'st' : unit.dueDay === 2 ? 'nd' : unit.dueDay === 3 ? 'rd' : 'th'} of each month.

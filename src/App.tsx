@@ -16,6 +16,7 @@ import { InviteAccept } from './components/tenant/InviteAccept';
 import { TenantRegister } from './components/tenant/TenantRegister';
 import { TenantDashboard } from './components/tenant/TenantDashboard';
 import { TenantAutopay } from './components/tenant/TenantAutopay';
+import { SetupPaymentMethod } from './components/tenant/SetupPaymentMethod';
 
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
@@ -105,6 +106,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute role="tenant">
             <TenantAutopay />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tenant/payment-method"
+        element={
+          <ProtectedRoute role="tenant">
+            <SetupPaymentMethod />
           </ProtectedRoute>
         }
       />

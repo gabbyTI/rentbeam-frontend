@@ -220,6 +220,38 @@ export const TenantDetails: React.FC = () => {
           </CardContent>
         </Card>
 
+        {/* Payment Info */}
+        {tenant.inviteStatus === 'ACCEPTED' && tenant.status === 'ACTIVE' && (
+          <Card>
+            <CardHeader>
+              <h3 className="text-lg font-semibold">Payment Information</h3>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm text-gray-500">Payment Method</label>
+                  {tenant.defaultPaymentMethodId ? (
+                    <div className="mt-1 flex items-center gap-2">
+                      <span>💳</span>
+                      <span className="font-medium">{tenant.paymentMethodLabel}</span>
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-gray-600">No card saved</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500">Autopay</label>
+                  <div className="mt-1">
+                    <Badge variant={tenant.autopayEnabled ? 'autopay' : 'manual'}>
+                      {tenant.autopayEnabled ? 'Enabled' : 'Disabled'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Unit Info */}
         <Card>
           <CardHeader>

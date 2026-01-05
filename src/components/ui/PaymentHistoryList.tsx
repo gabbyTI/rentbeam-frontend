@@ -40,11 +40,29 @@ export const PaymentHistoryList: React.FC<PaymentHistoryListProps> = ({
           >
             <div className="flex-1">
               <div className="flex items-center space-x-2">
-                <span className="font-medium text-gray-900">
-                  {formatCurrency(payment.amount)}
-                </span>
-                <Badge variant={payment.method}>
-                  {payment.method === 'autopay' ? 'Autopay (Card)' : 'Manual (Interac)'}
+                {payment.method === 'CARD' ? (
+                  <div className="flex items-center space-x-1">
+                    <span className="font-medium text-gray-900">
+                      {formatCurrency(payment.rentAmount)}
+                    </span>
+                    <span className="text-sm text-gray-500">rent</span>
+                    <span className="text-gray-400">+</span>
+                    <span className="text-sm text-gray-600">
+                      {formatCurrency(payment.processingFee)}
+                    </span>
+                    <span className="text-sm text-gray-500">fee</span>
+                    <span className="text-gray-400">=</span>
+                    <span className="font-semibold text-gray-900">
+                      {formatCurrency(payment.totalAmount)}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="font-medium text-gray-900">
+                    {formatCurrency(payment.amount)}
+                  </span>
+                )}
+                <Badge variant={payment.method === 'CARD' ? 'autopay' : 'manual'}>
+                  {payment.method === 'CARD' ? 'Card' : 'Manual (Interac)'}
                 </Badge>
                 <Badge variant={isLate ? 'late' : 'paid'}>
                   {isLate ? 'Late' : 'On Time'}
