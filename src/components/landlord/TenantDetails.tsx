@@ -6,11 +6,11 @@ import { Card, CardHeader, CardContent } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
-import { Select } from '../ui/Input';
+import { Select, Input } from '../ui/Input';
 import { PaymentHistoryList } from '../ui/PaymentHistoryList';
 import { formatCurrency } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
-import { resendTenantInvite, moveOutTenant } from '../../services/api';
+import { resendTenantInvite, moveOutTenant, updateTenantInfo } from '../../services/api';
 
 export const TenantDetails: React.FC = () => {
   const { tenantId } = useParams<{ tenantId: string }>();
@@ -19,8 +19,13 @@ export const TenantDetails: React.FC = () => {
   const navigate = useNavigate();
   const [showMoveOutModal, setShowMoveOutModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [transferPropertyId, setTransferPropertyId] = useState('');
   const [transferUnitId, setTransferUnitId] = useState('');
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const tenant = useMemo(() => {
     const t = tenants.find((t) => t.id === tenantId);
@@ -124,6 +129,67 @@ export const TenantDetails: React.FC = () => {
     }
   };
 
+  const handleEdit = () => {
+    if (!tenant) return;
+    setEditName(tenant.user?.name || '');
+    setEditEmail(tenant.user?.email || '');
+    setEditPhone(tenant.user?.phone || '');
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!tenant) return;
+
+    // Validation
+    if (!editName.trim()) {
+      showToast('Name is required', 'error');
+      return;
+    }
+
+    if (!editEmail.trim()) {
+      showToast('Email is required', 'error');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(editEmail)) {
+      showToast('Invalid email format', 'error');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await updateTenantInfo(tenant.id, {
+        name: editName,
+        email: editEmail,
+        phone: editPhone || undefined,
+      });
+
+      // Update local state
+      const updatedTenants = tenants.map((t) =>
+        t.id === tenant.id
+          ? {
+              ...t,
+              user: {
+                ...t.user!,
+                name: editName,
+                email: editEmail,
+                phone: editPhone || null,
+              },
+            }
+          : t
+      );
+      updateState({ tenants: updatedTenants });
+
+      showToast('Tenant information updated successfully');
+      setShowEditModal(false);
+    } catch (error: any) {
+      showToast(error.message || 'Failed to update tenant information', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!tenant) {
     return (
       <AppShell title="Tenant Details">
@@ -171,7 +237,12 @@ export const TenantDetails: React.FC = () => {
         {/* Tenant Info */}
         <Card>
           <CardHeader>
-            <h3 className="text-lg font-semibold">Tenant Information</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Tenant Information</h3>
+              <Button variant="secondary" size="sm" onClick={handleEdit}>
+                Edit
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -419,6 +490,70 @@ export const TenantDetails: React.FC = () => {
               </Button>
               <Button onClick={handleTransfer} className="flex-1">
                 Transfer Tenant
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Edit Tenant Information Modal */}
+      {showEditModal && (
+        <Modal
+          isOpen={true}
+          onClose={() => !saving && setShowEditModal(false)}
+          title="Edit Tenant Information"
+        >
+          <div className="space-y-4">
+            <Input
+              label="Full Name"
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder="Enter tenant name"
+              disabled={saving}
+              required
+            />
+
+            <Input
+              label="Email Address"
+              type="email"
+              value={editEmail}
+              onChange={(e) => setEditEmail(e.target.value)}
+              placeholder="Enter email address"
+              disabled={saving}
+              required
+            />
+
+            <Input
+              label="Phone Number (Optional)"
+              type="tel"
+              value={editPhone}
+              onChange={(e) => setEditPhone(e.target.value)}
+              placeholder="Enter phone number"
+              disabled={saving}
+            />
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-900">
+                <strong>Note:</strong> If the tenant has already registered, changing their email will update their login credentials.
+              </p>
+            </div>
+
+            <div className="flex space-x-3 pt-4">
+              <Button
+                variant="secondary"
+                onClick={() => setShowEditModal(false)}
+                disabled={saving}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSaveEdit} 
+                disabled={saving}
+                className="flex-1"
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </div>

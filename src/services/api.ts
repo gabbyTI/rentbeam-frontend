@@ -641,6 +641,25 @@ export const resendTenantInvite = async (tenantId: string): Promise<void> => {
   }
 };
 
+export const updateTenantInfo = async (
+  tenantId: string, 
+  data: { name?: string; email?: string; phone?: string }
+): Promise<void> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}/user-info`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+};
+
 // ==================== Invites ====================
 
 export interface InviteDetails {

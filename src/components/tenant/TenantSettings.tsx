@@ -6,9 +6,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useToast } from '../../context/ToastContext';
 import { useApp } from '../../context/AppContext';
-import { getCurrentUser } from '../../services/api';
-import { Modal } from '../ui/Modal';
-import api, { changePassword } from '../../services/api';
+import { getCurrentUser, changePassword } from '../../services/api';
 
 export const TenantSettings: React.FC = () => {
   const { showToast } = useToast();
@@ -16,8 +14,6 @@ export const TenantSettings: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [oldPassword, setOldPassword] = useState('');
@@ -57,19 +53,6 @@ export const TenantSettings: React.FC = () => {
 
     loadUserData();
   }, [showToast]);
-
-  const handleSaveAccount = async () => {
-    setSaving(true);
-    try {
-      // TODO: Connect to backend API
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
-      showToast('Account information updated', 'success');
-    } catch (err: any) {
-      showToast('Failed to update account', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleSaveNotifications = async () => {
     setSaving(true);
@@ -148,21 +131,6 @@ export const TenantSettings: React.FC = () => {
     navigate('/login');
   };
 
-  const handleDeleteAccount = async () => {
-    setDeleting(true);
-    try {
-      await api.delete('/api/auth/account');
-      showToast('Account deleted successfully', 'success');
-      logout();
-      navigate('/login');
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.error || err.message || 'Failed to delete account';
-      showToast(errorMsg, 'error');
-    } finally {
-      setDeleting(false);
-    }
-  };
-
   if (loading) {
     return (
       <AppShell title="Settings">
@@ -198,8 +166,8 @@ export const TenantSettings: React.FC = () => {
                 <Input
                   type="text"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="John Doe"
+                  disabled
+                  className="bg-gray-50"
                 />
               </div>
 
@@ -213,30 +181,24 @@ export const TenantSettings: React.FC = () => {
                   disabled
                   className="bg-gray-50"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Email cannot be changed. Contact support if needed.
-                </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone Number (Optional)
+                  Phone Number
                 </label>
                 <Input
                   type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="(555) 123-4567"
+                  disabled
+                  className="bg-gray-50"
                 />
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <Button
-                  onClick={handleSaveAccount}
-                  disabled={saving}
-                >
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </Button>
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-sm text-blue-800">
+                  <span className="font-medium">Note:</span> Account information is managed by your landlord. Please contact them to update your name, email, or phone number.
+                </p>
               </div>
             </div>
           </CardContent>
@@ -500,67 +462,12 @@ export const TenantSettings: React.FC = () => {
               >
                 Logout
               </Button>
-              <Button
-                variant="secondary"
-                onClick={() => setShowDeleteModal(true)}
-                className="w-full mt-3 text-red-600 border-red-300 hover:bg-red-50"
-              >
-                Delete Account
-              </Button>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Delete Account Confirmation Modal */}
-      {showDeleteModal && (
-        <Modal
-          isOpen={showDeleteModal}
-          onClose={() => !deleting && setShowDeleteModal(false)}
-          title="Delete Account"
-        >
-          <div className="space-y-4">
-            <div className="p-4 rounded-lg bg-red-50">
-              <p className="font-semibold text-red-900">
-                Warning: This action cannot be undone
-              </p>
-              <p className="mt-2 text-sm text-red-700">
-                Deleting your account will permanently remove:
-              </p>
-              <ul className="mt-2 ml-4 text-sm text-red-700 list-disc">
-                <li>All your tenant memberships and rental agreements</li>
-                <li>All payment history and records</li>
-                <li>Your saved payment methods</li>
-                <li>All account data and settings</li>
-              </ul>
-            </div>
-            
-            <p className="text-sm text-gray-600">
-              Are you absolutely sure you want to delete your account?
-            </p>
-            
-            <div className="flex gap-3 pt-4">
-              <Button
-                variant="secondary"
-                onClick={() => setShowDeleteModal(false)}
-                disabled={deleting}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleDeleteAccount}
-                disabled={deleting}
-                className="flex-1 bg-red-600 hover:bg-red-700"
-              >
-                {deleting ? 'Deleting...' : 'Yes, Delete My Account'}
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
 
-      {/* Change Password Modal */}
       {showPasswordModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
           <div className="w-full max-w-md bg-white rounded-lg shadow-xl">
