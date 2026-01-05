@@ -79,22 +79,28 @@ export const initializeApi = (updateState: UpdateStateFunction) => {
 };
 
 // Global error handler for API responses
-const handleApiError = async (response: Response) => {
-  // If 401, token expired - logout user
-  if (response.status === 401) {
+const handleApiError = async (response: Response, isAuthEndpoint: boolean = false) => {
+  // If 401 on protected endpoints, token expired - logout user
+  // But if it's an auth endpoint (login/signup), just show the error message
+  if (response.status === 401 && !isAuthEndpoint) {
     console.error('🔴 Token expired or invalid - logging out');
     authService.clearAuth();
     window.location.href = '/login';
     throw new Error('Session expired. Please login again.');
   }
 
-  // For other errors, try to get error message from response
+  // For other errors (including 401 on auth endpoints), try to get error message from response
+  let errorData;
   try {
-    const error = await response.json();
-    throw new Error(error.message || `Request failed with status ${response.status}`);
-  } catch (e) {
+    errorData = await response.json();
+  } catch (jsonError) {
+    // If response body isn't JSON, use generic message
     throw new Error(`Request failed with status ${response.status}`);
   }
+  
+  // Throw the actual error message from backend (prioritize message over error object)
+  const errorMessage = errorData.message || errorData.error || `Request failed with status ${response.status}`;
+  throw new Error(errorMessage);
 };
 
 // Helper to ensure API is initialized
@@ -140,7 +146,7 @@ export const signupLandlord = async (data: SignupLandlordRequest): Promise<Signu
   });
 
   if (!response.ok) {
-    await handleApiError(response);
+    await handleApiError(response, true); // Pass true for auth endpoint
   }
 
   const result = await response.json();
@@ -155,7 +161,7 @@ export const login = async (data: LoginRequest): Promise<LoginResponse> => {
   });
 
   if (!response.ok) {
-    await handleApiError(response);
+    await handleApiError(response, true); // Pass true for auth endpoint
   }
 
   const result = await response.json();
@@ -170,7 +176,7 @@ export const resendVerification = async (email: string): Promise<void> => {
   });
 
   if (!response.ok) {
-    await handleApiError(response);
+    await handleApiError(response, true); // Pass true for auth endpoint
   }
 };
 
@@ -182,7 +188,7 @@ export const confirmEmail = async (email: string, code: string): Promise<void> =
   });
 
   if (!response.ok) {
-    await handleApiError(response);
+    await handleApiError(response, true); // Pass true for auth endpoint
   }
 };
 
