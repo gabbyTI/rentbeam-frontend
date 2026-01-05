@@ -28,7 +28,7 @@ export const TenantDetails: React.FC = () => {
 
     const unit = units.find((u) => u.id === t.unitId);
     const property = properties.find((p) => p.id === unit?.propertyId);
-    const tenantPayments = payments.filter((p) => p.tenantId === t.id);
+    const tenantPayments = payments.filter((p) => p.tenantMembershipId === t.id);
 
     return { ...t, unit, property, payments: tenantPayments };
   }, [tenantId, tenants, units, properties, payments]);
