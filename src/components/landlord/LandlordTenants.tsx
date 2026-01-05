@@ -17,6 +17,7 @@ export const LandlordTenants: React.FC = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [isAdding, setIsAdding] = useState(false);
+  const [addingTenant, setAddingTenant] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
 
   const [tenantForm, setTenantForm] = useState({
@@ -77,6 +78,7 @@ export const LandlordTenants: React.FC = () => {
       return;
     }
 
+    setAddingTenant(true);
     try {
       await api.createTenant({
         email: tenantForm.email,
@@ -97,6 +99,8 @@ export const LandlordTenants: React.FC = () => {
       });
     } catch (error: any) {
       showToast(error.message || 'Failed to add tenant', 'error');
+    } finally {
+      setAddingTenant(false);
     }
   };
 
@@ -289,12 +293,13 @@ export const LandlordTenants: React.FC = () => {
               <Button
                 variant="secondary"
                 onClick={() => setIsAdding(false)}
+                disabled={addingTenant}
                 className="flex-1"
               >
                 Cancel
               </Button>
-              <Button onClick={handleAddTenant} className="flex-1">
-                Add Tenant
+              <Button onClick={handleAddTenant} disabled={addingTenant} className="flex-1">
+                {addingTenant ? 'Adding...' : 'Add Tenant'}
               </Button>
             </div>
           </div>

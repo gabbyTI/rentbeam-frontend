@@ -7,6 +7,8 @@ import { Input } from '../ui/Input';
 import { useToast } from '../../context/ToastContext';
 import { useApp } from '../../context/AppContext';
 import { getCurrentUser } from '../../services/api';
+import { Modal } from '../ui/Modal';
+import api from '../../services/api';
 
 export const TenantSettings: React.FC = () => {
   const { showToast } = useToast();
@@ -14,6 +16,8 @@ export const TenantSettings: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Account Information
   const [name, setName] = useState('');
@@ -96,6 +100,21 @@ export const TenantSettings: React.FC = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await api.delete('/api/auth/account');
+      showToast('Account deleted successfully', 'success');
+      logout();
+      navigate('/login');
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.error || err.message || 'Failed to delete account';
+      showToast(errorMsg, 'error');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (loading) {
@@ -435,10 +454,65 @@ export const TenantSettings: React.FC = () => {
               >
                 Logout
               </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setShowDeleteModal(true)}
+                className="w-full mt-3 text-red-600 border-red-300 hover:bg-red-50"
+              >
+                Delete Account
+              </Button>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteModal && (
+        <Modal
+          isOpen={showDeleteModal}
+          onClose={() => !deleting && setShowDeleteModal(false)}
+          title="Delete Account"
+        >
+          <div className="space-y-4">
+            <div className="p-4 rounded-lg bg-red-50">
+              <p className="font-semibold text-red-900">
+                Warning: This action cannot be undone
+              </p>
+              <p className="mt-2 text-sm text-red-700">
+                Deleting your account will permanently remove:
+              </p>
+              <ul className="mt-2 ml-4 text-sm text-red-700 list-disc">
+                <li>All your tenant memberships and rental agreements</li>
+                <li>All payment history and records</li>
+                <li>Your saved payment methods</li>
+                <li>All account data and settings</li>
+              </ul>
+            </div>
+            
+            <p className="text-sm text-gray-600">
+              Are you absolutely sure you want to delete your account?
+            </p>
+            
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="secondary"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="flex-1 bg-red-600 hover:bg-red-700"
+              >
+                {deleting ? 'Deleting...' : 'Yes, Delete My Account'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </AppShell>
   );
 };

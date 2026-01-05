@@ -20,6 +20,8 @@ export const LandlordSettings: React.FC = () => {
   const [savingAccount, setSavingAccount] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
   const [savingNotifications, setSavingNotifications] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Account Information
   const [name, setName] = useState('');
@@ -146,6 +148,20 @@ export const LandlordSettings: React.FC = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await api.delete('/api/auth/account');
+      showToast('Account deleted successfully', 'success');
+      logout();
+      navigate('/login');
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.error || err.message || 'Failed to delete account';
+      showToast(errorMsg, 'error');
+      setDeleting(false);
+    }
   };
 
   if (loading) {
@@ -549,7 +565,72 @@ export const LandlordSettings: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Danger Zone */}
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold text-red-600">Danger Zone</h2>
+          </CardHeader>
+          <CardContent>
+            <div className="p-4 border border-red-200 rounded-lg bg-red-50">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="font-medium text-red-900">Delete Account</p>
+                  <p className="mt-1 text-sm text-red-700">
+                    Permanently delete your account and all associated data including properties, units, tenants, and payment history. This action cannot be undone.
+                  </p>
+                </div>
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowDeleteModal(true)}
+                  className="ml-4 text-red-600 border-red-300 hover:bg-red-100"
+                >
+                  Delete Account
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="w-full max-w-md p-6 mx-4 bg-white rounded-lg shadow-xl">
+            <h3 className="text-lg font-semibold text-red-600">Delete Account?</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Are you absolutely sure? This will permanently delete:
+            </p>
+            <ul className="mt-3 ml-5 space-y-1 text-sm text-gray-700 list-disc">
+              <li>Your account and profile</li>
+              <li>All properties and units</li>
+              <li>All tenant memberships and invites</li>
+              <li>All payment history</li>
+              <li>Your Stripe connection (payouts will be paused)</li>
+            </ul>
+            <p className="mt-3 text-sm font-medium text-red-600">
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-3 mt-6">
+              <Button
+                variant="secondary"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="flex-1 bg-red-600 hover:bg-red-700"
+              >
+                {deleting ? 'Deleting...' : 'Yes, Delete Everything'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 };
