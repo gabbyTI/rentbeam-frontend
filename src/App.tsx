@@ -16,6 +16,8 @@ import { InviteAccept } from './components/tenant/InviteAccept';
 import { TenantRegister } from './components/tenant/TenantRegister';
 import { TenantDashboard } from './components/tenant/TenantDashboard';
 import { TenantAutopay } from './components/tenant/TenantAutopay';
+import { TenantSettings } from './components/tenant/TenantSettings';
+import { LandlordSettings } from './components/landlord/LandlordSettings';
 import { SetupPaymentMethod } from './components/tenant/SetupPaymentMethod';
 
 const ProtectedRoute: React.FC<{
@@ -92,6 +94,14 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/landlord/settings"
+        element={
+          <ProtectedRoute role="landlord">
+            <LandlordSettings />
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/tenant/dashboard"
@@ -114,6 +124,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute role="tenant">
             <SetupPaymentMethod />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tenant/settings"
+        element={
+          <ProtectedRoute role="tenant">
+            <TenantSettings />
           </ProtectedRoute>
         }
       />

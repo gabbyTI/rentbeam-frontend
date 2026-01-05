@@ -191,10 +191,17 @@ export interface CurrentUserProfile {
     id: string;
     email: string;
     name: string;
+    phone?: string;
+    businessName?: string;
+    taxId?: string;
     cognitoId: string;
   };
   memberships: {
-    landlord: { id: string } | null;
+    landlord: {
+      id: string;
+      defaultDueDay?: number;
+      defaultGracePeriodDays?: number;
+    } | null;
     tenants: Array<{
       id: string;
       unitId: string;

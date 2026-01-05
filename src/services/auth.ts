@@ -114,6 +114,13 @@ class AuthService {
   }
 
   /**
+   * Logout user (alias for clearAuth)
+   */
+  logout(): void {
+    this.clearAuth();
+  }
+
+  /**
    * Get authorization header
    */
   getAuthHeader(): string {

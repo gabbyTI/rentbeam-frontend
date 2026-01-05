@@ -38,6 +38,13 @@ export const AppShell: React.FC<AppShellProps> = ({ children, title }) => {
                 <span className="text-sm text-gray-600 capitalize">
                   {currentUser.role}
                 </span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => navigate(currentUser.role === 'landlord' ? '/landlord/settings' : '/tenant/settings')}
+                >
+                  Settings
+                </Button>
                 <Button variant="ghost" size="sm" onClick={handleLogout}>
                   Logout
                 </Button>
@@ -69,6 +76,40 @@ export const AppShell: React.FC<AppShellProps> = ({ children, title }) => {
                 className="py-4 text-sm font-medium text-gray-700 hover:text-primary-600 border-b-2 border-transparent hover:border-primary-600"
               >
                 Tenants
+              </button>
+              <button
+                onClick={() => navigate('/landlord/settings')}
+                className="py-4 text-sm font-medium text-gray-700 hover:text-primary-600 border-b-2 border-transparent hover:border-primary-600"
+              >
+                Settings
+              </button>
+            </div>
+          </div>
+        </nav>
+      )}
+
+      {/* Navigation for tenant */}
+      {currentUser?.role === 'tenant' && (
+        <nav className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex space-x-8">
+              <button
+                onClick={() => navigate('/tenant/dashboard')}
+                className="py-4 text-sm font-medium text-gray-700 hover:text-primary-600 border-b-2 border-transparent hover:border-primary-600"
+              >
+                Dashboard
+              </button>
+              <button
+                onClick={() => navigate('/tenant/autopay')}
+                className="py-4 text-sm font-medium text-gray-700 hover:text-primary-600 border-b-2 border-transparent hover:border-primary-600"
+              >
+                Autopay
+              </button>
+              <button
+                onClick={() => navigate('/tenant/settings')}
+                className="py-4 text-sm font-medium text-gray-700 hover:text-primary-600 border-b-2 border-transparent hover:border-primary-600"
+              >
+                Settings
               </button>
             </div>
           </div>
