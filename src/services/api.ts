@@ -11,6 +11,58 @@ import { authService, LoginResponse } from './auth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
+// Simple fetch-based API client for authenticated requests
+const api = {
+  get: async (url: string) => {
+    const response = await fetch(`${API_BASE_URL}${url}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authService.getToken()}`
+      }
+    });
+    if (!response.ok) await handleApiError(response);
+    return response.json();
+  },
+  post: async (url: string, data?: any) => {
+    const response = await fetch(`${API_BASE_URL}${url}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authService.getToken()}`
+      },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) await handleApiError(response);
+    return response.json();
+  },
+  patch: async (url: string, data?: any) => {
+    const response = await fetch(`${API_BASE_URL}${url}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authService.getToken()}`
+      },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) await handleApiError(response);
+    return response.json();
+  },
+  delete: async (url: string) => {
+    const response = await fetch(`${API_BASE_URL}${url}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authService.getToken()}`
+      }
+    });
+    if (!response.ok) await handleApiError(response);
+    return response.json();
+  }
+};
+
+export default api;
+
 type UpdateStateFunction = (updates: Partial<{
   landlords: Landlord[];
   properties: Property[];
