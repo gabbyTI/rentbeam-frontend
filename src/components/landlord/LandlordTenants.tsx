@@ -25,7 +25,6 @@ export const LandlordTenants: React.FC = () => {
     phone: '',
     propertyId: '',
     unitId: '',
-    rentAmount: '',
   });
 
   const landlordProperties = useMemo(() => {
@@ -58,27 +57,21 @@ export const LandlordTenants: React.FC = () => {
       ...tenantForm,
       propertyId,
       unitId: '',
-      rentAmount: '',
     });
   };
 
   const handleUnitChange = (unitId: string) => {
-    const unit = units.find((u) => u.id === unitId);
-    if (unit) {
-      setTenantForm({
-        ...tenantForm,
-        unitId,
-        rentAmount: unit.rentAmount.toString(),
-      });
-    }
+    setTenantForm({
+      ...tenantForm,
+      unitId,
+    });
   };
 
   const handleAddTenant = async () => {
     if (
       !tenantForm.name ||
       !tenantForm.email ||
-      !tenantForm.unitId ||
-      !tenantForm.rentAmount
+      !tenantForm.unitId
     ) {
       showToast('Please fill in all required fields', 'error');
       return;
@@ -101,7 +94,6 @@ export const LandlordTenants: React.FC = () => {
         phone: '',
         propertyId: '',
         unitId: '',
-        rentAmount: '',
       });
     } catch (error: any) {
       showToast(error.message || 'Failed to add tenant', 'error');
@@ -278,19 +270,6 @@ export const LandlordTenants: React.FC = () => {
                   </option>
                 ))}
               </Select>
-            )}
-
-            {tenantForm.unitId && (
-              <>
-                <Input
-                  label="Monthly Rent ($)"
-                  type="number"
-                  value={tenantForm.rentAmount}
-                  onChange={(e) =>
-                    setTenantForm({ ...tenantForm, rentAmount: e.target.value })
-                  }
-                />
-              </>
             )}
 
             <div className="flex space-x-3 pt-4">
