@@ -62,10 +62,16 @@ export const LandlordDashboard: React.FC = () => {
   }, [tenants, units, properties, payments, currentUser]);
 
   const stats = useMemo(() => {
-    const expected = landlordTenants.reduce((sum, t) => sum + (t.unit?.rentAmount || 0), 0);
+    const expected = landlordTenants.reduce((sum, t) => {
+      const rent = t.unit?.rentAmount ? parseFloat(t.unit.rentAmount.toString()) : 0;
+      return sum + rent;
+    }, 0);
     const collected = landlordTenants
       .filter((t) => t.status === 'paid')
-      .reduce((sum, t) => sum + (t.unit?.rentAmount || 0), 0);
+      .reduce((sum, t) => {
+        const rent = t.unit?.rentAmount ? parseFloat(t.unit.rentAmount.toString()) : 0;
+        return sum + rent;
+      }, 0);
     const outstanding = expected - collected;
     const lateCount = landlordTenants.filter((t) => t.status === 'late').length;
 
@@ -86,25 +92,23 @@ export const LandlordDashboard: React.FC = () => {
       return;
     }
 
-    const currentMonth = getCurrentMonth();
-    const newPayment = {
-      id: generateId('payment'),
-      tenantId: markPaidModal,
-      amount: parseFloat(paymentAmount),
-      method: 'manual' as const,
-      date: paymentDate,
-      month: currentMonth,
-      note: paymentNote,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const paymentData = {
+        tenantMembershipId: markPaidModal,
+        amount: parseFloat(paymentAmount),
+        date: paymentDate,
+        note: paymentNote || undefined,
+      };
 
-    // Use API service instead of direct updateState
-    await api.createPayment(newPayment);
+      await api.createPayment(paymentData, payments);
 
-    showToast('Payment marked as paid');
-    setMarkPaidModal(null);
-    setPaymentAmount('');
-    setPaymentNote('Paid via Interac e-Transfer');
+      showToast('Payment marked as paid');
+      setMarkPaidModal(null);
+      setPaymentAmount('');
+      setPaymentNote('Paid via Interac e-Transfer');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to record payment', 'error');
+    }
   };
 
 
