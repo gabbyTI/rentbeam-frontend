@@ -12,6 +12,7 @@ import { PayNowModal } from './PayNowModal';
 import { formatCurrency, getPaymentStatus } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
 import { getCurrentUser, getTenantMembership, TenantMembershipDetails, fetchPayments } from '../../services/api';
+import api from '../../services/api';
 import { Payment, PaymentStatus, TenantMembership } from '../../types';
 
 export const TenantDashboard: React.FC = () => {
@@ -91,9 +92,26 @@ export const TenantDashboard: React.FC = () => {
     setShowPayNowModal(true);
   };
 
-  const handleDisableAutopay = () => {
-    showToast('Autopay disabled');
-    setShowDisableModal(false);
+  const handleDisableAutopay = async () => {
+    if (!tenantData) return;
+    
+    setLoading(true);
+    try {
+      await api.patch(`/api/tenants/${tenantData.id}/autopay`, {
+        autopayEnabled: false,
+      });
+
+      showToast('Autopay disabled', 'success');
+      setShowDisableModal(false);
+      
+      // Refresh data
+      await handlePaymentSuccess();
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.error || err.message || 'Failed to disable autopay';
+      showToast(errorMsg, 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getCurrentMonth = () => {
@@ -202,11 +220,13 @@ export const TenantDashboard: React.FC = () => {
             className="w-full"
             size="lg"
             onClick={handlePayNowClick}
-            disabled={!tenantData.defaultPaymentMethodId}
+            disabled={!tenantData.defaultPaymentMethodId || paymentStatus === 'paid'}
           >
-            {tenantData.defaultPaymentMethodId 
-              ? `Pay Now - ${formatCurrency(unit.rentAmount)}`
-              : 'Add Payment Method to Pay'}
+            {!tenantData.defaultPaymentMethodId 
+              ? 'Add Payment Method to Pay'
+              : paymentStatus === 'paid'
+              ? `Paid - ${formatCurrency(unit.rentAmount)}`
+              : `Pay Now - ${formatCurrency(unit.rentAmount)}`}
           </Button>
           {tenantData.defaultPaymentMethodId && (
             <p className="text-xs text-gray-500 text-center mt-2">

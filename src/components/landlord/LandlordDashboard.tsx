@@ -29,7 +29,7 @@ export const LandlordDashboard: React.FC = () => {
       <AppShell>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <div className="inline-block w-12 h-12 border-4 border-t-transparent rounded-full animate-spin border-primary-600"></div>
+            <div className="inline-block w-12 h-12 border-4 rounded-full border-t-transparent animate-spin border-primary-600"></div>
             <p className="mt-4 text-gray-600">Loading your dashboard...</p>
           </div>
         </div>
@@ -128,7 +128,7 @@ export const LandlordDashboard: React.FC = () => {
   return (
     <AppShell title="Dashboard">
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-4">
         <StatCard title="Expected This Month" value={formatCurrency(stats.expected)} />
         <StatCard title="Collected" value={formatCurrency(stats.collected)} />
         <StatCard title="Outstanding" value={formatCurrency(stats.outstanding)} />
@@ -138,7 +138,7 @@ export const LandlordDashboard: React.FC = () => {
           icon={
             stats.lateCount > 0 ? (
               <svg
-                className="h-6 w-6 text-red-500"
+                className="w-6 h-6 text-red-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -157,7 +157,7 @@ export const LandlordDashboard: React.FC = () => {
 
       {/* Info Note */}
       <div className="mb-6">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
           <p className="text-sm text-blue-800">
             💡 <strong>Autopay payouts</strong> typically deposit to your bank in 2–5
             business days after tenants are automatically charged on their due date.
@@ -168,33 +168,33 @@ export const LandlordDashboard: React.FC = () => {
       {/* Tenants by Property */}
       {Object.entries(groupedByProperty).map(([propertyName, propertyTenants]) => (
         <div key={propertyName} className="mb-8">
-          <h2 className="text-lg font-semibold mb-4">{propertyName}</h2>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <h2 className="mb-4 text-lg font-semibold">{propertyName}</h2>
+          <div className="overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                     Tenant
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                     Unit
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                     Rent Month
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                     Amount
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                     Due Day
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                     Payment Method
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
                     Actions
                   </th>
                 </tr>
@@ -210,16 +210,16 @@ export const LandlordDashboard: React.FC = () => {
                       </div>
                       <div className="text-sm text-gray-500">{tenant.email}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
                       {tenant.unit?.name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
                       {rentMonth}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
                       {formatCurrency(tenant.unit!.rentAmount)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
                       Day {tenant.unit?.dueDay ?? 1}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -232,7 +232,7 @@ export const LandlordDashboard: React.FC = () => {
                         {tenant.autopayEnabled ? 'Autopay' : 'Manual'}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
                       {!tenant.autopayEnabled && tenant.status !== 'paid' && (
                         <Button
                           size="sm"

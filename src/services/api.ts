@@ -18,7 +18,7 @@ const api = {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authService.getToken()}`
+        'Authorization': `Bearer ${authService.getAccessToken()}`
       }
     });
     if (!response.ok) await handleApiError(response);
@@ -29,7 +29,7 @@ const api = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authService.getToken()}`
+        'Authorization': `Bearer ${authService.getAccessToken()}`
       },
       body: JSON.stringify(data)
     });
@@ -41,7 +41,7 @@ const api = {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authService.getToken()}`
+        'Authorization': `Bearer ${authService.getAccessToken()}`
       },
       body: JSON.stringify(data)
     });
@@ -53,7 +53,7 @@ const api = {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authService.getToken()}`
+        'Authorization': `Bearer ${authService.getAccessToken()}`
       }
     });
     if (!response.ok) await handleApiError(response);
