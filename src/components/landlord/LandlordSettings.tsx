@@ -5,10 +5,11 @@ import { Card, CardHeader, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Badge } from '../ui/Badge';
+import { Modal } from '../ui/Modal';
 import { useToast } from '../../context/ToastContext';
 import { useApp } from '../../context/AppContext';
 import { getCurrentUser, getStripeConnectStatus } from '../../services/api';
-import api from '../../services/api';
+import api, { changePassword } from '../../services/api';
 
 export const LandlordSettings: React.FC = () => {
   const { showToast } = useToast();
@@ -22,6 +23,11 @@ export const LandlordSettings: React.FC = () => {
   const [savingNotifications, setSavingNotifications] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   // Account Information
   const [name, setName] = useState('');
@@ -141,8 +147,49 @@ export const LandlordSettings: React.FC = () => {
   };
 
   const handleChangePassword = () => {
-    // TODO: Implement Cognito password change flow
-    showToast('Password change coming soon', 'info');
+    setShowPasswordModal(true);
+  };
+
+  const handlePasswordSubmit = async () => {
+    // Validation
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      showToast('Please fill in all fields', 'error');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      showToast('New passwords do not match', 'error');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      showToast('Password must be at least 8 characters', 'error');
+      return;
+    }
+
+    if (oldPassword === newPassword) {
+      showToast('New password must be different from old password', 'error');
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      await changePassword(oldPassword, newPassword);
+      showToast('Password changed successfully! Please login again.', 'success');
+      setShowPasswordModal(false);
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      
+      // Log out for security - invalidates all sessions
+      logout();
+      navigate('/login');
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.error || err.message || 'Failed to change password';
+      showToast(errorMsg, 'error');
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   const handleLogout = () => {
@@ -627,6 +674,86 @@ export const LandlordSettings: React.FC = () => {
               >
                 {deleting ? 'Deleting...' : 'Yes, Delete Everything'}
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="w-full max-w-md bg-white rounded-lg shadow-xl">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-semibold">Change Password</h2>
+              <button
+                onClick={() => !changingPassword && setShowPasswordModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+                disabled={changingPassword}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">
+                  Current Password
+                </label>
+                <Input
+                  type="password"
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  disabled={changingPassword}
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">
+                  New Password
+                </label>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  disabled={changingPassword}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Must be at least 8 characters
+                </p>
+              </div>
+
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">
+                  Confirm New Password
+                </label>
+                <Input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm new password"
+                  disabled={changingPassword}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowPasswordModal(false)}
+                  disabled={changingPassword}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handlePasswordSubmit}
+                  disabled={changingPassword}
+                  className="flex-1"
+                >
+                  {changingPassword ? 'Changing...' : 'Change Password'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

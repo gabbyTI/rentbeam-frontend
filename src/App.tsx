@@ -6,6 +6,8 @@ import { ToastContainer } from './components/ui/Toast';
 import { Login } from './components/Login';
 import { LandlordSignup } from './components/landlord/LandlordSignup';
 import { VerifyEmail } from './components/VerifyEmail';
+import { ForgotPassword } from './components/ForgotPassword';
+import { ResetPassword } from './components/ResetPassword';
 import { LandlordCompleteSetup } from './components/landlord/LandlordCompleteSetup';
 import { LandlordOnboarding } from './components/landlord/LandlordOnboarding';
 import { LandlordDashboard } from './components/landlord/LandlordDashboard';
@@ -57,6 +59,8 @@ const AppRoutes: React.FC = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/landlord/signup" element={<LandlordSignup />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/landlord/complete-setup" element={<LandlordCompleteSetup />} />
       <Route path="/landlord/onboarding" element={<LandlordOnboarding />} />
       <Route path="/invite/:token" element={<InviteAccept />} />

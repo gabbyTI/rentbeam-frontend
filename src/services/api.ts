@@ -192,6 +192,45 @@ export const confirmEmail = async (email: string, code: string): Promise<void> =
   }
 };
 
+export const forgotPassword = async (email: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) {
+    await handleApiError(response, true); // Pass true for auth endpoint
+  }
+};
+
+export const resetPassword = async (email: string, code: string, newPassword: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code, newPassword }),
+  });
+
+  if (!response.ok) {
+    await handleApiError(response, true); // Pass true for auth endpoint
+  }
+};
+
+export const changePassword = async (oldPassword: string, newPassword: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authService.getAccessToken()}`
+    },
+    body: JSON.stringify({ oldPassword, newPassword }),
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+};
+
 export interface CurrentUserProfile {
   user: {
     id: string;
