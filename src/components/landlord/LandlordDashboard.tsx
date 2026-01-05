@@ -62,10 +62,10 @@ export const LandlordDashboard: React.FC = () => {
   }, [tenants, units, properties, payments, currentUser]);
 
   const stats = useMemo(() => {
-    const expected = landlordTenants.reduce((sum, t) => sum + t.rentAmount, 0);
+    const expected = landlordTenants.reduce((sum, t) => sum + (t.unit?.rentAmount || 0), 0);
     const collected = landlordTenants
       .filter((t) => t.status === 'paid')
-      .reduce((sum, t) => sum + t.rentAmount, 0);
+      .reduce((sum, t) => sum + (t.unit?.rentAmount || 0), 0);
     const outstanding = expected - collected;
     const lateCount = landlordTenants.filter((t) => t.status === 'late').length;
 
@@ -76,7 +76,7 @@ export const LandlordDashboard: React.FC = () => {
     setMarkPaidModal(tenantId);
     const tenant = landlordTenants.find((t) => t.id === tenantId);
     if (tenant) {
-      setPaymentAmount(tenant.rentAmount.toString());
+      setPaymentAmount(tenant.unit!.rentAmount.toString());
     }
   };
 
@@ -213,7 +213,7 @@ export const LandlordDashboard: React.FC = () => {
                       {rentMonth}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatCurrency(tenant.rentAmount)}
+                      {formatCurrency(tenant.unit!.rentAmount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       Day {tenant.unit?.dueDay ?? 1}

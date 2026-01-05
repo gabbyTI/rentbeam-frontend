@@ -23,7 +23,7 @@ export const TenantAutopay: React.FC = () => {
     return tenants.find((t) => t.id === currentUser?.id);
   }, [tenants, currentUser]);
 
-  const processingFee = tenant ? (tenant.rentAmount * 0.029 + 0.3).toFixed(2) : '0.00';
+  const processingFee = tenant ? (tenant.unit!.rentAmount * 0.029 + 0.3).toFixed(2) : '0.00';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

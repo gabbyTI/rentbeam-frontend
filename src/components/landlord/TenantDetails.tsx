@@ -238,7 +238,7 @@ export const TenantDetails: React.FC = () => {
               </div>
               <div>
                 <label className="text-sm text-gray-500">Monthly Rent</label>
-                <p className="font-medium">{formatCurrency(tenant.rentAmount)}</p>
+                <p className="font-medium">{formatCurrency(tenant.unit!.rentAmount)}</p>
               </div>
               <div>
                 <label className="text-sm text-gray-500">Due Day</label>

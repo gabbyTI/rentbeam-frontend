@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardContent } from '../ui/Card';
 import { signupLandlord } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
+import { useApp } from '../../context/AppContext';
 
 export const LandlordSignup: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { currentUser } = useApp();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -16,6 +18,16 @@ export const LandlordSignup: React.FC = () => {
     password: '',
     confirmPassword: '',
   });
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (currentUser) {
+      const redirectPath = currentUser.role === 'landlord' 
+        ? '/landlord/dashboard' 
+        : '/tenant/dashboard';
+      navigate(redirectPath, { replace: true });
+    }
+  }, [currentUser, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

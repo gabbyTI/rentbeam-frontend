@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useApi } from '../../hooks/useApi';
 import { AppShell } from '../ui/AppShell';
@@ -9,30 +9,15 @@ import { Modal } from '../ui/Modal';
 import { EmptyState } from '../ui/EmptyState';
 import { generateId } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
-import { getStripeConnectStatus } from '../../services/api';
 
 export const LandlordProperties: React.FC = () => {
-  const { currentUser, properties, units, tenants } = useApp();
+  const { currentUser, properties, units, tenants, stripeOnboarded } = useApp();
   const api = useApi();
   const { showToast } = useToast();
   const [isAddingProperty, setIsAddingProperty] = useState(false);
   const [isAddingUnit, setIsAddingUnit] = useState<string | null>(null);
   const [isEditingProperty, setIsEditingProperty] = useState<string | null>(null);
   const [isEditingUnit, setIsEditingUnit] = useState<string | null>(null);
-  const [stripeOnboarded, setStripeOnboarded] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const checkStripeStatus = async () => {
-      try {
-        const status = await getStripeConnectStatus();
-        setStripeOnboarded(status.onboarded);
-      } catch (error) {
-        console.error('Failed to check Stripe status:', error);
-      }
-    };
-
-    checkStripeStatus();
-  }, []);
 
   const [propertyForm, setPropertyForm] = useState({
     name: '',

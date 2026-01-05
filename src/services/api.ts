@@ -178,7 +178,6 @@ export interface TenantMembershipDetails {
   userId: string;
   unitId: string;
   landlordId: string;
-  rentAmount: number;
   moveInDate: string;
   moveOutDate: string | null;
   inviteStatus: string;
@@ -497,7 +496,7 @@ export const fetchTenants = async (): Promise<Tenant[]> => {
 };
 
 export const createTenant = async (
-  tenant: { email: string; name: string; phone?: string; unitId: string; rentAmount: number; moveInDate?: string },
+  tenant: { email: string; name: string; phone?: string; unitId: string; moveInDate?: string },
   existingTenants: Tenant[]
 ): Promise<any> => {
   const token = authService.getAccessToken();
@@ -552,7 +551,7 @@ export interface InviteDetails {
     name: string;
   };
   dueDay: number;
-  rentAmount: number;
+  rentAmount: number; // This is from the unit, kept for backward compatibility
 }
 
 export const fetchInviteDetails = async (token: string): Promise<InviteDetails> => {
@@ -703,7 +702,6 @@ export const transferTenant = async (
         name: newTenantData.name,
         phone: newTenantData.phone,
         unitId: tenant.unitId,
-        rentAmount: tenant.rentAmount,
         moveInDate: newTenantData.moveInDate,
       }
     })

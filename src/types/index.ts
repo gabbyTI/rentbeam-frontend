@@ -56,7 +56,6 @@ export interface TenantMembership {
   unitId: string;
   unit?: Unit;
   landlordId: string;
-  rentAmount: number;
   moveInDate: string;
   moveOutDate?: string;
   inviteStatus: InviteStatus;

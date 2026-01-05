@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Button } from './ui/Button';
@@ -12,9 +12,19 @@ export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useApp();
+  const { login, currentUser } = useApp();
   const navigate = useNavigate();
   const { showToast } = useToast();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (currentUser) {
+      const redirectPath = currentUser.role === 'landlord' 
+        ? '/landlord/dashboard' 
+        : '/tenant/dashboard';
+      navigate(redirectPath, { replace: true });
+    }
+  }, [currentUser, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

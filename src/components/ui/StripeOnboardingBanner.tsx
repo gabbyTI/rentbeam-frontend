@@ -1,24 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getStripeConnectStatus } from '../../services/api';
 import { Button } from './Button';
 
-export const StripeOnboardingBanner: React.FC = () => {
+interface StripeOnboardingBannerProps {
+  stripeOnboarded: boolean | null;
+}
+
+export const StripeOnboardingBanner: React.FC<StripeOnboardingBannerProps> = ({ stripeOnboarded }) => {
   const navigate = useNavigate();
-  const [stripeOnboarded, setStripeOnboarded] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const checkStripeStatus = async () => {
-      try {
-        const status = await getStripeConnectStatus();
-        setStripeOnboarded(status.onboarded);
-      } catch (error) {
-        console.error('Failed to check Stripe status:', error);
-      }
-    };
-
-    checkStripeStatus();
-  }, []);
 
   if (stripeOnboarded !== false) {
     return null;

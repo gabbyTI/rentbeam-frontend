@@ -6,9 +6,10 @@ import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { PaymentHistoryList } from '../ui/PaymentHistoryList';
-import { formatCurrency } from '../../utils/helpers';
+import { formatCurrency, getPaymentStatus } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
-import { getCurrentUser, getTenantMembership, TenantMembershipDetails } from '../../services/api';
+import { getCurrentUser, getTenantMembership, TenantMembershipDetails, fetchPayments } from '../../services/api';
+import { Payment, PaymentStatus, TenantMembership } from '../../types';
 
 export const TenantDashboard: React.FC = () => {
   const { showToast } = useToast();
@@ -16,6 +17,8 @@ export const TenantDashboard: React.FC = () => {
   const [showDisableModal, setShowDisableModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tenantData, setTenantData] = useState<TenantMembershipDetails | null>(null);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('paid');
 
   useEffect(() => {
     const loadTenantData = async () => {
@@ -32,6 +35,19 @@ export const TenantDashboard: React.FC = () => {
         const membershipId = profile.memberships.tenants[0].id;
         const membership = await getTenantMembership(membershipId);
         setTenantData(membership);
+
+        // Fetch payments
+        const allPayments = await fetchPayments();
+        const tenantPayments = allPayments.filter(p => p.tenantMembershipId === membershipId);
+        setPayments(tenantPayments);
+
+        // Calculate payment status
+        const status = getPaymentStatus(
+          { id: membership.id } as TenantMembership, 
+          tenantPayments, 
+          { dueDay: membership.unit.dueDay, gracePeriodDays: membership.unit.gracePeriodDays } as any
+        );
+        setPaymentStatus(status);
       } catch (err: any) {
         showToast(err.message || 'Failed to load tenant data', 'error');
         navigate('/login');
@@ -63,9 +79,59 @@ export const TenantDashboard: React.FC = () => {
     );
   }
 
-  const { unit, user } = tenantData;
+  const { unit } = tenantData;
   const property = unit.property;
   const landlord = unit.property.landlord;
+
+  // Calculate days until/past due
+  const today = new Date();
+  const dueDay = unit.dueDay;
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+  
+  let dueDate = new Date(currentYear, currentMonth, dueDay);
+  if (today.getDate() > dueDay) {
+    dueDate = new Date(currentYear, currentMonth + 1, dueDay);
+  }
+  
+  const diffTime = dueDate.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  const gracePeriodDays = unit.gracePeriodDays || 0;
+  const lateDays = today.getDate() - dueDay;
+  const graceDaysRemaining = gracePeriodDays - lateDays;
+
+  // Payment status badge configuration
+  const getStatusBadge = () => {
+    switch (paymentStatus) {
+      case 'paid':
+        return (
+          <Badge variant="accepted">
+            ✓ Paid for {new Date(currentYear, currentMonth).toLocaleString('default', { month: 'long' })}
+          </Badge>
+        );
+      case 'pending':
+        return (
+          <Badge variant="current">
+            Due in {diffDays} {diffDays === 1 ? 'day' : 'days'}
+          </Badge>
+        );
+      case 'due':
+        return (
+          <Badge variant="pending">
+            Due Today ({graceDaysRemaining} {graceDaysRemaining === 1 ? 'day' : 'days'} grace remaining)
+          </Badge>
+        );
+      case 'late':
+        return (
+          <Badge variant="past">
+            Overdue by {Math.abs(graceDaysRemaining)} {Math.abs(graceDaysRemaining) === 1 ? 'day' : 'days'}
+          </Badge>
+        );
+      default:
+        return <Badge variant="current">Current</Badge>;
+    }
+  };
 
   const handleDisableAutopay = () => {
     // TODO: Implement API call to disable autopay
@@ -86,9 +152,7 @@ export const TenantDashboard: React.FC = () => {
                   {property.name} - Unit {unit.name}
                 </p>
               </div>
-              <Badge variant={tenantData.status === 'ACTIVE' ? 'current' : 'past'}>
-                {tenantData.status}
-              </Badge>
+              {getStatusBadge()}
             </div>
           </CardHeader>
           <CardContent>
@@ -96,7 +160,7 @@ export const TenantDashboard: React.FC = () => {
               <div>
                 <label className="text-sm text-gray-500">Monthly Rent</label>
                 <p className="text-2xl font-semibold">
-                  {formatCurrency(tenantData.rentAmount)}
+                  {formatCurrency(unit.rentAmount)}
                 </p>
               </div>
               <div>
@@ -104,6 +168,18 @@ export const TenantDashboard: React.FC = () => {
                 <p className="text-2xl font-semibold">Day {unit.dueDay}</p>
               </div>
             </div>
+
+            {/* Pay Now Button - show if payment due or late */}
+            {(paymentStatus === 'due' || paymentStatus === 'late' || paymentStatus === 'pending') && !tenantData.autopayEnabled && (
+              <div className="mb-6">
+                <Button className="w-full" size="lg">
+                  Pay Now - {formatCurrency(unit.rentAmount)}
+                </Button>
+                <p className="text-xs text-gray-500 text-center mt-2">
+                  Stripe integration coming soon
+                </p>
+              </div>
+            )}
 
             <div className="space-y-3 pt-4 border-t">
               <div className="flex justify-between text-sm">
@@ -144,7 +220,7 @@ export const TenantDashboard: React.FC = () => {
                   Payment method: {tenantData.paymentMethodLabel || 'Card'}
                 </p>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => setShowDisableModal(true)}
                   className="w-full"
                 >
@@ -174,7 +250,11 @@ export const TenantDashboard: React.FC = () => {
             <h3 className="text-lg font-semibold">Payment History</h3>
           </CardHeader>
           <CardContent>
-            <PaymentHistoryList payments={[]} />
+            <PaymentHistoryList 
+              payments={payments} 
+              dueDay={unit.dueDay}
+              gracePeriodDays={unit.gracePeriodDays}
+            />
           </CardContent>
         </Card>
       </div>
@@ -189,7 +269,7 @@ export const TenantDashboard: React.FC = () => {
           each month.
         </p>
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => setShowDisableModal(false)}>
+          <Button variant="secondary" onClick={() => setShowDisableModal(false)}>
             Cancel
           </Button>
           <Button onClick={handleDisableAutopay}>Disable Autopay</Button>

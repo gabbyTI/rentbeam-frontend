@@ -90,7 +90,6 @@ export const LandlordTenants: React.FC = () => {
         name: tenantForm.name,
         phone: tenantForm.phone || undefined,
         unitId: tenantForm.unitId,
-        rentAmount: parseFloat(tenantForm.rentAmount),
         moveInDate: new Date().toISOString().split('T')[0],
       });
 
@@ -175,7 +174,7 @@ export const LandlordTenants: React.FC = () => {
                     <div className="text-sm text-gray-500">{tenant.unit?.name}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatCurrency(tenant.rentAmount)}
+                    {formatCurrency(tenant.unit!.rentAmount)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Badge variant={tenant.status === 'ACTIVE' ? 'current' : 'past'}>

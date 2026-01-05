@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { AppState, UserRole, LandlordAccount, TenantMembership } from '../types';
-import { initializeApi, fetchProperties, fetchUnits, fetchTenants, fetchPayments } from '../services/api';
+import { initializeApi, fetchProperties, fetchUnits, fetchTenants, fetchPayments, getStripeConnectStatus } from '../services/api';
 import { authService } from '../services/auth';
 
 interface AppContextType extends AppState {
@@ -8,6 +8,7 @@ interface AppContextType extends AppState {
   login: (role: UserRole, id: string) => void;
   logout: () => void;
   loading: boolean;
+  stripeOnboarded: boolean | null;
   // Backward compatibility aliases
   landlords: LandlordAccount[];
   tenants: TenantMembership[];
@@ -19,6 +20,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [loading, setLoading] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
+  const [stripeOnboarded, setStripeOnboarded] = useState<boolean | null>(null);
   const [state, setState] = useState<AppState>({
     users: [],
     landlordAccounts: [],
@@ -89,12 +91,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.log('🔵 Loading data from backend...');
       setLoading(true);
       try {
-        const [properties, units, tenants, payments] = await Promise.all([
+        const promises = [
           fetchProperties(),
           fetchUnits(),
           fetchTenants(),
           fetchPayments(),
-        ]);
+        ];
+
+        // Load Stripe status only for landlords
+        if (state.currentUser.role === 'landlord') {
+          promises.push(getStripeConnectStatus().then(status => {
+            setStripeOnboarded(status.onboarded);
+            return status;
+          }).catch(error => {
+            console.error('🔴 Failed to load Stripe status:', error);
+            setStripeOnboarded(false);
+            return { onboarded: false };
+          }));
+        }
+
+        const [properties, units, tenants, payments] = await Promise.all(promises);
 
         console.log('🔵 Data loaded:', { properties, units, tenants, payments });
 
@@ -147,7 +163,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     login,
     logout,
     loading: !sessionReady || loading,
-  }), [state, loading, sessionReady]);
+    stripeOnboarded,
+  }), [state, loading, sessionReady, stripeOnboarded]);
 
   return (
     <AppContext.Provider value={contextValue}>
