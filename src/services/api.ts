@@ -231,10 +231,41 @@ export const changePassword = async (oldPassword: string, newPassword: string): 
   }
 };
 
+export const initiateNotificationEmailChange = async (notificationEmail: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/notification-email/initiate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authService.getAccessToken()}`
+    },
+    body: JSON.stringify({ notificationEmail }),
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+};
+
+export const confirmNotificationEmailChange = async (code: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/notification-email/confirm`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authService.getAccessToken()}`
+    },
+    body: JSON.stringify({ code }),
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+};
+
 export interface CurrentUserProfile {
   user: {
     id: string;
     email: string;
+    notificationEmail?: string;
     name: string;
     phone?: string;
     businessName?: string;
@@ -643,7 +674,7 @@ export const resendTenantInvite = async (tenantId: string): Promise<void> => {
 
 export const updateTenantInfo = async (
   tenantId: string, 
-  data: { name?: string; email?: string; phone?: string }
+  data: { name?: string; phone?: string }
 ): Promise<void> => {
   const token = authService.getAccessToken();
   const response = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}/user-info`, {

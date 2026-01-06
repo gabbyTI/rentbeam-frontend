@@ -100,12 +100,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children, title }) => {
                 Dashboard
               </button>
               <button
-                onClick={() => navigate('/tenant/autopay')}
-                className="py-4 text-sm font-medium text-gray-700 hover:text-primary-600 border-b-2 border-transparent hover:border-primary-600"
-              >
-                Autopay
-              </button>
-              <button
                 onClick={() => navigate('/tenant/settings')}
                 className="py-4 text-sm font-medium text-gray-700 hover:text-primary-600 border-b-2 border-transparent hover:border-primary-600"
               >

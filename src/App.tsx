@@ -117,11 +117,7 @@ const AppRoutes: React.FC = () => {
       />
       <Route
         path="/tenant/autopay"
-        element={
-          <ProtectedRoute role="tenant">
-            <TenantAutopay />
-          </ProtectedRoute>
-        }
+        element={<Navigate to="/tenant/settings" replace />}
       />
       <Route
         path="/tenant/payment-method"

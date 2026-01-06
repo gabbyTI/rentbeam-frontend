@@ -23,7 +23,6 @@ export const TenantDetails: React.FC = () => {
   const [transferPropertyId, setTransferPropertyId] = useState('');
   const [transferUnitId, setTransferUnitId] = useState('');
   const [editName, setEditName] = useState('');
-  const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -132,7 +131,6 @@ export const TenantDetails: React.FC = () => {
   const handleEdit = () => {
     if (!tenant) return;
     setEditName(tenant.user?.name || '');
-    setEditEmail(tenant.user?.email || '');
     setEditPhone(tenant.user?.phone || '');
     setShowEditModal(true);
   };
@@ -146,22 +144,10 @@ export const TenantDetails: React.FC = () => {
       return;
     }
 
-    if (!editEmail.trim()) {
-      showToast('Email is required', 'error');
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(editEmail)) {
-      showToast('Invalid email format', 'error');
-      return;
-    }
-
     setSaving(true);
     try {
       await updateTenantInfo(tenant.id, {
         name: editName,
-        email: editEmail,
         phone: editPhone || undefined,
       });
 
@@ -173,7 +159,6 @@ export const TenantDetails: React.FC = () => {
               user: {
                 ...t.user!,
                 name: editName,
-                email: editEmail,
                 phone: editPhone || null,
               },
             }
@@ -251,9 +236,15 @@ export const TenantDetails: React.FC = () => {
                 <p className="font-medium">{tenant.user?.name}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">Email</label>
+                <label className="text-sm text-gray-500">Login Email</label>
                 <p className="font-medium">{tenant.user?.email}</p>
               </div>
+              {tenant.user?.notificationEmail && (
+                <div>
+                  <label className="text-sm text-gray-500">Notification Email</label>
+                  <p className="font-medium">{tenant.user.notificationEmail}</p>
+                </div>
+              )}
               {tenant.user?.phone && (
                 <div>
                   <label className="text-sm text-gray-500">Phone</label>
@@ -514,15 +505,33 @@ export const TenantDetails: React.FC = () => {
               required
             />
 
-            <Input
-              label="Email Address"
-              type="email"
-              value={editEmail}
-              onChange={(e) => setEditEmail(e.target.value)}
-              placeholder="Enter email address"
-              disabled={saving}
-              required
-            />
+            <div>
+              <Input
+                label="Login Email"
+                type="email"
+                value={tenant.user?.email || ''}
+                disabled
+                className="bg-gray-50"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                This is the tenant's login email and cannot be changed.
+              </p>
+            </div>
+
+            {tenant.user?.notificationEmail && (
+              <div>
+                <Input
+                  label="Notification Email"
+                  type="email"
+                  value={tenant.user.notificationEmail}
+                  disabled
+                  className="bg-gray-50"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Tenant can update this in their settings.
+                </p>
+              </div>
+            )}
 
             <Input
               label="Phone Number (Optional)"
@@ -532,12 +541,6 @@ export const TenantDetails: React.FC = () => {
               placeholder="Enter phone number"
               disabled={saving}
             />
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-sm text-blue-900">
-                <strong>Note:</strong> If the tenant has already registered, changing their email will update their login credentials.
-              </p>
-            </div>
 
             <div className="flex space-x-3 pt-4">
               <Button

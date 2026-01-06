@@ -10,6 +10,7 @@ export interface User {
   id: string;
   cognitoId?: string;
   email: string;
+  notificationEmail?: string;
   name: string;
   phone?: string;
   createdAt: string;

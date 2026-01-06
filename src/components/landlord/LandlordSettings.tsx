@@ -5,7 +5,6 @@ import { Card, CardHeader, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Badge } from '../ui/Badge';
-import { Modal } from '../ui/Modal';
 import { useToast } from '../../context/ToastContext';
 import { useApp } from '../../context/AppContext';
 import { getCurrentUser, getStripeConnectStatus } from '../../services/api';
@@ -32,6 +31,7 @@ export const LandlordSettings: React.FC = () => {
   // Account Information
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [notificationEmail, setNotificationEmail] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [phone, setPhone] = useState('');
   const [taxId, setTaxId] = useState('');
@@ -57,6 +57,7 @@ export const LandlordSettings: React.FC = () => {
         const profile = await getCurrentUser();
         setName(profile.user.name);
         setEmail(profile.user.email);
+        setNotificationEmail(profile.user.notificationEmail || '');
         setPhone(profile.user.phone || '');
         setBusinessName(profile.user.businessName || '');
         setTaxId(profile.user.taxId || '');
@@ -90,6 +91,7 @@ export const LandlordSettings: React.FC = () => {
     try {
       await api.patch('/api/auth/profile', {
         name,
+        notificationEmail: notificationEmail || null,
         phone: phone || null,
         businessName: businessName || null,
         taxId: taxId || null,
@@ -267,7 +269,7 @@ export const LandlordSettings: React.FC = () => {
 
               <div>
                 <label className="block mb-1 text-sm font-medium text-gray-700">
-                  Email Address
+                  Login Email
                 </label>
                 <Input
                   type="email"
@@ -276,7 +278,22 @@ export const LandlordSettings: React.FC = () => {
                   className="bg-gray-50"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Email cannot be changed. Contact support if needed.
+                  This is your login email and cannot be changed.
+                </p>
+              </div>
+
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">
+                  Notification Email (Optional)
+                </label>
+                <Input
+                  type="email"
+                  value={notificationEmail}
+                  onChange={(e) => setNotificationEmail(e.target.value)}
+                  placeholder="notifications@example.com"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Receive payment notifications and updates at a different email address.
                 </p>
               </div>
 
