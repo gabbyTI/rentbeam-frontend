@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Elements } from '@stripe/react-stripe-js';
 import stripePromise from '../../utils/stripeLoader';
@@ -8,8 +8,11 @@ import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { PaymentHistoryList } from '../ui/PaymentHistoryList';
+import { TenantMetricCard } from '../ui/TenantMetricCard';
+import { PaymentTimeline } from '../ui/PaymentTimeline';
 import { PayNowModal } from './PayNowModal';
 import { formatCurrency, getPaymentStatus } from '../../utils/helpers';
+import { calculateTenantPaymentSummary, calculateYearToDateSummary, generatePaymentTimeline } from '../../utils/tenantAnalytics';
 import { useToast } from '../../context/ToastContext';
 import { getCurrentUser, getTenantMembership, TenantMembershipDetails, fetchPayments } from '../../services/api';
 import api from '../../services/api';
@@ -60,6 +63,31 @@ export const TenantDashboard: React.FC = () => {
 
     loadTenantData();
   }, [navigate, showToast]);
+
+  // Calculate analytics using useMemo for performance
+  const paymentSummary = useMemo(() => {
+    if (!tenantData || payments.length === 0) return null;
+    return calculateTenantPaymentSummary(
+      payments,
+      tenantData.unit.dueDay,
+      tenantData.unit.gracePeriodDays
+    );
+  }, [payments, tenantData]);
+
+  const ytdSummary = useMemo(() => {
+    if (payments.length === 0) return null;
+    return calculateYearToDateSummary(payments);
+  }, [payments]);
+
+  const paymentTimeline = useMemo(() => {
+    if (!tenantData || payments.length === 0) return [];
+    return generatePaymentTimeline(
+      payments,
+      tenantData.unit.dueDay,
+      tenantData.unit.gracePeriodDays,
+      tenantData.moveInDate
+    );
+  }, [payments, tenantData]);
 
   const handlePaymentSuccess = async () => {
     try {
@@ -194,8 +222,7 @@ export const TenantDashboard: React.FC = () => {
 
   return (
     <AppShell title="Dashboard">
-      <div className="space-y-4 sm:space-y-6">
-        {acceptsOnlinePayments && !tenantData.defaultPaymentMethodId && (
+      <div className="space-y-4 sm:space-y-6">{acceptsOnlinePayments && !tenantData.defaultPaymentMethodId && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
             <div className="flex items-start gap-2 sm:gap-3">
               <span className="text-xl sm:text-2xl">💳</span>
@@ -228,6 +255,79 @@ export const TenantDashboard: React.FC = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Payment Summary Analytics */}
+        {paymentSummary && payments.length > 0 && (
+          <div>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Payment Summary</h3>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <TenantMetricCard
+                title="On-Time Rate"
+                value={`${paymentSummary.onTimeRate}%`}
+                subtitle={`${paymentSummary.onTimePayments} of ${paymentSummary.totalPayments} payments`}
+                variant={paymentSummary.onTimeRate >= 90 ? 'success' : paymentSummary.onTimeRate >= 70 ? 'warning' : 'default'}
+              />
+              <TenantMetricCard
+                title="Payment Streak"
+                value={paymentSummary.currentStreak.toString()}
+                subtitle={paymentSummary.currentStreak === 1 ? "month on time" : "months on time"}
+                variant={paymentSummary.currentStreak >= 3 ? 'success' : 'info'}
+              />
+              <TenantMetricCard
+                title="Paid This Year"
+                value={`$${paymentSummary.totalPaidThisYear.toLocaleString()}`}
+                subtitle="Total rent paid"
+                variant="default"
+              />
+              <TenantMetricCard
+                title="Fees This Year"
+                value={`$${paymentSummary.totalFeesThisYear.toFixed(2)}`}
+                subtitle="Processing fees"
+                variant="info"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Payment Timeline */}
+        {paymentTimeline.length > 0 && (
+          <div>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Payment History</h3>
+            <PaymentTimeline timeline={paymentTimeline} />
+          </div>
+        )}
+
+        {/* Year-to-Date Cost Summary */}
+        {ytdSummary && ytdSummary.paymentsCount > 0 && (
+          <Card>
+            <div className="p-4 sm:p-6">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Year-to-Date Summary</h3>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Rent</p>
+                  <p className="text-lg sm:text-xl font-semibold text-gray-900">${ytdSummary.totalRent.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Fees</p>
+                  <p className="text-lg sm:text-xl font-semibold text-gray-900">${ytdSummary.totalFees.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Paid</p>
+                  <p className="text-lg sm:text-xl font-semibold text-gray-900">${ytdSummary.totalAmount.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Monthly Average</p>
+                  <p className="text-lg sm:text-xl font-semibold text-gray-900">${ytdSummary.monthlyAverage.toFixed(2)}</p>
+                </div>
+              </div>
+              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200">
+                <p className="text-xs sm:text-sm text-gray-600">
+                  Based on {ytdSummary.paymentsCount} {ytdSummary.paymentsCount === 1 ? 'payment' : 'payments'} in {new Date().getFullYear()}
+                </p>
+              </div>
+            </div>
+          </Card>
         )}
 
         {acceptsOnlinePayments && (
