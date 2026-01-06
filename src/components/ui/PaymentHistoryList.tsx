@@ -33,6 +33,28 @@ export const PaymentHistoryList: React.FC<PaymentHistoryListProps> = ({
         const [year, month] = payment.month.split('-');
         const dueDate = new Date(parseInt(year), parseInt(month) - 1, dueDay);
         
+        // Determine payment method display
+        let methodLabel = 'Card';
+        let methodEmoji = '';
+        if (payment.method === 'MANUAL') {
+          if (payment.paymentMethod === 'Cash') {
+            methodLabel = 'Cash';
+            methodEmoji = '💵';
+          } else if (payment.paymentMethod === 'Check') {
+            methodLabel = 'Check';
+            methodEmoji = '✓';
+          } else if (payment.paymentMethod === 'Zelle') {
+            methodLabel = 'Zelle';
+            methodEmoji = 'Ⓩ';
+          } else if (payment.paymentMethod === 'Venmo') {
+            methodLabel = 'Venmo';
+            methodEmoji = 'Ⓥ';
+          } else {
+            methodLabel = payment.paymentMethod || 'Manual';
+            methodEmoji = '';
+          }
+        }
+        
         return (
           <div
             key={payment.id}
@@ -62,7 +84,7 @@ export const PaymentHistoryList: React.FC<PaymentHistoryListProps> = ({
                   </span>
                 )}
                 <Badge variant={payment.method === 'CARD' ? 'autopay' : 'manual'}>
-                  {payment.method === 'CARD' ? 'Card' : 'Manual (Interac)'}
+                  {payment.method === 'CARD' ? 'Card' : `${methodEmoji} ${methodLabel}`}
                 </Badge>
                 <Badge variant={isLate ? 'late' : 'paid'}>
                   {isLate ? 'Late' : 'On Time'}

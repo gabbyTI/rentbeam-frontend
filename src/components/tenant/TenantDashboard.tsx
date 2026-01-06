@@ -142,6 +142,7 @@ export const TenantDashboard: React.FC = () => {
   const { unit } = tenantData;
   const property = unit.property;
   const landlord = unit.property.landlord;
+  const acceptsOnlinePayments = property.acceptOnlinePayments !== false; // Default to true if undefined
 
   const today = new Date();
   const dueDay = unit.dueDay;
@@ -194,7 +195,7 @@ export const TenantDashboard: React.FC = () => {
   return (
     <AppShell title="Dashboard">
       <div className="space-y-6">
-        {!tenantData.defaultPaymentMethodId && (
+        {acceptsOnlinePayments && !tenantData.defaultPaymentMethodId && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <span className="text-2xl">💳</span>
@@ -215,25 +216,41 @@ export const TenantDashboard: React.FC = () => {
           </div>
         )}
 
-        <div className="mt-6">
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={handlePayNowClick}
-            disabled={!tenantData.defaultPaymentMethodId || paymentStatus === 'paid'}
-          >
-            {!tenantData.defaultPaymentMethodId 
-              ? 'Add Payment Method to Pay'
-              : paymentStatus === 'paid'
-              ? `Paid - ${formatCurrency(unit.rentAmount)}`
-              : `Pay Now - ${formatCurrency(unit.rentAmount)}`}
-          </Button>
-          {tenantData.defaultPaymentMethodId && (
-            <p className="text-xs text-gray-500 text-center mt-2">
-              Using {tenantData.paymentMethodLabel}
-            </p>
-          )}
-        </div>
+        {!acceptsOnlinePayments && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">💵</span>
+              <div className="flex-1">
+                <h4 className="font-medium text-gray-900 mb-1">Manual Payments</h4>
+                <p className="text-sm text-gray-700">
+                  Payments are arranged directly with your landlord. Online card payments are not available for this property.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {acceptsOnlinePayments && (
+          <div className="mt-6">
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={handlePayNowClick}
+              disabled={!tenantData.defaultPaymentMethodId || paymentStatus === 'paid'}
+            >
+              {!tenantData.defaultPaymentMethodId 
+                ? 'Add Payment Method to Pay'
+                : paymentStatus === 'paid'
+                ? `Paid - ${formatCurrency(unit.rentAmount)}`
+                : `Pay Now - ${formatCurrency(unit.rentAmount)}`}
+            </Button>
+            {tenantData.defaultPaymentMethodId && (
+              <p className="text-xs text-gray-500 text-center mt-2">
+                Using {tenantData.paymentMethodLabel}
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2">
@@ -281,48 +298,50 @@ export const TenantDashboard: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <h3 className="text-lg font-semibold">Autopay</h3>
-            </CardHeader>
-            <CardContent>
-              {tenantData.autopayEnabled ? (
-                <>
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm font-medium text-green-700">Active</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Rent will be automatically charged on the {unit.dueDay}
-                    {unit.dueDay === 1 ? 'st' : unit.dueDay === 2 ? 'nd' : unit.dueDay === 3 ? 'rd' : 'th'} of each month.
-                  </p>
-                  <p className="text-sm text-gray-500 mb-4">
-                    Payment method: {tenantData.paymentMethodLabel || 'Card'}
-                  </p>
-                  <Button
-                    variant="secondary"
-                    onClick={() => setShowDisableModal(true)}
-                    className="w-full"
-                  >
-                    Disable Autopay
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                    <span className="text-sm font-medium text-gray-700">Inactive</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Enable autopay to automatically pay your rent each month.
-                  </p>
-                  <Button onClick={() => navigate('/tenant/settings')} className="w-full">
-                    Enable Autopay
-                  </Button>
-                </>
-              )}
-            </CardContent>
-          </Card>
+          {acceptsOnlinePayments && (
+            <Card>
+              <CardHeader>
+                <h3 className="text-lg font-semibold">Autopay</h3>
+              </CardHeader>
+              <CardContent>
+                {tenantData.autopayEnabled ? (
+                  <>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-sm font-medium text-green-700">Active</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Rent will be automatically charged on the {unit.dueDay}
+                      {unit.dueDay === 1 ? 'st' : unit.dueDay === 2 ? 'nd' : unit.dueDay === 3 ? 'rd' : 'th'} of each month.
+                    </p>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Payment method: {tenantData.paymentMethodLabel || 'Card'}
+                    </p>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowDisableModal(true)}
+                      className="w-full"
+                    >
+                      Disable Autopay
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      <span className="text-sm font-medium text-gray-700">Inactive</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Enable autopay to automatically pay your rent each month.
+                    </p>
+                    <Button onClick={() => navigate('/tenant/settings')} className="w-full">
+                      Enable Autopay
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="lg:col-span-3">
             <CardHeader>

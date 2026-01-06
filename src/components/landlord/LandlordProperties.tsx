@@ -22,6 +22,7 @@ export const LandlordProperties: React.FC = () => {
   const [propertyForm, setPropertyForm] = useState({
     name: '',
     address: '',
+    acceptOnlinePayments: true,
   });
 
   const [unitForm, setUnitForm] = useState({
@@ -55,11 +56,12 @@ export const LandlordProperties: React.FC = () => {
       await api.createProperty({
         name: propertyForm.name,
         address: propertyForm.address,
+        acceptOnlinePayments: propertyForm.acceptOnlinePayments,
       });
 
       showToast('Property added successfully');
       setIsAddingProperty(false);
-      setPropertyForm({ name: '', address: '' });
+      setPropertyForm({ name: '', address: '', acceptOnlinePayments: true });
     } catch (error: any) {
       showToast(error.message || 'Failed to add property', 'error');
     }
@@ -96,7 +98,11 @@ export const LandlordProperties: React.FC = () => {
   const handleEditProperty = (propertyId: string) => {
     const property = properties.find((p) => p.id === propertyId);
     if (property) {
-      setPropertyForm({ name: property.name, address: property.address });
+      setPropertyForm({ 
+        name: property.name, 
+        address: property.address,
+        acceptOnlinePayments: property.acceptOnlinePayments ?? true,
+      });
       setIsEditingProperty(propertyId);
     }
   };
@@ -111,11 +117,12 @@ export const LandlordProperties: React.FC = () => {
       await api.updateProperty(isEditingProperty!, {
         name: propertyForm.name,
         address: propertyForm.address,
+        acceptOnlinePayments: propertyForm.acceptOnlinePayments,
       });
 
       showToast('Property updated successfully');
       setIsEditingProperty(null);
-      setPropertyForm({ name: '', address: '' });
+      setPropertyForm({ name: '', address: '', acceptOnlinePayments: true });
     } catch (error: any) {
       showToast(error.message || 'Failed to update property', 'error');
     }
@@ -346,7 +353,7 @@ export const LandlordProperties: React.FC = () => {
           isOpen={true}
           onClose={() => {
             setIsEditingProperty(null);
-            setPropertyForm({ name: '', address: '' });
+            setPropertyForm({ name: '', address: '', acceptOnlinePayments: true });
           }}
           title="Edit Property"
         >
@@ -367,12 +374,32 @@ export const LandlordProperties: React.FC = () => {
               }
               placeholder="123 Main St, Vancouver, BC"
             />
+            <div className="border-t pt-4">
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <span className="text-sm font-medium text-gray-700">Accept Online Payments</span>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Allows tenants to pay rent through the app with cards. Disable if you prefer manual tracking.
+                  </p>
+                </div>
+                <div className="ml-4">
+                  <input
+                    type="checkbox"
+                    checked={propertyForm.acceptOnlinePayments}
+                    onChange={(e) =>
+                      setPropertyForm({ ...propertyForm, acceptOnlinePayments: e.target.checked })
+                    }
+                    className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  />
+                </div>
+              </label>
+            </div>
             <div className="flex space-x-3">
               <Button
                 variant="secondary"
                 onClick={() => {
                   setIsEditingProperty(null);
-                  setPropertyForm({ name: '', address: '' });
+                  setPropertyForm({ name: '', address: '', acceptOnlinePayments: true });
                 }}
                 className="flex-1"
               >

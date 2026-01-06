@@ -11,6 +11,7 @@ import { PaymentHistoryList } from '../ui/PaymentHistoryList';
 import { formatCurrency } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
 import { resendTenantInvite, moveOutTenant, updateTenantInfo } from '../../services/api';
+import api from '../../services/api';
 
 export const TenantDetails: React.FC = () => {
   const { tenantId } = useParams<{ tenantId: string }>();
@@ -20,11 +21,16 @@ export const TenantDetails: React.FC = () => {
   const [showMoveOutModal, setShowMoveOutModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showMarkAsPaidModal, setShowMarkAsPaidModal] = useState(false);
   const [transferPropertyId, setTransferPropertyId] = useState('');
   const [transferUnitId, setTransferUnitId] = useState('');
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [saving, setSaving] = useState(false);
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Check' | 'Zelle' | 'Venmo' | 'Other'>('Cash');
+  const [paymentNote, setPaymentNote] = useState('');
 
   const tenant = useMemo(() => {
     const t = tenants.find((t) => t.id === tenantId);
@@ -175,6 +181,52 @@ export const TenantDetails: React.FC = () => {
     }
   };
 
+  const handleMarkAsPaid = async () => {
+    if (!tenant) return;
+
+    const amount = parseFloat(paymentAmount);
+    if (!amount || amount <= 0) {
+      showToast('Please enter a valid payment amount', 'error');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const response = await api.post('/api/payments', {
+        tenantMembershipId: tenant.id,
+        amount: amount,
+        paidAt: paymentDate,
+        paymentMethod: paymentMethod,
+        notes: paymentNote || undefined,
+      });
+
+      // Refresh payments
+      const updatedPayments = [...payments, response.data];
+      updateState({ payments: updatedPayments });
+
+      showToast(`Payment recorded: ${formatCurrency(amount)} via ${paymentMethod}`, 'success');
+      setShowMarkAsPaidModal(false);
+      
+      // Reset form
+      setPaymentDate(new Date().toISOString().split('T')[0]);
+      setPaymentAmount('');
+      setPaymentMethod('Cash');
+      setPaymentNote('');
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to record payment';
+      showToast(errorMsg, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openMarkAsPaidModal = () => {
+    if (!tenant) return;
+    // Pre-fill with rent amount
+    setPaymentAmount(tenant.unit?.rentAmount.toString() || '');
+    setShowMarkAsPaidModal(true);
+  };
+
   if (!tenant) {
     return (
       <AppShell title="Tenant Details">
@@ -200,6 +252,15 @@ export const TenantDetails: React.FC = () => {
         </Button>
         {tenant && tenant.status === 'ACTIVE' && (
           <div className="flex space-x-2">
+            {tenant.property?.acceptOnlinePayments === false && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={openMarkAsPaidModal}
+              >
+                Mark as Paid
+              </Button>
+            )}
             <Button
               variant="secondary"
               size="sm"
@@ -557,6 +618,88 @@ export const TenantDetails: React.FC = () => {
                 className="flex-1"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Mark as Paid Modal */}
+      {showMarkAsPaidModal && (
+        <Modal
+          isOpen={true}
+          onClose={() => !saving && setShowMarkAsPaidModal(false)}
+          title="Record Manual Payment"
+        >
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-blue-900">
+                Recording a manual payment for <strong>{tenant.user?.name}</strong>
+              </p>
+            </div>
+
+            <Input
+              label="Payment Date"
+              type="date"
+              value={paymentDate}
+              onChange={(e) => setPaymentDate(e.target.value)}
+              disabled={saving}
+              required
+            />
+
+            <Input
+              label="Amount"
+              type="number"
+              step="0.01"
+              value={paymentAmount}
+              onChange={(e) => setPaymentAmount(e.target.value)}
+              placeholder="0.00"
+              disabled={saving}
+              required
+            />
+
+            <Select
+              label="Payment Method"
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value as any)}
+              disabled={saving}
+            >
+              <option value="Cash">💵 Cash</option>
+              <option value="Check">✓ Check</option>
+              <option value="Zelle">Ⓩ Zelle</option>
+              <option value="Venmo">Ⓥ Venmo</option>
+              <option value="Other">Other</option>
+            </Select>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Note (Optional)
+              </label>
+              <textarea
+                value={paymentNote}
+                onChange={(e) => setPaymentNote(e.target.value)}
+                placeholder="Add any additional notes..."
+                disabled={saving}
+                rows={3}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="flex space-x-3 pt-4">
+              <Button
+                variant="secondary"
+                onClick={() => setShowMarkAsPaidModal(false)}
+                disabled={saving}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleMarkAsPaid} 
+                disabled={saving}
+                className="flex-1"
+              >
+                {saving ? 'Recording...' : 'Record Payment'}
               </Button>
             </div>
           </div>

@@ -33,6 +33,7 @@ export interface Property {
   landlordId: string;
   name: string;
   address: string;
+  acceptOnlinePayments: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -77,9 +78,14 @@ export interface Payment {
   tenantMembership?: TenantMembership;
   amount: number;
   method: PaymentMethod;
+  paymentMethod?: 'Cash' | 'Check' | 'Zelle' | 'Venmo' | 'Other'; // For manual payments
   date: string;
   month: string; // Format: "YYYY-MM"
   note?: string;
+  // Card payment fields
+  rentAmount?: number;
+  processingFee?: number;
+  totalAmount?: number;
   createdAt: string;
 }
 

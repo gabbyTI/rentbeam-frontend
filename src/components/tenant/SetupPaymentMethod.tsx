@@ -124,6 +124,13 @@ export const SetupPaymentMethod: React.FC = () => {
         const membership = await getTenantMembership(membershipId);
         setTenantData(membership);
 
+        // Check if property accepts online payments
+        if (membership.unit.property.acceptOnlinePayments === false) {
+          showToast('This property does not accept online payments', 'error');
+          navigate('/tenant/dashboard');
+          return;
+        }
+
         // Get setup intent client secret
         const response = await api.post('/api/stripe/setup-intent');
         setClientSecret(response.data.clientSecret);

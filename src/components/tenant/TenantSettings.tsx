@@ -671,7 +671,7 @@ export const TenantSettings: React.FC = () => {
         </Card>
 
         {/* Payment Method & Autopay */}
-        {tenantData && (
+        {tenantData && tenantData.unit.property.acceptOnlinePayments !== false && (
           <>
             <Card>
               <CardHeader>
