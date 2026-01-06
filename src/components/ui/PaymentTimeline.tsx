@@ -59,48 +59,58 @@ export const PaymentTimeline: React.FC<PaymentTimelineProps> = ({ timeline }) =>
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2">
+      <div className="relative flex items-center justify-between gap-2 overflow-x-auto pb-2 pt-24 -mt-20">
         {timeline.map((item, index) => (
-          <div key={item.month} className="flex flex-col items-center gap-2 min-w-[60px] sm:min-w-[80px]">
-            <div className="relative group">
-              <div
-                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full ${getStatusColor(
-                  item.status
-                )} flex items-center justify-center text-white font-bold text-sm sm:text-base transition-transform hover:scale-110`}
-              >
-                {getStatusIcon(item.status)}
+          <React.Fragment key={item.month}>
+            <div className="flex flex-col items-center gap-2 min-w-[60px] sm:min-w-[80px] relative z-10">
+              <div className="relative group">
+                <div
+                  className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full ${getStatusColor(
+                    item.status
+                  )} flex items-center justify-center text-white font-bold text-sm sm:text-base transition-transform hover:scale-110 cursor-pointer`}
+                >
+                  {getStatusIcon(item.status)}
+                </div>
+                
+                {/* Tooltip */}
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                  <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 shadow-xl">
+                    <div className="font-semibold text-sm">{formatMonth(item.month)} {item.month.split('-')[0]}</div>
+                    <div className="mt-1">
+                      <span className="font-medium">{getStatusLabel(item.status)}</span>
+                    </div>
+                    {item.amount > 0 && (
+                      <div className="text-green-300 font-medium mt-1">
+                        ${item.amount.toFixed(2)}
+                      </div>
+                    )}
+                    {item.daysLate !== undefined && item.daysLate > 0 && (
+                      <div className="text-yellow-300 mt-1">Late by {item.daysLate} days</div>
+                    )}
+                    {item.date && (
+                      <div className="text-gray-400 mt-1 text-[10px]">
+                        {item.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </div>
+                    )}
+                  </div>
+                  {/* Tooltip arrow */}
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-px">
+                    <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                  </div>
+                </div>
               </div>
               
-              {/* Tooltip */}
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-10">
-                <div className="bg-gray-900 text-white text-xs rounded py-2 px-3 whitespace-nowrap">
-                  <div className="font-medium">{formatMonth(item.month)}</div>
-                  <div>{getStatusLabel(item.status)}</div>
-                  {item.daysLate !== undefined && item.daysLate > 0 && (
-                    <div className="text-yellow-300">{item.daysLate} days late</div>
-                  )}
-                  {item.date && (
-                    <div className="text-gray-300 mt-1">
-                      {item.date.toLocaleDateString()}
-                    </div>
-                  )}
-                </div>
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                  <div className="border-4 border-transparent border-t-gray-900"></div>
-                </div>
-              </div>
+              {/* Month label */}
+              <span className="text-xs text-gray-600 text-center">
+                {formatMonth(item.month)}
+              </span>
             </div>
             
-            {/* Month label */}
-            <span className="text-xs text-gray-600 text-center">
-              {formatMonth(item.month)}
-            </span>
-            
-            {/* Connecting line */}
+            {/* Connecting line between circles */}
             {index < timeline.length - 1 && (
-              <div className="absolute top-5 sm:top-6 left-[calc(50%+30px)] sm:left-[calc(50%+40px)] w-[40px] sm:w-[60px] h-0.5 bg-gray-300" />
+              <div className="flex-1 h-0.5 bg-gray-300 max-w-[80px] sm:max-w-[120px]" />
             )}
-          </div>
+          </React.Fragment>
         ))}
       </div>
 
