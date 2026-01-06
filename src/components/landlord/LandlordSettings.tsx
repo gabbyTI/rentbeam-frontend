@@ -225,25 +225,26 @@ export const LandlordSettings: React.FC = () => {
 
   return (
     <AppShell title="Settings">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => navigate('/landlord/dashboard')}
         >
-          ← Back to Dashboard
+          <span className="hidden sm:inline">← Back to Dashboard</span>
+          <span className="sm:hidden">← Back</span>
         </Button>
 
         {/* Account Information */}
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-semibold">Account Information</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">Account Information</h2>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
                 <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700">
+                  <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
                     Full Name
                   </label>
                   <Input
@@ -255,7 +256,7 @@ export const LandlordSettings: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700">
+                  <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
                     Business Name (Optional)
                   </label>
                   <Input
@@ -268,7 +269,7 @@ export const LandlordSettings: React.FC = () => {
               </div>
 
               <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">
+                <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
                   Login Email
                 </label>
                 <Input
@@ -283,7 +284,7 @@ export const LandlordSettings: React.FC = () => {
               </div>
 
               <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">
+                <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
                   Notification Email (Optional)
                 </label>
                 <Input
@@ -297,9 +298,9 @@ export const LandlordSettings: React.FC = () => {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
                 <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700">
+                  <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
                     Phone Number (Optional)
                   </label>
                   <Input
@@ -311,7 +312,7 @@ export const LandlordSettings: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block mb-1 text-sm font-medium text-gray-700">
+                  <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
                     Tax ID (Optional)
                   </label>
                   <Input
@@ -323,9 +324,10 @@ export const LandlordSettings: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-2 sm:gap-3 pt-2">
                 <Button onClick={handleSaveAccount} disabled={savingAccount}>
-                  {savingAccount ? 'Saving...' : 'Save Changes'}
+                  <span className="hidden sm:inline">{savingAccount ? 'Saving...' : 'Save Changes'}</span>
+                  <span className="sm:hidden">{savingAccount ? 'Saving...' : 'Save'}</span>
                 </Button>
               </div>
             </div>
@@ -335,14 +337,14 @@ export const LandlordSettings: React.FC = () => {
         {/* Stripe Connect */}
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-semibold">Payment Processing</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">Payment Processing</h2>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-start justify-between">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4 sm:justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <p className="font-medium">Stripe Connect</p>
+                    <p className="text-sm sm:text-base font-medium">Stripe Connect</p>
                     {stripeConnected ? (
                       <Badge variant="accepted">Connected</Badge>
                     ) : (
@@ -351,26 +353,27 @@ export const LandlordSettings: React.FC = () => {
                   </div>
                   {stripeConnected ? (
                     <div>
-                      <p className="mb-1 text-sm text-gray-600">
+                      <p className="mb-1 text-xs sm:text-sm text-gray-600">
                         Your Stripe account is connected and ready to receive payments.
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 break-all">
                         Account ID: {stripeAccountId}
                       </p>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-600">
+                    <p className="text-xs sm:text-sm text-gray-600">
                       Connect your Stripe account to accept tenant payments and receive payouts.
                     </p>
                   )}
                 </div>
                 {stripeConnected ? (
-                  <Button variant="secondary" onClick={handleManageStripe}>
-                    Manage Stripe
+                  <Button variant="secondary" size="sm" onClick={handleManageStripe}>
+                    <span className="hidden sm:inline">Manage Stripe</span>
+                    <span className="sm:hidden">Manage</span>
                   </Button>
                 ) : (
-                  <Button onClick={handleConnectStripe}>
-                    Connect Stripe
+                  <Button size="sm" onClick={handleConnectStripe}>
+                    Connect
                   </Button>
                 )}
               </div>
@@ -378,9 +381,9 @@ export const LandlordSettings: React.FC = () => {
               {stripeConnected && (
                 <>
                   <hr />
-                  <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
-                    <h4 className="mb-2 font-medium text-blue-900">Payment Information</h4>
-                    <ul className="space-y-1 text-sm text-blue-800">
+                  <div className="p-3 sm:p-4 border border-blue-200 rounded-lg bg-blue-50">
+                    <h4 className="mb-2 text-sm sm:text-base font-medium text-blue-900">Payment Information</h4>
+                    <ul className="space-y-1 text-xs sm:text-sm text-blue-800">
                       <li>• Processing Fee: 2.9% + $0.30 (passed to tenant)</li>
                       <li>• Payout Schedule: Daily automatic</li>
                       <li>• Standard payout timing: 2 business days</li>
@@ -395,11 +398,11 @@ export const LandlordSettings: React.FC = () => {
         {/* Payment Settings */}
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-semibold">Default Payment Settings</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">Default Payment Settings</h2>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600">
+            <div className="space-y-3 sm:space-y-4">
+              <p className="text-xs sm:text-sm text-gray-600">
                 These defaults will be applied when creating new properties and units.
               </p>
 
@@ -439,15 +442,16 @@ export const LandlordSettings: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                <p className="text-sm text-gray-700">
+              <div className="p-3 sm:p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <p className="text-xs sm:text-sm text-gray-700">
                   <strong>Note:</strong> These settings can be customized for individual units when creating or editing them.
                 </p>
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-2 sm:gap-3 pt-2">
                 <Button onClick={handleSavePaymentSettings} disabled={savingPayment}>
-                  {savingPayment ? 'Saving...' : 'Save Settings'}
+                  <span className="hidden sm:inline">{savingPayment ? 'Saving...' : 'Save Settings'}</span>
+                  <span className="sm:hidden">{savingPayment ? 'Saving...' : 'Save'}</span>
                 </Button>
               </div>
             </div>
@@ -457,14 +461,14 @@ export const LandlordSettings: React.FC = () => {
         {/* Notification Preferences */}
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-semibold">Notifications</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">Notifications</h2>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Email Notifications</p>
-                  <p className="text-sm text-gray-500">Receive all notifications via email</p>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm sm:text-base font-medium">Email Notifications</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Receive all notifications via email</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -479,12 +483,12 @@ export const LandlordSettings: React.FC = () => {
 
               <hr />
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Payment Received</p>
-                  <p className="text-sm text-gray-500">Notify when tenants make payments</p>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm sm:text-base font-medium">Payment Received</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Notify when tenants make payments</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                   <input
                     type="checkbox"
                     checked={paymentReceived}
@@ -497,12 +501,12 @@ export const LandlordSettings: React.FC = () => {
 
               <hr />
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Payment Failed</p>
-                  <p className="text-sm text-gray-500">Alert when autopay fails</p>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm sm:text-base font-medium">Payment Failed</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Alert when autopay fails</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                   <input
                     type="checkbox"
                     checked={paymentFailed}
@@ -515,12 +519,12 @@ export const LandlordSettings: React.FC = () => {
 
               <hr />
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">New Tenant</p>
-                  <p className="text-sm text-gray-500">Notify when new tenant accepts invite</p>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm sm:text-base font-medium">New Tenant</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Notify when new tenant accepts invite</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                   <input
                     type="checkbox"
                     checked={newTenant}
@@ -533,10 +537,10 @@ export const LandlordSettings: React.FC = () => {
 
               <hr />
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Monthly Reports</p>
-                  <p className="text-sm text-gray-500">Receive monthly payment summaries</p>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm sm:text-base font-medium">Monthly Reports</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Receive monthly payment summaries</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -549,9 +553,10 @@ export const LandlordSettings: React.FC = () => {
                 </label>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-2 sm:gap-3 pt-4">
                 <Button onClick={handleSaveNotifications} disabled={savingNotifications}>
-                  {savingNotifications ? 'Saving...' : 'Save Preferences'}
+                  <span className="hidden sm:inline">{savingNotifications ? 'Saving...' : 'Save Preferences'}</span>
+                  <span className="sm:hidden">{savingNotifications ? 'Saving...' : 'Save'}</span>
                 </Button>
               </div>
             </div>
@@ -561,29 +566,30 @@ export const LandlordSettings: React.FC = () => {
         {/* Security */}
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-semibold">Security</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">Security</h2>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 sm:justify-between">
                 <div>
-                  <p className="font-medium">Password</p>
-                  <p className="text-sm text-gray-500">••••••••</p>
+                  <p className="text-sm sm:text-base font-medium">Password</p>
+                  <p className="text-xs sm:text-sm text-gray-500">••••••••</p>
                 </div>
-                <Button variant="secondary" onClick={handleChangePassword}>
-                  Change Password
+                <Button variant="secondary" size="sm" onClick={handleChangePassword}>
+                  <span className="hidden sm:inline">Change Password</span>
+                  <span className="sm:hidden">Change</span>
                 </Button>
               </div>
 
               <hr />
 
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 sm:justify-between">
                 <div>
-                  <p className="font-medium">Two-Factor Authentication</p>
-                  <p className="text-sm text-gray-500">Add an extra layer of security</p>
+                  <p className="text-sm sm:text-base font-medium">Two-Factor Authentication</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Add an extra layer of security</p>
                 </div>
-                <Button variant="secondary" onClick={() => showToast('Coming soon', 'info')}>
-                  Enable 2FA
+                <Button variant="secondary" size="sm" onClick={() => showToast('Coming soon', 'info')}>
+                  Enable
                 </Button>
               </div>
             </div>
@@ -593,34 +599,35 @@ export const LandlordSettings: React.FC = () => {
         {/* Help & Support */}
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-semibold">Help & Support</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">Help & Support</h2>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <button className="flex items-center justify-between w-full px-4 py-3 text-left transition-colors rounded-lg hover:bg-gray-50">
-                <span className="font-medium">Help Center</span>
+            <div className="space-y-2 sm:space-y-3">
+              <button className="flex items-center justify-between w-full px-3 sm:px-4 py-2 sm:py-3 text-left transition-colors rounded-lg hover:bg-gray-50">
+                <span className="text-sm sm:text-base font-medium">Help Center</span>
                 <span className="text-gray-400">→</span>
               </button>
-              <button className="flex items-center justify-between w-full px-4 py-3 text-left transition-colors rounded-lg hover:bg-gray-50">
-                <span className="font-medium">Contact Support</span>
+              <button className="flex items-center justify-between w-full px-3 sm:px-4 py-2 sm:py-3 text-left transition-colors rounded-lg hover:bg-gray-50">
+                <span className="text-sm sm:text-base font-medium">Contact Support</span>
                 <span className="text-gray-400">→</span>
               </button>
-              <button className="flex items-center justify-between w-full px-4 py-3 text-left transition-colors rounded-lg hover:bg-gray-50">
-                <span className="font-medium">Terms of Service</span>
+              <button className="flex items-center justify-between w-full px-3 sm:px-4 py-2 sm:py-3 text-left transition-colors rounded-lg hover:bg-gray-50">
+                <span className="text-sm sm:text-base font-medium">Terms of Service</span>
                 <span className="text-gray-400">→</span>
               </button>
-              <button className="flex items-center justify-between w-full px-4 py-3 text-left transition-colors rounded-lg hover:bg-gray-50">
-                <span className="font-medium">Privacy Policy</span>
+              <button className="flex items-center justify-between w-full px-3 sm:px-4 py-2 sm:py-3 text-left transition-colors rounded-lg hover:bg-gray-50">
+                <span className="text-sm sm:text-base font-medium">Privacy Policy</span>
                 <span className="text-gray-400">→</span>
               </button>
             </div>
 
-            <div className="pt-6 mt-6 border-t">
-              <p className="mb-4 text-sm text-center text-gray-500">
+            <div className="pt-4 sm:pt-6 mt-4 sm:mt-6 border-t">
+              <p className="mb-3 sm:mb-4 text-xs sm:text-sm text-center text-gray-500">
                 RentTrack Lite v1.0.0
               </p>
               <Button
                 variant="secondary"
+                size="sm"
                 onClick={handleLogout}
                 className="w-full text-red-600 border-red-300 hover:bg-red-50"
               >
@@ -633,23 +640,25 @@ export const LandlordSettings: React.FC = () => {
         {/* Danger Zone */}
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-semibold text-red-600">Danger Zone</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-red-600">Danger Zone</h2>
           </CardHeader>
           <CardContent>
-            <div className="p-4 border border-red-200 rounded-lg bg-red-50">
-              <div className="flex items-start justify-between">
+            <div className="p-3 sm:p-4 border border-red-200 rounded-lg bg-red-50">
+              <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4 sm:justify-between">
                 <div className="flex-1">
-                  <p className="font-medium text-red-900">Delete Account</p>
-                  <p className="mt-1 text-sm text-red-700">
+                  <p className="text-sm sm:text-base font-medium text-red-900">Delete Account</p>
+                  <p className="mt-1 text-xs sm:text-sm text-red-700">
                     Permanently delete your account and all associated data including properties, units, tenants, and payment history. This action cannot be undone.
                   </p>
                 </div>
                 <Button
                   variant="secondary"
+                  size="sm"
                   onClick={() => setShowDeleteModal(true)}
-                  className="ml-4 text-red-600 border-red-300 hover:bg-red-100"
+                  className="text-red-600 border-red-300 hover:bg-red-100 w-full sm:w-auto"
                 >
-                  Delete Account
+                  <span className="hidden sm:inline">Delete Account</span>
+                  <span className="sm:hidden">Delete</span>
                 </Button>
               </div>
             </div>
@@ -659,23 +668,23 @@ export const LandlordSettings: React.FC = () => {
 
       {/* Delete Account Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="w-full max-w-md p-6 mx-4 bg-white rounded-lg shadow-xl">
-            <h3 className="text-lg font-semibold text-red-600">Delete Account?</h3>
-            <p className="mt-2 text-sm text-gray-600">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="w-full max-w-md p-4 sm:p-6 bg-white rounded-lg shadow-xl">
+            <h3 className="text-base sm:text-lg font-semibold text-red-600">Delete Account?</h3>
+            <p className="mt-2 text-xs sm:text-sm text-gray-600">
               Are you absolutely sure? This will permanently delete:
             </p>
-            <ul className="mt-3 ml-5 space-y-1 text-sm text-gray-700 list-disc">
+            <ul className="mt-3 ml-5 space-y-1 text-xs sm:text-sm text-gray-700 list-disc">
               <li>Your account and profile</li>
               <li>All properties and units</li>
               <li>All tenant memberships and invites</li>
               <li>All payment history</li>
               <li>Your Stripe connection (payouts will be paused)</li>
             </ul>
-            <p className="mt-3 text-sm font-medium text-red-600">
+            <p className="mt-3 text-xs sm:text-sm font-medium text-red-600">
               This action cannot be undone.
             </p>
-            <div className="flex gap-3 mt-6">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4 sm:mt-6">
               <Button
                 variant="secondary"
                 onClick={() => setShowDeleteModal(false)}
@@ -700,8 +709,8 @@ export const LandlordSettings: React.FC = () => {
       {showPasswordModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
           <div className="w-full max-w-md bg-white rounded-lg shadow-xl">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-semibold">Change Password</h2>
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b">
+              <h2 className="text-lg sm:text-xl font-semibold">Change Password</h2>
               <button
                 onClick={() => !changingPassword && setShowPasswordModal(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -711,9 +720,9 @@ export const LandlordSettings: React.FC = () => {
               </button>
             </div>
             
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
               <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">
+                <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
                   Current Password
                 </label>
                 <Input
@@ -726,7 +735,7 @@ export const LandlordSettings: React.FC = () => {
               </div>
 
               <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">
+                <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
                   New Password
                 </label>
                 <Input
@@ -742,7 +751,7 @@ export const LandlordSettings: React.FC = () => {
               </div>
 
               <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">
+                <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
                   Confirm New Password
                 </label>
                 <Input
@@ -754,7 +763,7 @@ export const LandlordSettings: React.FC = () => {
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
                 <Button
                   variant="secondary"
                   onClick={() => setShowPasswordModal(false)}

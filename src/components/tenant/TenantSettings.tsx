@@ -334,24 +334,25 @@ export const TenantSettings: React.FC = () => {
 
   return (
     <AppShell title="Settings">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => navigate('/tenant/dashboard')}
         >
-          ← Back to Dashboard
+          <span className="hidden sm:inline">← Back to Dashboard</span>
+          <span className="sm:hidden">← Back</span>
         </Button>
 
         {/* Account Information */}
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-semibold">Account Information</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">Account Information</h2>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Full Name
                 </label>
                 <Input
@@ -363,7 +364,7 @@ export const TenantSettings: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Login Email
                 </label>
                 <Input
@@ -378,7 +379,7 @@ export const TenantSettings: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Phone Number
                 </label>
                 <Input
@@ -389,8 +390,8 @@ export const TenantSettings: React.FC = () => {
                 />
               </div>
 
-              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <p className="text-sm text-blue-800">
+              <div className="p-2 sm:p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-xs sm:text-sm text-blue-800">
                   <span className="font-medium">Note:</span> Your name and phone number are managed by your landlord. Please contact them to update this information.
                 </p>
               </div>
@@ -398,7 +399,7 @@ export const TenantSettings: React.FC = () => {
               <hr className="my-4" />
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Notification Email (Optional)
                 </label>
                 <div className="flex gap-2">
@@ -413,9 +414,10 @@ export const TenantSettings: React.FC = () => {
                   {notificationEmail && verificationStep === 'initial' && (
                     <Button
                       variant="secondary"
+                      size="sm"
                       onClick={() => setNotificationEmail('')}
                       disabled={savingAccount}
-                      className="px-4"
+                      className="px-3 sm:px-4"
                     >
                       Clear
                     </Button>
@@ -429,8 +431,8 @@ export const TenantSettings: React.FC = () => {
               </div>
 
               {verificationStep === 'code-sent' && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm font-medium text-blue-900 mb-3">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+                  <p className="text-xs sm:text-sm font-medium text-blue-900 mb-3">
                     📧 Verification code sent to {pendingNotificationEmail}
                   </p>
                   <Input
@@ -451,16 +453,25 @@ export const TenantSettings: React.FC = () => {
                 <Button
                   onClick={handleSaveAccount}
                   disabled={savingAccount}
+                  size="sm"
                   className="w-full"
                 >
-                  {savingAccount
-                    ? (notificationEmail.trim() ? 'Sending Code...' : 'Clearing...')
-                    : (notificationEmail.trim() ? 'Save Notification Email' : 'Clear Notification Email')}
+                  <span className="hidden sm:inline">
+                    {savingAccount
+                      ? (notificationEmail.trim() ? 'Sending Code...' : 'Clearing...')
+                      : (notificationEmail.trim() ? 'Save Notification Email' : 'Clear Notification Email')}
+                  </span>
+                  <span className="sm:hidden">
+                    {savingAccount
+                      ? (notificationEmail.trim() ? 'Sending...' : 'Clearing...')
+                      : (notificationEmail.trim() ? 'Save Email' : 'Clear Email')}
+                  </span>
                 </Button>
               ) : (
-                <div className="flex space-x-3">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <Button
                     variant="secondary"
+                    size="sm"
                     onClick={handleCancelVerification}
                     disabled={verificationStep === 'verifying'}
                     className="flex-1"
@@ -468,11 +479,12 @@ export const TenantSettings: React.FC = () => {
                     Cancel
                   </Button>
                   <Button
+                    size="sm"
                     onClick={handleConfirmVerification}
                     disabled={verificationStep === 'verifying' || verificationCode.length !== 6}
                     className="flex-1"
                   >
-                    {verificationStep === 'verifying' ? 'Verifying...' : 'Verify Code'}
+                    {verificationStep === 'verifying' ? 'Verifying...' : 'Verify'}
                   </Button>
                 </div>
               )}
@@ -483,16 +495,16 @@ export const TenantSettings: React.FC = () => {
         {/* Notification Preferences */}
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-semibold">Notifications</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">Notifications</h2>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Email Notifications</p>
-                  <p className="text-sm text-gray-500">Receive all notifications via email</p>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm sm:text-base font-medium">Email Notifications</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Receive all notifications via email</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                   <input
                     type="checkbox"
                     checked={emailNotifications}
@@ -505,12 +517,12 @@ export const TenantSettings: React.FC = () => {
 
               <hr />
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Payment Reminders</p>
-                  <p className="text-sm text-gray-500">Reminder before rent is due</p>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm sm:text-base font-medium">Payment Reminders</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Reminder before rent is due</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                   <input
                     type="checkbox"
                     checked={paymentReminders}
@@ -535,18 +547,18 @@ export const TenantSettings: React.FC = () => {
                     <option value="5">5 days</option>
                     <option value="7">7 days</option>
                   </select>
-                  <label className="text-sm text-gray-600">before due date</label>
+                  <label className="text-gray-600">before due date</label>
                 </div>
               )}
 
               <hr />
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Autopay Confirmations</p>
-                  <p className="text-sm text-gray-500">Confirmation when autopay processes</p>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm sm:text-base font-medium">Autopay Confirmations</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Confirmation when autopay processes</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                   <input
                     type="checkbox"
                     checked={autopayConfirmations}
@@ -559,12 +571,12 @@ export const TenantSettings: React.FC = () => {
 
               <hr />
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Payment Receipts</p>
-                  <p className="text-sm text-gray-500">Receive email receipts for payments</p>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm sm:text-base font-medium">Payment Receipts</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Receive email receipts for payments</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                   <input
                     type="checkbox"
                     checked={receiptEmails}
@@ -577,10 +589,10 @@ export const TenantSettings: React.FC = () => {
 
               <hr />
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Late Payment Warnings</p>
-                  <p className="text-sm text-gray-500">Alerts when payment is overdue</p>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm sm:text-base font-medium">Late Payment Warnings</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Alerts when payment is overdue</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -593,9 +605,10 @@ export const TenantSettings: React.FC = () => {
                 </label>
               </div>
 
-              <div className="flex gap-3 pt-4">
-                <Button onClick={handleSaveNotifications} disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Preferences'}
+              <div className="flex gap-2 sm:gap-3 pt-4">
+                <Button size="sm" onClick={handleSaveNotifications} disabled={saving}>
+                  <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save Preferences'}</span>
+                  <span className="sm:hidden">{saving ? 'Saving...' : 'Save'}</span>
                 </Button>
               </div>
             </div>
@@ -605,39 +618,39 @@ export const TenantSettings: React.FC = () => {
         {/* Display Preferences */}
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-semibold">Display Preferences</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">Display Preferences</h2>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
                   Theme
                 </label>
-                <div className="flex gap-3">
+                <div className="flex gap-2 sm:gap-3">
                   <button
                     onClick={() => setTheme('light')}
-                    className={`flex-1 px-4 py-3 border-2 rounded-lg transition-colors ${
+                    className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg transition-colors ${
                       theme === 'light'
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="flex items-center justify-center gap-2">
-                      <span className="text-2xl">☀️</span>
-                      <span className="font-medium">Light</span>
+                    <div className="flex items-center justify-center gap-1 sm:gap-2">
+                      <span className="text-xl sm:text-2xl">☀️</span>
+                      <span className="text-sm sm:text-base font-medium">Light</span>
                     </div>
                   </button>
                   <button
                     onClick={() => setTheme('dark')}
-                    className={`flex-1 px-4 py-3 border-2 rounded-lg transition-colors ${
+                    className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg transition-colors ${
                       theme === 'dark'
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="flex items-center justify-center gap-2">
-                      <span className="text-2xl">🌙</span>
-                      <span className="font-medium">Dark</span>
+                    <div className="flex items-center justify-center gap-1 sm:gap-2">
+                      <span className="text-xl sm:text-2xl">🌙</span>
+                      <span className="text-sm sm:text-base font-medium">Dark</span>
                     </div>
                   </button>
                 </div>
@@ -661,9 +674,10 @@ export const TenantSettings: React.FC = () => {
                 </select>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <Button onClick={handleSaveDisplay} disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Preferences'}
+              <div className="flex gap-2 sm:gap-3 pt-2">
+                <Button size="sm" onClick={handleSaveDisplay} disabled={saving}>
+                  <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save Preferences'}</span>
+                  <span className="sm:hidden">{saving ? 'Saving...' : 'Save'}</span>
                 </Button>
               </div>
             </div>
@@ -675,47 +689,52 @@ export const TenantSettings: React.FC = () => {
           <>
             <Card>
               <CardHeader>
-                <h2 className="text-xl font-semibold">Payment Method</h2>
+                <h2 className="text-lg sm:text-xl font-semibold">Payment Method</h2>
               </CardHeader>
               <CardContent>
                 {tenantData.defaultPaymentMethodId ? (
-                  <div className="space-y-4">
-                    <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="text-2xl">💳</span>
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <span className="text-xl sm:text-2xl">💳</span>
                           <div>
-                            <p className="font-medium">{tenantData.paymentMethodLabel}</p>
-                            <p className="text-sm text-gray-500">Default payment method</p>
+                            <p className="text-sm sm:text-base font-medium">{tenantData.paymentMethodLabel}</p>
+                            <p className="text-xs sm:text-sm text-gray-500">Default payment method</p>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                       <Button
                         variant="secondary"
+                        size="sm"
                         onClick={() => navigate('/tenant/payment-method')}
                         className="flex-1"
                       >
-                        Update Card
+                        <span className="hidden sm:inline">Update Card</span>
+                        <span className="sm:hidden">Update</span>
                       </Button>
                       <Button
                         variant="secondary"
+                        size="sm"
                         onClick={() => setShowRemoveCardModal(true)}
                         className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
                       >
-                        Remove Card
+                        <span className="hidden sm:inline">Remove Card</span>
+                        <span className="sm:hidden">Remove</span>
                       </Button>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-6">
-                    <p className="text-gray-600 mb-4">
+                  <div className="text-center py-4 sm:py-6">
+                    <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">
                       No payment method on file. Add a card to enable autopay.
                     </p>
-                    <Button onClick={() => navigate('/tenant/payment-method')}>
-                      Add Payment Method
+                    <Button size="sm" onClick={() => navigate('/tenant/payment-method')}>
+                      <span className="hidden sm:inline">Add Payment Method</span>
+                      <span className="sm:hidden">Add Card</span>
                     </Button>
                   </div>
                 )}
@@ -725,28 +744,28 @@ export const TenantSettings: React.FC = () => {
             {tenantData.defaultPaymentMethodId && (
               <Card>
                 <CardHeader>
-                  <h2 className="text-xl font-semibold">Autopay Settings</h2>
+                  <h2 className="text-lg sm:text-xl font-semibold">Autopay Settings</h2>
                 </CardHeader>
                 <CardContent>
                   {tenantData.autopayEnabled ? (
-                    <div className="space-y-6">
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="space-y-4 sm:space-y-6">
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span className="font-medium text-green-900">Autopay Active</span>
+                          <span className="text-sm sm:text-base font-medium text-green-900">Autopay Active</span>
                         </div>
-                        <p className="text-sm text-green-800">
+                        <p className="text-xs sm:text-sm text-green-800">
                           Your rent will be automatically charged on the {tenantData.unit.dueDay}
                           {tenantData.unit.dueDay === 1 ? 'st' : tenantData.unit.dueDay === 2 ? 'nd' : tenantData.unit.dueDay === 3 ? 'rd' : 'th'} of each month.
                         </p>
                       </div>
 
                       <div>
-                        <h3 className="font-medium mb-3">Next Scheduled Charge</h3>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <div className="flex justify-between items-start mb-3">
-                            <span className="text-sm text-gray-600">Date</span>
-                            <span className="font-medium">{getNextChargeDate()}</span>
+                        <h3 className="text-sm sm:text-base font-medium mb-2 sm:mb-3">Next Scheduled Charge</h3>
+                        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+                          <div className="flex justify-between items-start mb-2 sm:mb-3">
+                            <span className="text-xs sm:text-sm text-gray-600">Date</span>
+                            <span className="text-sm sm:text-base font-medium">{getNextChargeDate()}</span>
                           </div>
                           <FeeBreakdown rentAmount={Number(tenantData.unit.rentAmount)} />
                         </div>
@@ -754,41 +773,43 @@ export const TenantSettings: React.FC = () => {
 
                       <Button
                         variant="secondary"
+                        size="sm"
                         onClick={() => setShowDisableModal(true)}
                         className="w-full"
                       >
-                        Disable Autopay
+                        <span className="hidden sm:inline">Disable Autopay</span>
+                        <span className="sm:hidden">Disable</span>
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-6">
-                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="space-y-4 sm:space-y-6">
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                          <span className="font-medium text-gray-900">Autopay Inactive</span>
+                          <span className="text-sm sm:text-base font-medium text-gray-900">Autopay Inactive</span>
                         </div>
-                        <p className="text-sm text-gray-700">
+                        <p className="text-xs sm:text-sm text-gray-700">
                           Enable autopay to automatically charge your card on the {tenantData.unit.dueDay}
                           {tenantData.unit.dueDay === 1 ? 'st' : tenantData.unit.dueDay === 2 ? 'nd' : tenantData.unit.dueDay === 3 ? 'rd' : 'th'} of each month.
                         </p>
                       </div>
 
                       <div>
-                        <h3 className="font-medium mb-3">Your Monthly Charge</h3>
-                        <div className="bg-gray-50 rounded-lg p-4">
+                        <h3 className="text-sm sm:text-base font-medium mb-2 sm:mb-3">Your Monthly Charge</h3>
+                        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
                           <FeeBreakdown rentAmount={Number(tenantData.unit.rentAmount)} />
                         </div>
                       </div>
 
-                      <div className="border-t pt-4">
-                        <label className="flex items-start space-x-3 cursor-pointer">
+                      <div className="border-t pt-3 sm:pt-4">
+                        <label className="flex items-start space-x-2 sm:space-x-3 cursor-pointer">
                           <input
                             type="checkbox"
                             checked={consentChecked}
                             onChange={(e) => setConsentChecked(e.target.checked)}
-                            className="mt-1"
+                            className="mt-1 flex-shrink-0"
                           />
-                          <span className="text-sm text-gray-700">
+                          <span className="text-xs sm:text-sm text-gray-700">
                             I authorize RentTrack to automatically charge my payment method for 
                             {' '}{formatCurrency(calculateProcessingFee(Number(tenantData.unit.rentAmount)).totalAmount)} on the {tenantData.unit.dueDay}
                             {tenantData.unit.dueDay === 1 ? 'st' : tenantData.unit.dueDay === 2 ? 'nd' : tenantData.unit.dueDay === 3 ? 'rd' : 'th'} of each month.
@@ -798,6 +819,7 @@ export const TenantSettings: React.FC = () => {
                       </div>
 
                       <Button
+                        size="sm"
                         onClick={handleEnableAutopay}
                         disabled={!consentChecked || actionLoading}
                         className="w-full"
@@ -815,29 +837,30 @@ export const TenantSettings: React.FC = () => {
         {/* Security */}
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-semibold">Security</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">Security</h2>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 sm:justify-between">
                 <div>
-                  <p className="font-medium">Password</p>
-                  <p className="text-sm text-gray-500">••••••••</p>
+                  <p className="text-sm sm:text-base font-medium">Password</p>
+                  <p className="text-xs sm:text-sm text-gray-500">••••••••</p>
                 </div>
-                <Button variant="secondary" onClick={handleChangePassword}>
-                  Change Password
+                <Button variant="secondary" size="sm" onClick={handleChangePassword}>
+                  <span className="hidden sm:inline">Change Password</span>
+                  <span className="sm:hidden">Change</span>
                 </Button>
               </div>
 
               <hr />
 
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 sm:justify-between">
                 <div>
-                  <p className="font-medium">Two-Factor Authentication</p>
-                  <p className="text-sm text-gray-500">Add an extra layer of security</p>
+                  <p className="text-sm sm:text-base font-medium">Two-Factor Authentication</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Add an extra layer of security</p>
                 </div>
-                <Button variant="secondary" onClick={() => showToast('Coming soon', 'info')}>
-                  Enable 2FA
+                <Button variant="secondary" size="sm" onClick={() => showToast('Coming soon', 'info')}>
+                  Enable
                 </Button>
               </div>
             </div>
@@ -847,34 +870,35 @@ export const TenantSettings: React.FC = () => {
         {/* Help & Support */}
         <Card>
           <CardHeader>
-            <h2 className="text-xl font-semibold">Help & Support</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">Help & Support</h2>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-between">
-                <span className="font-medium">Help Center</span>
+            <div className="space-y-2 sm:space-y-3">
+              <button className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-between">
+                <span className="text-sm sm:text-base font-medium">Help Center</span>
                 <span className="text-gray-400">→</span>
               </button>
-              <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-between">
-                <span className="font-medium">Contact Support</span>
+              <button className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-between">
+                <span className="text-sm sm:text-base font-medium">Contact Support</span>
                 <span className="text-gray-400">→</span>
               </button>
-              <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-between">
-                <span className="font-medium">Terms of Service</span>
+              <button className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-between">
+                <span className="text-sm sm:text-base font-medium">Terms of Service</span>
                 <span className="text-gray-400">→</span>
               </button>
-              <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-between">
-                <span className="font-medium">Privacy Policy</span>
+              <button className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-between">
+                <span className="text-sm sm:text-base font-medium">Privacy Policy</span>
                 <span className="text-gray-400">→</span>
               </button>
             </div>
 
-            <div className="mt-6 pt-6 border-t">
-              <p className="text-sm text-gray-500 text-center mb-4">
+            <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t">
+              <p className="text-xs sm:text-sm text-gray-500 text-center mb-3 sm:mb-4">
                 RentTrack Lite v1.0.0
               </p>
               <Button
                 variant="secondary"
+                size="sm"
                 onClick={handleLogout}
                 className="w-full text-red-600 border-red-300 hover:bg-red-50"
               >
@@ -889,8 +913,8 @@ export const TenantSettings: React.FC = () => {
       {showPasswordModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
           <div className="w-full max-w-md bg-white rounded-lg shadow-xl">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-semibold">Change Password</h2>
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b">
+              <h2 className="text-lg sm:text-xl font-semibold">Change Password</h2>
               <button
                 onClick={() => !changingPassword && setShowPasswordModal(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -900,9 +924,9 @@ export const TenantSettings: React.FC = () => {
               </button>
             </div>
             
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
               <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">
+                <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
                   Current Password
                 </label>
                 <Input
@@ -915,7 +939,7 @@ export const TenantSettings: React.FC = () => {
               </div>
 
               <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">
+                <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
                   New Password
                 </label>
                 <Input
@@ -931,7 +955,7 @@ export const TenantSettings: React.FC = () => {
               </div>
 
               <div>
-                <label className="block mb-1 text-sm font-medium text-gray-700">
+                <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
                   Confirm New Password
                 </label>
                 <Input
@@ -943,9 +967,10 @@ export const TenantSettings: React.FC = () => {
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
                 <Button
                   variant="secondary"
+                  size="sm"
                   onClick={() => setShowPasswordModal(false)}
                   disabled={changingPassword}
                   className="flex-1"
@@ -953,11 +978,12 @@ export const TenantSettings: React.FC = () => {
                   Cancel
                 </Button>
                 <Button
+                  size="sm"
                   onClick={handlePasswordSubmit}
                   disabled={changingPassword}
                   className="flex-1"
                 >
-                  {changingPassword ? 'Changing...' : 'Change Password'}
+                  {changingPassword ? 'Changing...' : 'Change'}
                 </Button>
               </div>
             </div>
@@ -971,8 +997,8 @@ export const TenantSettings: React.FC = () => {
         onClose={() => setShowRemoveCardModal(false)}
         title="Remove Payment Method"
       >
-        <div className="space-y-4">
-          <p className="text-gray-600">
+        <div className="space-y-3 sm:space-y-4">
+          <p className="text-sm sm:text-base text-gray-600">
             Are you sure you want to remove your payment method? This will also disable autopay.
           </p>
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
@@ -980,9 +1006,10 @@ export const TenantSettings: React.FC = () => {
               You'll need to add a new payment method to pay rent online or enable autopay again.
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <Button
               variant="secondary"
+              size="sm"
               onClick={() => setShowRemoveCardModal(false)}
               disabled={actionLoading}
               className="flex-1"
@@ -990,11 +1017,12 @@ export const TenantSettings: React.FC = () => {
               Cancel
             </Button>
             <Button
+              size="sm"
               onClick={handleRemoveCard}
               disabled={actionLoading}
               className="flex-1 bg-red-600 hover:bg-red-700"
             >
-              {actionLoading ? 'Removing...' : 'Remove Card'}
+              {actionLoading ? 'Removing...' : 'Remove'}
             </Button>
           </div>
         </div>
@@ -1006,18 +1034,19 @@ export const TenantSettings: React.FC = () => {
         onClose={() => setShowDisableModal(false)}
         title="Disable Autopay"
       >
-        <div className="space-y-4">
-          <p className="text-gray-600">
+        <div className="space-y-3 sm:space-y-4">
+          <p className="text-sm sm:text-base text-gray-600">
             Are you sure you want to disable autopay? You'll need to manually pay your rent each month.
           </p>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-sm text-blue-900">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 sm:p-3">
+            <p className="text-xs sm:text-sm text-blue-900">
               Your payment method will remain saved for one-time payments.
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <Button
               variant="secondary"
+              size="sm"
               onClick={() => setShowDisableModal(false)}
               disabled={actionLoading}
               className="flex-1"
@@ -1025,11 +1054,12 @@ export const TenantSettings: React.FC = () => {
               Cancel
             </Button>
             <Button
+              size="sm"
               onClick={handleDisableAutopay}
               disabled={actionLoading}
               className="flex-1"
             >
-              {actionLoading ? 'Disabling...' : 'Disable Autopay'}
+              {actionLoading ? 'Disabling...' : 'Disable'}
             </Button>
           </div>
         </div>

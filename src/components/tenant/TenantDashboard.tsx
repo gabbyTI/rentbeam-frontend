@@ -194,14 +194,14 @@ export const TenantDashboard: React.FC = () => {
 
   return (
     <AppShell title="Dashboard">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {acceptsOnlinePayments && !tenantData.defaultPaymentMethodId && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">💳</span>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <span className="text-xl sm:text-2xl">💳</span>
               <div className="flex-1">
-                <h4 className="font-medium text-blue-900 mb-1">Add a payment method</h4>
-                <p className="text-sm text-blue-800 mb-3">
+                <h4 className="text-sm sm:text-base font-medium text-blue-900 mb-1">Add a payment method</h4>
+                <p className="text-xs sm:text-sm text-blue-800 mb-3">
                   Set up your card to pay rent online with ease. Processing fees apply (2.9% + $0.30).
                 </p>
                 <Button
@@ -217,12 +217,12 @@ export const TenantDashboard: React.FC = () => {
         )}
 
         {!acceptsOnlinePayments && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">💵</span>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <span className="text-xl sm:text-2xl">💵</span>
               <div className="flex-1">
-                <h4 className="font-medium text-gray-900 mb-1">Manual Payments</h4>
-                <p className="text-sm text-gray-700">
+                <h4 className="text-sm sm:text-base font-medium text-gray-900 mb-1">Manual Payments</h4>
+                <p className="text-xs sm:text-sm text-gray-700">
                   Payments are arranged directly with your landlord. Online card payments are not available for this property.
                 </p>
               </div>
@@ -231,18 +231,27 @@ export const TenantDashboard: React.FC = () => {
         )}
 
         {acceptsOnlinePayments && (
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             <Button
-              className="w-full"
+              className="w-full text-sm sm:text-base"
               size="lg"
               onClick={handlePayNowClick}
               disabled={!tenantData.defaultPaymentMethodId || paymentStatus === 'paid'}
             >
-              {!tenantData.defaultPaymentMethodId 
-                ? 'Add Payment Method to Pay'
-                : paymentStatus === 'paid'
-                ? `Paid - ${formatCurrency(unit.rentAmount)}`
-                : `Pay Now - ${formatCurrency(unit.rentAmount)}`}
+              <span className="hidden sm:inline">
+                {!tenantData.defaultPaymentMethodId 
+                  ? 'Add Payment Method to Pay'
+                  : paymentStatus === 'paid'
+                  ? `Paid - ${formatCurrency(unit.rentAmount)}`
+                  : `Pay Now - ${formatCurrency(unit.rentAmount)}`}
+              </span>
+              <span className="sm:hidden">
+                {!tenantData.defaultPaymentMethodId 
+                  ? 'Add Payment Method'
+                  : paymentStatus === 'paid'
+                  ? `Paid - ${formatCurrency(unit.rentAmount)}`
+                  : `Pay ${formatCurrency(unit.rentAmount)}`}
+              </span>
             </Button>
             {tenantData.defaultPaymentMethodId && (
               <p className="text-xs text-gray-500 text-center mt-2">
@@ -252,45 +261,47 @@ export const TenantDashboard: React.FC = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           <Card className="lg:col-span-2">
             <CardHeader>
-              <div className="flex justify-between items-start">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                 <div>
-                  <h3 className="text-lg font-semibold">Current Rent</h3>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <h3 className="text-base sm:text-lg font-semibold">Current Rent</h3>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1">
                     {property.name} - Unit {unit.name}
                   </p>
                 </div>
-                {getStatusBadge()}
+                <div>
+                  {getStatusBadge()}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <div>
-                  <label className="text-sm text-gray-500">Monthly Rent</label>
-                  <p className="text-2xl font-semibold">
+                  <label className="text-xs sm:text-sm text-gray-500">Monthly Rent</label>
+                  <p className="text-xl sm:text-2xl font-semibold">
                     {formatCurrency(unit.rentAmount)}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm text-gray-500">Due Date</label>
-                  <p className="text-2xl font-semibold">Day {unit.dueDay}</p>
+                  <label className="text-xs sm:text-sm text-gray-500">Due Date</label>
+                  <p className="text-xl sm:text-2xl font-semibold">Day {unit.dueDay}</p>
                 </div>
               </div>
 
-              <div className="space-y-3 pt-4 border-t">
-                <div className="flex justify-between text-sm">
+              <div className="space-y-2 sm:space-y-3 pt-3 sm:pt-4 border-t">
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-1 text-xs sm:text-sm">
                   <span className="text-gray-500">Property Address</span>
-                  <span className="font-medium">{property.address}</span>
+                  <span className="font-medium text-right sm:text-left">{property.address}</span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-1 text-xs sm:text-sm">
                   <span className="text-gray-500">Landlord</span>
-                  <span className="font-medium">{landlord.user.name}</span>
+                  <span className="font-medium text-right sm:text-left">{landlord.user.name}</span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-1 text-xs sm:text-sm">
                   <span className="text-gray-500">Move-in Date</span>
-                  <span className="font-medium">
+                  <span className="font-medium text-right sm:text-left">
                     {new Date(tenantData.moveInDate).toLocaleDateString()}
                   </span>
                 </div>
@@ -301,41 +312,44 @@ export const TenantDashboard: React.FC = () => {
           {acceptsOnlinePayments && (
             <Card>
               <CardHeader>
-                <h3 className="text-lg font-semibold">Autopay</h3>
+                <h3 className="text-base sm:text-lg font-semibold">Autopay</h3>
               </CardHeader>
               <CardContent>
                 {tenantData.autopayEnabled ? (
                   <>
-                    <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-2 mb-3 sm:mb-4">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm font-medium text-green-700">Active</span>
+                      <span className="text-xs sm:text-sm font-medium text-green-700">Active</span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-4">
+                    <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                       Rent will be automatically charged on the {unit.dueDay}
                       {unit.dueDay === 1 ? 'st' : unit.dueDay === 2 ? 'nd' : unit.dueDay === 3 ? 'rd' : 'th'} of each month.
                     </p>
-                    <p className="text-sm text-gray-500 mb-4">
+                    <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">
                       Payment method: {tenantData.paymentMethodLabel || 'Card'}
                     </p>
                     <Button
                       variant="secondary"
+                      size="sm"
                       onClick={() => setShowDisableModal(true)}
                       className="w-full"
                     >
-                      Disable Autopay
+                      <span className="hidden sm:inline">Disable Autopay</span>
+                      <span className="sm:hidden">Disable</span>
                     </Button>
                   </>
                 ) : (
                   <>
-                    <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-2 mb-3 sm:mb-4">
                       <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                      <span className="text-sm font-medium text-gray-700">Inactive</span>
+                      <span className="text-xs sm:text-sm font-medium text-gray-700">Inactive</span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-4">
+                    <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                       Enable autopay to automatically pay your rent each month.
                     </p>
-                    <Button onClick={() => navigate('/tenant/settings')} className="w-full">
-                      Enable Autopay
+                    <Button size="sm" onClick={() => navigate('/tenant/settings')} className="w-full">
+                      <span className="hidden sm:inline">Enable Autopay</span>
+                      <span className="sm:hidden">Enable</span>
                     </Button>
                   </>
                 )}
@@ -345,7 +359,7 @@ export const TenantDashboard: React.FC = () => {
 
           <Card className="lg:col-span-3">
             <CardHeader>
-              <h3 className="text-lg font-semibold">Payment History</h3>
+              <h3 className="text-base sm:text-lg font-semibold">Payment History</h3>
             </CardHeader>
             <CardContent>
               <PaymentHistoryList 
@@ -376,15 +390,18 @@ export const TenantDashboard: React.FC = () => {
         onClose={() => setShowDisableModal(false)}
         title="Disable Autopay"
       >
-        <p className="text-gray-600 mb-6">
+        <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
           Are you sure you want to disable autopay? You'll need to manually pay your rent
           each month.
         </p>
-        <div className="flex gap-3">
-          <Button variant="secondary" onClick={() => setShowDisableModal(false)}>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <Button variant="secondary" size="sm" onClick={() => setShowDisableModal(false)} className="flex-1">
             Cancel
           </Button>
-          <Button onClick={handleDisableAutopay}>Disable Autopay</Button>
+          <Button size="sm" onClick={handleDisableAutopay} className="flex-1">
+            <span className="hidden sm:inline">Disable Autopay</span>
+            <span className="sm:hidden">Disable</span>
+          </Button>
         </div>
       </Modal>
     </AppShell>

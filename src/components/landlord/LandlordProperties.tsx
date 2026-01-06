@@ -7,7 +7,6 @@ import { Input } from '../ui/Input';
 import { Card, CardHeader, CardContent } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 import { EmptyState } from '../ui/EmptyState';
-import { generateId } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
 
 export const LandlordProperties: React.FC = () => {
@@ -207,13 +206,15 @@ export const LandlordProperties: React.FC = () => {
 
   return (
     <AppShell title="Properties">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Properties</h2>
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold">Properties</h2>
         <Button 
           onClick={() => setIsAddingProperty(true)}
           disabled={!stripeOnboarded}
+          size="sm"
         >
-          Add Property
+          <span className="hidden sm:inline">Add Property</span>
+          <span className="sm:hidden">Add</span>
         </Button>
       </div>
 
@@ -235,12 +236,12 @@ export const LandlordProperties: React.FC = () => {
           {landlordProperties.map((property) => (
             <Card key={property.id}>
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold">{property.name}</h3>
-                    <p className="text-sm text-gray-500">{property.address}</p>
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base sm:text-lg font-semibold truncate">{property.name}</h3>
+                    <p className="text-xs sm:text-sm text-gray-500 truncate">{property.address}</p>
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-1 sm:space-x-2 flex-shrink-0">
                     <Button
                       size="sm"
                       variant="ghost"
@@ -253,35 +254,37 @@ export const LandlordProperties: React.FC = () => {
                       onClick={() => setIsAddingUnit(property.id)}
                       disabled={!stripeOnboarded}
                     >
-                      Add Unit
+                      <span className="hidden sm:inline">Add Unit</span>
+                      <span className="sm:hidden">+</span>
                     </Button>
                     <Button
                       size="sm"
                       variant="danger"
                       onClick={() => handleDeleteProperty(property.id)}
                     >
-                      Delete
+                      <span className="hidden sm:inline">Delete</span>
+                      <span className="sm:hidden">×</span>
                     </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
                 {property.units.length === 0 ? (
-                  <p className="text-sm text-gray-500">No units yet</p>
+                  <p className="text-xs sm:text-sm text-gray-500">No units yet</p>
                 ) : (
                   <div className="space-y-2">
                     {property.units.map((unit) => (
                       <div
                         key={unit.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-gray-50"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 p-3 rounded-lg bg-gray-50"
                       >
-                        <div>
-                          <p className="font-medium">{unit.name}</p>
-                          <p className="text-sm text-gray-500">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm sm:text-base font-medium truncate">{unit.name}</p>
+                          <p className="text-xs sm:text-sm text-gray-500">
                             ${unit.rentAmount}/month • Due day {unit.dueDay}
                           </p>
                         </div>
-                        <div className="flex space-x-2">
+                        <div className="flex space-x-2 flex-shrink-0">
                           <Button
                             size="sm"
                             variant="ghost"

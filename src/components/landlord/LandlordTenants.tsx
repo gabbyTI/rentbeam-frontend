@@ -106,18 +106,22 @@ export const LandlordTenants: React.FC = () => {
 
   return (
     <AppShell title="Tenants">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex gap-4 items-center">
-          <h2 className="text-2xl font-bold">Tenants</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3">
+        <div className="flex gap-2 sm:gap-4 items-center">
+          <h2 className="text-xl sm:text-2xl font-bold">Tenants</h2>
           <Button
             variant={showArchive ? 'secondary' : 'primary'}
             size="sm"
             onClick={() => setShowArchive(!showArchive)}
           >
-            {showArchive ? 'Show Current' : 'Show Archive'}
+            <span className="hidden sm:inline">{showArchive ? 'Show Current' : 'Show Archive'}</span>
+            <span className="sm:hidden">{showArchive ? 'Current' : 'Archive'}</span>
           </Button>
         </div>
-        <Button onClick={() => setIsAdding(true)}>Add Tenant</Button>
+        <Button onClick={() => setIsAdding(true)} size="sm">
+          <span className="hidden sm:inline">Add Tenant</span>
+          <span className="sm:hidden">Add</span>
+        </Button>
       </div>
 
       {landlordTenants.length === 0 ? (
@@ -127,7 +131,75 @@ export const LandlordTenants: React.FC = () => {
           action={!showArchive ? <Button onClick={() => setIsAdding(true)}>Add Tenant</Button> : undefined}
         />
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <>
+          {/* Mobile Card View */}
+          <div className="block lg:hidden space-y-3">
+            {landlordTenants.map((tenant) => (
+              <div key={tenant.id} className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 text-sm truncate">
+                      {tenant.user?.name}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">{tenant.user?.email}</p>
+                    <p className="text-xs text-gray-600 mt-1 truncate">
+                      {tenant.property?.name} - {tenant.unit?.name}
+                    </p>
+                  </div>
+                  <Badge variant={tenant.status === 'ACTIVE' ? 'current' : 'past'}>
+                    {tenant.status === 'ACTIVE' ? 'Current' : 'Past'}
+                  </Badge>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
+                  <div>
+                    <span className="text-gray-500">Rent</span>
+                    <p className="font-medium text-gray-900">{formatCurrency(tenant.unit!.rentAmount)}</p>
+                  </div>
+                  {tenant.status === 'ACTIVE' && (
+                    <div>
+                      <span className="text-gray-500">Portal</span>
+                      <div className="mt-0.5">
+                        <Badge variant={tenant.inviteStatus === 'ACCEPTED' ? 'accepted' : 'pending'}>
+                          {tenant.inviteStatus === 'ACCEPTED' ? 'Accepted' : 'Pending'}
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
+                  {tenant.defaultPaymentMethodId && (
+                    <div>
+                      <span className="text-gray-500">Payment</span>
+                      <p className="font-medium text-gray-900">
+                        💳 {tenant.paymentMethodLabel}
+                      </p>
+                    </div>
+                  )}
+                  {tenant.inviteStatus === 'ACCEPTED' && tenant.status === 'ACTIVE' && (
+                    <div>
+                      <span className="text-gray-500">Autopay</span>
+                      <div className="mt-0.5">
+                        <Badge variant={tenant.autopayEnabled ? 'autopay' : 'manual'}>
+                          {tenant.autopayEnabled ? 'Enabled' : 'Disabled'}
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => navigate(`/landlord/tenants/${tenant.id}`)}
+                  className="w-full"
+                >
+                  View Details
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -220,6 +292,7 @@ export const LandlordTenants: React.FC = () => {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {/* Add Tenant Modal */}

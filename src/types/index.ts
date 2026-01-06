@@ -105,3 +105,51 @@ export interface AppState {
 // Legacy type aliases for backward compatibility during migration
 export type Landlord = LandlordAccount;
 export type Tenant = TenantMembership;
+// Dashboard Analytics Types
+export interface OccupancyMetrics {
+  rate: number;
+  occupied: number;
+  total: number;
+  vacant: number;
+}
+
+export interface RevenueMetrics {
+  collected: number;
+  expected: number;
+  rate: number;
+}
+
+export interface OutstandingMetrics {
+  amount: number;
+  tenantCount: number;
+}
+
+export interface PaymentStatusMetrics {
+  paid: number;
+  pending: number;
+  late: number;
+  unpaid: number;
+}
+
+export interface ActiveTenantsMetrics {
+  total: number;
+  autopayEnabled: number;
+  pendingInvites: number;
+}
+
+export interface RecentActivityItem {
+  id: string;
+  tenantName: string;
+  amount: number;
+  date: string;
+  status: 'paid' | 'late';
+}
+
+export interface DashboardAnalytics {
+  occupancy: OccupancyMetrics;
+  revenue: RevenueMetrics;
+  outstanding: OutstandingMetrics;
+  paymentStatus: PaymentStatusMetrics;
+  activeTenants: ActiveTenantsMetrics;
+  recentActivity: RecentActivityItem[];
+}

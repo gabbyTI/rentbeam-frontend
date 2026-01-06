@@ -2,12 +2,14 @@ import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useApi } from '../../hooks/useApi';
+import { useDashboardAnalytics } from '../../hooks/useDashboardAnalytics';
 import { AppShell } from '../ui/AppShell';
-import { StatCard } from '../ui/StatCard';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
+import { MetricCard } from '../ui/MetricCard';
+import { ActivityFeed } from '../ui/ActivityFeed';
 import { formatCurrency } from '../../utils/helpers';
-import { getPaymentStatus, getCurrentMonth, generateId, getCurrentRentMonth, formatRentMonth, isPaymentWindowOpen } from '../../utils/helpers';
+import { getPaymentStatus, getCurrentRentMonth, formatRentMonth, isPaymentWindowOpen } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
@@ -17,6 +19,7 @@ export const LandlordDashboard: React.FC = () => {
   const { currentUser, tenants, properties, units, payments, loading } = useApp();
   const api = useApi();
   const { showToast } = useToast();
+  const { analytics, loading: analyticsLoading } = useDashboardAnalytics();
   const [markPaidModal, setMarkPaidModal] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(
@@ -61,23 +64,6 @@ export const LandlordDashboard: React.FC = () => {
       });
   }, [tenants, units, properties, payments, currentUser]);
 
-  const stats = useMemo(() => {
-    const expected = landlordTenants.reduce((sum, t) => {
-      const rent = t.unit?.rentAmount ? parseFloat(t.unit.rentAmount.toString()) : 0;
-      return sum + rent;
-    }, 0);
-    const collected = landlordTenants
-      .filter((t) => t.status === 'paid')
-      .reduce((sum, t) => {
-        const rent = t.unit?.rentAmount ? parseFloat(t.unit.rentAmount.toString()) : 0;
-        return sum + rent;
-      }, 0);
-    const outstanding = expected - collected;
-    const lateCount = landlordTenants.filter((t) => t.status === 'late').length;
-
-    return { expected, collected, outstanding, lateCount };
-  }, [landlordTenants]);
-
   const handleMarkAsPaid = (tenantId: string) => {
     setMarkPaidModal(tenantId);
     const tenant = landlordTenants.find((t) => t.id === tenantId);
@@ -93,14 +79,22 @@ export const LandlordDashboard: React.FC = () => {
     }
 
     try {
+      const tenant = landlordTenants.find((t) => t.id === markPaidModal);
+      if (!tenant || !tenant.unit) {
+        showToast('Tenant or unit not found', 'error');
+        return;
+      }
+
       const paymentData = {
         tenantMembershipId: markPaidModal,
         amount: parseFloat(paymentAmount),
         date: paymentDate,
+        method: 'MANUAL' as const,
+        month: getCurrentRentMonth(tenant.unit),
         note: paymentNote || undefined,
       };
 
-      await api.createPayment(paymentData, payments);
+      await api.createPayment(paymentData);
 
       showToast('Payment marked as paid');
       setMarkPaidModal(null);
@@ -127,49 +121,201 @@ export const LandlordDashboard: React.FC = () => {
 
   return (
     <AppShell title="Dashboard">
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-4">
-        <StatCard title="Expected This Month" value={formatCurrency(stats.expected)} />
-        <StatCard title="Collected" value={formatCurrency(stats.collected)} />
-        <StatCard title="Outstanding" value={formatCurrency(stats.outstanding)} />
-        <StatCard
-          title="Late Tenants"
-          value={stats.lateCount}
-          icon={
-            stats.lateCount > 0 ? (
-              <svg
-                className="w-6 h-6 text-red-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
-            ) : undefined
-          }
-        />
-      </div>
-
-      {/* Info Note */}
-      <div className="mb-6">
-        <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
-          <p className="text-sm text-blue-800">
-            💡 <strong>Autopay payouts</strong> typically deposit to your bank in 2–5
-            business days after tenants are automatically charged on their due date.
-          </p>
+      {/* Analytics Section */}
+      {analyticsLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="inline-block w-8 h-8 border-4 rounded-full border-t-transparent animate-spin border-primary-600"></div>
+            <p className="mt-2 text-sm text-gray-600">Loading analytics...</p>
+          </div>
         </div>
-      </div>
+      ) : analytics ? (
+        <>
+          {/* Top Row - Key Metrics */}
+          <div className="grid grid-cols-1 gap-6 mb-6 md:grid-cols-3">
+            <MetricCard
+              title="Occupancy Rate"
+              value={`${analytics.occupancy.rate.toFixed(1)}%`}
+              subValue={`${analytics.occupancy.occupied}/${analytics.occupancy.total} units`}
+              icon="🏠"
+              variant={analytics.occupancy.rate >= 90 ? 'success' : analytics.occupancy.rate >= 70 ? 'warning' : 'danger'}
+              size="large"
+              progressBar={{ value: analytics.occupancy.occupied, max: analytics.occupancy.total }}
+              footer={
+                analytics.occupancy.vacant > 0 ? (
+                  <span className="text-sm text-gray-600">
+                    {analytics.occupancy.vacant} vacant unit{analytics.occupancy.vacant !== 1 ? 's' : ''}
+                  </span>
+                ) : (
+                  <span className="text-sm text-green-600">✓ Fully occupied</span>
+                )
+              }
+            />
+            <MetricCard
+              title="Monthly Revenue"
+              value={formatCurrency(analytics.revenue.collected)}
+              subValue={`of ${formatCurrency(analytics.revenue.expected)} expected`}
+              icon="💰"
+              variant={analytics.revenue.rate >= 90 ? 'success' : analytics.revenue.rate >= 70 ? 'warning' : 'danger'}
+              size="large"
+              progressBar={{ value: analytics.revenue.collected, max: analytics.revenue.expected }}
+              footer={
+                <span className="text-sm text-gray-600">
+                  {analytics.revenue.rate.toFixed(1)}% collection rate
+                </span>
+              }
+            />
+            <MetricCard
+              title="Outstanding Balance"
+              value={formatCurrency(analytics.outstanding.amount)}
+              subValue={`${analytics.outstanding.tenantCount} tenant${analytics.outstanding.tenantCount !== 1 ? 's' : ''} overdue`}
+              icon="⚠️"
+              variant={analytics.outstanding.amount === 0 ? 'success' : analytics.outstanding.amount < 1000 ? 'warning' : 'danger'}
+              size="large"
+              footer={
+                analytics.outstanding.amount === 0 ? (
+                  <span className="text-sm text-green-600">✓ No overdue payments</span>
+                ) : (
+                  <span className="text-sm text-red-600">Requires attention</span>
+                )
+              }
+            />
+          </div>
+
+          {/* Payment Status Bar */}
+          <div className="p-4 sm:p-6 mb-6 bg-white border border-gray-200 rounded-lg shadow-sm">
+            <h3 className="mb-4 text-base sm:text-lg font-semibold">Payment Status</h3>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 md:grid-cols-4">
+              <div className="text-center p-2">
+                <div className="text-2xl sm:text-3xl font-bold text-green-600">
+                  {analytics.paymentStatus.paid}
+                </div>
+                <div className="text-xs sm:text-sm text-gray-600 mt-1">Paid</div>
+              </div>
+              <div className="text-center p-2">
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600">
+                  {analytics.paymentStatus.pending}
+                </div>
+                <div className="text-xs sm:text-sm text-gray-600 mt-1">Pending</div>
+              </div>
+              <div className="text-center p-2">
+                <div className="text-2xl sm:text-3xl font-bold text-yellow-600">
+                  {analytics.paymentStatus.late}
+                </div>
+                <div className="text-xs sm:text-sm text-gray-600 mt-1">Late</div>
+              </div>
+              <div className="text-center p-2">
+                <div className="text-2xl sm:text-3xl font-bold text-red-600">
+                  {analytics.paymentStatus.unpaid}
+                </div>
+                <div className="text-xs sm:text-sm text-gray-600 mt-1">Unpaid</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Row - Active Tenants & Recent Activity */}
+          <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2">
+            <MetricCard
+              title="Active Tenants"
+              value={analytics.activeTenants.total.toString()}
+              subValue={`${analytics.activeTenants.autopayEnabled} with autopay enabled`}
+              icon="👥"
+              variant="neutral"
+              size="medium"
+              footer={
+                analytics.activeTenants.pendingInvites > 0 ? (
+                  <span className="text-sm text-gray-600">
+                    {analytics.activeTenants.pendingInvites} pending invite{analytics.activeTenants.pendingInvites !== 1 ? 's' : ''}
+                  </span>
+                ) : undefined
+              }
+            />
+            <ActivityFeed
+              activities={analytics.recentActivity}
+              maxItems={5}
+              showViewAll={true}
+              onViewAll={() => navigate('/landlord/tenants')}
+            />
+          </div>
+
+          {/* Info Note */}
+          <div className="mb-6">
+            <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
+              <p className="text-sm text-blue-800">
+                💡 <strong>Autopay payouts</strong> typically deposit to your bank in 2–5
+                business days after tenants are automatically charged on their due date.
+              </p>
+            </div>
+          </div>
+        </>
+      ) : null}
 
       {/* Tenants by Property */}
       {Object.entries(groupedByProperty).map(([propertyName, propertyTenants]) => (
         <div key={propertyName} className="mb-8">
-          <h2 className="mb-4 text-lg font-semibold">{propertyName}</h2>
-          <div className="overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm">
+          <h2 className="mb-4 text-base sm:text-lg font-semibold">{propertyName}</h2>
+          
+          {/* Mobile Card View */}
+          <div className="block lg:hidden space-y-3">
+            {propertyTenants.map((tenant) => {
+              const rentMonth = formatRentMonth(getCurrentRentMonth(tenant.unit));
+              return (
+                <div key={tenant.id} className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900 text-sm">{tenant.name}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{tenant.email}</p>
+                      <p className="text-xs text-gray-600 mt-1">Unit {tenant.unit?.name}</p>
+                    </div>
+                    <Badge variant={tenant.status}>
+                      {tenant.status.charAt(0).toUpperCase() + tenant.status.slice(1)}
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
+                    <div>
+                      <span className="text-gray-500">Rent Month</span>
+                      <p className="font-medium text-gray-900">{rentMonth}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Amount</span>
+                      <p className="font-medium text-gray-900">{formatCurrency(tenant.unit!.rentAmount)}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Due Day</span>
+                      <p className="font-medium text-gray-900">Day {tenant.unit?.dueDay ?? 1}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Payment</span>
+                      <div className="mt-0.5">
+                        <Badge variant={tenant.autopayEnabled ? 'autopay' : 'manual'}>
+                          {tenant.autopayEnabled ? 'Autopay' : 'Manual'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {!tenant.autopayEnabled && tenant.status !== 'paid' && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleMarkAsPaid(tenant.id)}
+                      className="w-full"
+                    >
+                      Mark Paid
+                    </Button>
+                  )}
+                  {tenant.status === 'paid' && (
+                    <div className="text-center text-sm text-green-600 font-medium">
+                      ✓ Received
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>

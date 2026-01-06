@@ -58,31 +58,33 @@ export const PaymentHistoryList: React.FC<PaymentHistoryListProps> = ({
         return (
           <div
             key={payment.id}
-            className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+            className="p-3 sm:p-4 bg-gray-50 rounded-lg"
           >
-            <div className="flex-1">
-              <div className="flex items-center space-x-2">
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {payment.method === 'CARD' ? (
-                  <div className="flex items-center space-x-1">
+                  <div className="flex flex-wrap items-center gap-1 text-sm sm:text-base">
                     <span className="font-medium text-gray-900">
-                      {formatCurrency(payment.rentAmount)}
+                      {formatCurrency(payment.rentAmount || 0)}
                     </span>
-                    <span className="text-sm text-gray-500">rent</span>
+                    <span className="text-xs sm:text-sm text-gray-500">rent</span>
                     <span className="text-gray-400">+</span>
-                    <span className="text-sm text-gray-600">
-                      {formatCurrency(payment.processingFee)}
+                    <span className="text-xs sm:text-sm text-gray-600">
+                      {formatCurrency(payment.processingFee || 0)}
                     </span>
-                    <span className="text-sm text-gray-500">fee</span>
+                    <span className="text-xs sm:text-sm text-gray-500">fee</span>
                     <span className="text-gray-400">=</span>
                     <span className="font-semibold text-gray-900">
-                      {formatCurrency(payment.totalAmount)}
+                      {formatCurrency(payment.totalAmount || 0)}
                     </span>
                   </div>
                 ) : (
-                  <span className="font-medium text-gray-900">
+                  <span className="font-medium text-gray-900 text-sm sm:text-base">
                     {formatCurrency(payment.amount)}
                   </span>
                 )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge variant={payment.method === 'CARD' ? 'autopay' : 'manual'}>
                   {payment.method === 'CARD' ? 'Card' : `${methodEmoji} ${methodLabel}`}
                 </Badge>
@@ -90,11 +92,11 @@ export const PaymentHistoryList: React.FC<PaymentHistoryListProps> = ({
                   {isLate ? 'Late' : 'On Time'}
                 </Badge>
               </div>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-xs sm:text-sm text-gray-500">
                 Due: {formatDate(dueDate.toISOString())} • Paid: {formatDate(payment.date)}
               </p>
               {payment.note && (
-                <p className="text-sm text-gray-600 mt-1">{payment.note}</p>
+                <p className="text-xs sm:text-sm text-gray-600 italic">{payment.note}</p>
               )}
             </div>
           </div>

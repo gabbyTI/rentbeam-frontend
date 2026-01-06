@@ -242,23 +242,24 @@ export const TenantDetails: React.FC = () => {
 
   return (
     <AppShell title="Tenant Details">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => navigate('/landlord/tenants')}
         >
-          ← Back to Tenants
+          ← Back
         </Button>
         {tenant && tenant.status === 'ACTIVE' && (
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             {tenant.property?.acceptOnlinePayments === false && (
               <Button
                 variant="primary"
                 size="sm"
                 onClick={openMarkAsPaidModal}
               >
-                Mark as Paid
+                <span className="hidden sm:inline">Mark as Paid</span>
+                <span className="sm:hidden">Mark Paid</span>
               </Button>
             )}
             <Button
@@ -266,25 +267,27 @@ export const TenantDetails: React.FC = () => {
               size="sm"
               onClick={() => setShowTransferModal(true)}
             >
-              Transfer Unit
+              <span className="hidden sm:inline">Transfer Unit</span>
+              <span className="sm:hidden">Transfer</span>
             </Button>
             <Button
               variant="danger"
               size="sm"
               onClick={() => setShowMoveOutModal(true)}
             >
-              Move Out
+              <span className="hidden sm:inline">Move Out</span>
+              <span className="sm:hidden">Move Out</span>
             </Button>
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Tenant Info */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Tenant Information</h3>
+              <h3 className="text-base sm:text-lg font-semibold">Tenant Information</h3>
               <Button variant="secondary" size="sm" onClick={handleEdit}>
                 Edit
               </Button>
@@ -293,27 +296,27 @@ export const TenantDetails: React.FC = () => {
           <CardContent>
             <div className="space-y-3">
               <div>
-                <label className="text-sm text-gray-500">Name</label>
-                <p className="font-medium">{tenant.user?.name}</p>
+                <label className="text-xs sm:text-sm text-gray-500">Name</label>
+                <p className="font-medium text-sm sm:text-base">{tenant.user?.name}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">Login Email</label>
-                <p className="font-medium">{tenant.user?.email}</p>
+                <label className="text-xs sm:text-sm text-gray-500">Login Email</label>
+                <p className="font-medium text-sm sm:text-base break-all">{tenant.user?.email}</p>
               </div>
               {tenant.user?.notificationEmail && (
                 <div>
-                  <label className="text-sm text-gray-500">Notification Email</label>
-                  <p className="font-medium">{tenant.user.notificationEmail}</p>
+                  <label className="text-xs sm:text-sm text-gray-500">Notification Email</label>
+                  <p className="font-medium text-sm sm:text-base break-all">{tenant.user.notificationEmail}</p>
                 </div>
               )}
               {tenant.user?.phone && (
                 <div>
-                  <label className="text-sm text-gray-500">Phone</label>
-                  <p className="font-medium">{tenant.user.phone}</p>
+                  <label className="text-xs sm:text-sm text-gray-500">Phone</label>
+                  <p className="font-medium text-sm sm:text-base">{tenant.user.phone}</p>
                 </div>
               )}
               <div>
-                <label className="text-sm text-gray-500">Residency Status</label>
+                <label className="text-xs sm:text-sm text-gray-500">Residency Status</label>
                 <div className="mt-1">
                   <Badge variant={tenant.status === 'ACTIVE' ? 'current' : 'past'}>
                     {tenant.status === 'ACTIVE' ? 'Current Resident' : 'Past Resident'}
@@ -322,11 +325,13 @@ export const TenantDetails: React.FC = () => {
               </div>
               {tenant.status === 'ACTIVE' && (
                 <div>
-                  <label className="text-sm text-gray-500">Portal Access</label>
-                  <div className="mt-1 flex items-center justify-between">
-                    <Badge variant={tenant.inviteStatus === 'ACCEPTED' ? 'accepted' : 'pending'}>
-                      {tenant.inviteStatus === 'ACCEPTED' ? 'Accepted' : 'Pending Invite'}
-                    </Badge>
+                  <label className="text-xs sm:text-sm text-gray-500">Portal Access</label>
+                  <div className="mt-1 flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
+                    <div>
+                      <Badge variant={tenant.inviteStatus === 'ACCEPTED' ? 'accepted' : 'pending'}>
+                        {tenant.inviteStatus === 'ACCEPTED' ? 'Accepted' : 'Pending Invite'}
+                      </Badge>
+                    </div>
                     {tenant.inviteStatus === 'PENDING' && (
                       <Button
                         variant="secondary"
@@ -347,23 +352,23 @@ export const TenantDetails: React.FC = () => {
         {tenant.inviteStatus === 'ACCEPTED' && tenant.status === 'ACTIVE' && (
           <Card>
             <CardHeader>
-              <h3 className="text-lg font-semibold">Payment Information</h3>
+              <h3 className="text-base sm:text-lg font-semibold">Payment Information</h3>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm text-gray-500">Payment Method</label>
+                  <label className="text-xs sm:text-sm text-gray-500">Payment Method</label>
                   {tenant.defaultPaymentMethodId ? (
                     <div className="mt-1 flex items-center gap-2">
                       <span>💳</span>
-                      <span className="font-medium">{tenant.paymentMethodLabel}</span>
+                      <span className="font-medium text-sm sm:text-base">{tenant.paymentMethodLabel}</span>
                     </div>
                   ) : (
-                    <p className="mt-1 text-gray-600">No card saved</p>
+                    <p className="mt-1 text-gray-600 text-sm sm:text-base">No card saved</p>
                   )}
                 </div>
                 <div>
-                  <label className="text-sm text-gray-500">Autopay</label>
+                  <label className="text-xs sm:text-sm text-gray-500">Autopay</label>
                   <div className="mt-1">
                     <Badge variant={tenant.autopayEnabled ? 'autopay' : 'manual'}>
                       {tenant.autopayEnabled ? 'Enabled' : 'Disabled'}
@@ -378,41 +383,41 @@ export const TenantDetails: React.FC = () => {
         {/* Unit Info */}
         <Card>
           <CardHeader>
-            <h3 className="text-lg font-semibold">Unit Details</h3>
+            <h3 className="text-base sm:text-lg font-semibold">Unit Details</h3>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               <div>
-                <label className="text-sm text-gray-500">Property</label>
-                <p className="font-medium">{tenant.property?.name}</p>
-                <p className="text-sm text-gray-600">{tenant.property?.address}</p>
+                <label className="text-xs sm:text-sm text-gray-500">Property</label>
+                <p className="font-medium text-sm sm:text-base">{tenant.property?.name}</p>
+                <p className="text-xs sm:text-sm text-gray-600">{tenant.property?.address}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">Unit</label>
-                <p className="font-medium">{tenant.unit?.name}</p>
+                <label className="text-xs sm:text-sm text-gray-500">Unit</label>
+                <p className="font-medium text-sm sm:text-base">{tenant.unit?.name}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">Monthly Rent</label>
-                <p className="font-medium">{formatCurrency(tenant.unit!.rentAmount)}</p>
+                <label className="text-xs sm:text-sm text-gray-500">Monthly Rent</label>
+                <p className="font-medium text-sm sm:text-base">{formatCurrency(tenant.unit!.rentAmount)}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">Due Day</label>
-                <p className="font-medium">Day {tenant.unit?.dueDay ?? 1} of each month</p>
+                <label className="text-xs sm:text-sm text-gray-500">Due Day</label>
+                <p className="font-medium text-sm sm:text-base">Day {tenant.unit?.dueDay ?? 1} of each month</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">Grace Period</label>
-                <p className="font-medium">
+                <label className="text-xs sm:text-sm text-gray-500">Grace Period</label>
+                <p className="font-medium text-sm sm:text-base">
                   {tenant.unit?.gracePeriodDays ?? 0} days (late after day {(tenant.unit?.dueDay ?? 1) + (tenant.unit?.gracePeriodDays ?? 0)})
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">Move-In Date</label>
-                <p className="font-medium">{new Date(tenant.moveInDate).toLocaleDateString()}</p>
+                <label className="text-xs sm:text-sm text-gray-500">Move-In Date</label>
+                <p className="font-medium text-sm sm:text-base">{new Date(tenant.moveInDate).toLocaleDateString()}</p>
               </div>
               {tenant.moveOutDate && (
                 <div>
-                  <label className="text-sm text-gray-500">Move-Out Date</label>
-                  <p className="font-medium">{new Date(tenant.moveOutDate).toLocaleDateString()}</p>
+                  <label className="text-xs sm:text-sm text-gray-500">Move-Out Date</label>
+                  <p className="font-medium text-sm sm:text-base">{new Date(tenant.moveOutDate).toLocaleDateString()}</p>
                 </div>
               )}
             </div>
@@ -422,7 +427,7 @@ export const TenantDetails: React.FC = () => {
         {/* Payment History */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <h3 className="text-lg font-semibold">Payment History</h3>
+            <h3 className="text-base sm:text-lg font-semibold">Payment History</h3>
           </CardHeader>
           <CardContent>
             <PaymentHistoryList 
@@ -442,14 +447,14 @@ export const TenantDetails: React.FC = () => {
           title="Move Out Tenant"
         >
           <div className="space-y-4">
-            <p className="text-gray-700">
+            <p className="text-sm sm:text-base text-gray-700">
               Are you sure you want to move out <strong>{tenant?.name}</strong>?
             </p>
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-              <p className="text-sm text-yellow-900">
+              <p className="text-xs sm:text-sm text-yellow-900">
                 This will:
               </p>
-              <ul className="list-disc list-inside text-sm text-yellow-800 mt-2 space-y-1">
+              <ul className="list-disc list-inside text-xs sm:text-sm text-yellow-800 mt-2 space-y-1">
                 <li>Free up the unit for new tenants</li>
                 <li>Disable autopay (if enabled)</li>
                 <li>Mark tenant as "Moved Out"</li>

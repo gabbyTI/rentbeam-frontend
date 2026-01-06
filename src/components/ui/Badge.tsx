@@ -3,7 +3,7 @@ import { PaymentStatus, PaymentMethod } from '../../types';
 
 interface BadgeProps {
   children: React.ReactNode;
-  variant?: PaymentStatus | PaymentMethod | 'pending' | 'accepted' | 'current' | 'past' | 'default' | 'PENDING' | 'ACCEPTED' | 'ACTIVE' | 'INACTIVE';
+  variant?: PaymentStatus | PaymentMethod | 'pending' | 'accepted' | 'current' | 'past' | 'default' | 'PENDING' | 'ACCEPTED' | 'ACTIVE' | 'INACTIVE' | 'autopay' | 'manual';
 }
 
 export const Badge: React.FC<BadgeProps> = ({ children, variant = 'default' }) => {
@@ -28,7 +28,7 @@ export const Badge: React.FC<BadgeProps> = ({ children, variant = 'default' }) =
 
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant] || variants.default}`}
+      className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-xs font-medium ${variants[variant] || variants.default}`}
     >
       {children}
     </span>
