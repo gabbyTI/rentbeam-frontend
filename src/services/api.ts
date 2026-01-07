@@ -136,6 +136,9 @@ export interface StripeConnectStatus {
   chargesEnabled: boolean;
   detailsSubmitted: boolean;
   payoutsEnabled: boolean;
+  requirementsDue: string[];
+  requirementsPending: string[];
+  disabledReason: string | null;
 }
 
 export const signupLandlord = async (data: SignupLandlordRequest): Promise<SignupLandlordResponse> => {

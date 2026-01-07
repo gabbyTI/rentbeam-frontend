@@ -10,7 +10,7 @@ interface AppShellProps {
 }
 
 export const AppShell: React.FC<AppShellProps> = ({ children, title }) => {
-  const { currentUser, logout, stripeOnboarded } = useApp();
+  const { currentUser, logout } = useApp();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -112,7 +112,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, title }) => {
 
       {/* Main content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {currentUser?.role === 'landlord' && <StripeOnboardingBanner stripeOnboarded={stripeOnboarded} />}
+        {currentUser?.role === 'landlord' && <StripeOnboardingBanner />}
         {children}
       </main>
     </div>

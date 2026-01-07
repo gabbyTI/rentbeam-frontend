@@ -362,7 +362,7 @@ export const TenantDashboard: React.FC = () => {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <Card className="lg:col-span-2">
+          <Card className={acceptsOnlinePayments ? "lg:col-span-2" : "lg:col-span-3"}>
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                 <div>

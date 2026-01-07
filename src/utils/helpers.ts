@@ -91,6 +91,13 @@ export const getPaymentStatus = (
   const paymentWindowOpenDate = new Date(dueDate);
   paymentWindowOpenDate.setDate(dueDate.getDate() - 5);
   
+  // Check if this is the tenant's first payment cycle
+  // If move-in date is after the payment window open date, they're not expected to pay yet
+  const moveInDate = new Date(tenant.moveInDate);
+  if (moveInDate > paymentWindowOpenDate) {
+    return 'paid'; // Not expected to pay for this cycle
+  }
+  
   // If payment window is not yet open, show as paid (nothing due yet)
   if (now < paymentWindowOpenDate) {
     return 'paid';

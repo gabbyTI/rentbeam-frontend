@@ -9,6 +9,12 @@ interface AppContextType extends AppState {
   logout: () => void;
   loading: boolean;
   stripeOnboarded: boolean | null;
+  stripeStatus: {
+    requirementsDue: string[];
+    requirementsPending: string[];
+    disabledReason: string | null;
+    payoutsEnabled: boolean;
+  } | null;
   // Backward compatibility aliases
   landlords: LandlordAccount[];
   tenants: TenantMembership[];
@@ -21,6 +27,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [dataLoaded, setDataLoaded] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
   const [stripeOnboarded, setStripeOnboarded] = useState<boolean | null>(null);
+  const [stripeStatus, setStripeStatus] = useState<{
+    requirementsDue: string[];
+    requirementsPending: string[];
+    disabledReason: string | null;
+    payoutsEnabled: boolean;
+  } | null>(null);
   const [state, setState] = useState<AppState>({
     users: [],
     landlordAccounts: [],
@@ -102,10 +114,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (state.currentUser.role === 'landlord') {
           promises.push(getStripeConnectStatus().then(status => {
             setStripeOnboarded(status.onboarded);
+            setStripeStatus({
+              requirementsDue: status.requirementsDue || [],
+              requirementsPending: status.requirementsPending || [],
+              disabledReason: status.disabledReason || null,
+              payoutsEnabled: status.payoutsEnabled || false,
+            });
             return status;
           }).catch(error => {
             console.error('🔴 Failed to load Stripe status:', error);
             setStripeOnboarded(false);
+            setStripeStatus(null);
             return { onboarded: false };
           }));
         }
@@ -164,7 +183,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     logout,
     loading: !sessionReady || loading,
     stripeOnboarded,
-  }), [state, loading, sessionReady, stripeOnboarded]);
+    stripeStatus,
+  }), [state, loading, sessionReady, stripeOnboarded, stripeStatus]);
 
   return (
     <AppContext.Provider value={contextValue}>

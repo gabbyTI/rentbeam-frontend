@@ -21,7 +21,7 @@ export const LandlordProperties: React.FC = () => {
   const [propertyForm, setPropertyForm] = useState({
     name: '',
     address: '',
-    acceptOnlinePayments: true,
+    acceptOnlinePayments: false,
   });
 
   const [unitForm, setUnitForm] = useState({
@@ -41,11 +41,6 @@ export const LandlordProperties: React.FC = () => {
   }, [properties, units, currentUser]);
 
   const handleAddProperty = async () => {
-    if (!stripeOnboarded) {
-      showToast('Please connect your bank account before adding properties', 'error');
-      return;
-    }
-
     if (!propertyForm.name || !propertyForm.address) {
       showToast('Please fill in all fields', 'error');
       return;
@@ -60,18 +55,13 @@ export const LandlordProperties: React.FC = () => {
 
       showToast('Property added successfully');
       setIsAddingProperty(false);
-      setPropertyForm({ name: '', address: '', acceptOnlinePayments: true });
+      setPropertyForm({ name: '', address: '', acceptOnlinePayments: false });
     } catch (error: any) {
       showToast(error.message || 'Failed to add property', 'error');
     }
   };
 
   const handleAddUnit = async (propertyId: string) => {
-    if (!stripeOnboarded) {
-      showToast('Please connect your bank account before adding units', 'error');
-      return;
-    }
-
     if (!unitForm.name || !unitForm.rentAmount || !unitForm.dueDay) {
       showToast('Please fill in all fields', 'error');
       return;
@@ -121,7 +111,7 @@ export const LandlordProperties: React.FC = () => {
 
       showToast('Property updated successfully');
       setIsEditingProperty(null);
-      setPropertyForm({ name: '', address: '', acceptOnlinePayments: true });
+      setPropertyForm({ name: '', address: '', acceptOnlinePayments: false });
     } catch (error: any) {
       showToast(error.message || 'Failed to update property', 'error');
     }
@@ -210,7 +200,6 @@ export const LandlordProperties: React.FC = () => {
         <h2 className="text-xl sm:text-2xl font-bold">Properties</h2>
         <Button 
           onClick={() => setIsAddingProperty(true)}
-          disabled={!stripeOnboarded}
           size="sm"
         >
           <span className="hidden sm:inline">Add Property</span>
@@ -225,7 +214,6 @@ export const LandlordProperties: React.FC = () => {
           action={
             <Button 
               onClick={() => setIsAddingProperty(true)}
-              disabled={!stripeOnboarded}
             >
               Add Property
             </Button>
@@ -252,7 +240,6 @@ export const LandlordProperties: React.FC = () => {
                     <Button
                       size="sm"
                       onClick={() => setIsAddingUnit(property.id)}
-                      disabled={!stripeOnboarded}
                     >
                       <span className="hidden sm:inline">Add Unit</span>
                       <span className="sm:hidden">+</span>
@@ -378,11 +365,14 @@ export const LandlordProperties: React.FC = () => {
               placeholder="123 Main St, Vancouver, BC"
             />
             <div className="border-t pt-4">
-              <label className="flex items-center justify-between cursor-pointer">
+              <label className={`flex items-center justify-between ${!stripeOnboarded ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
                 <div>
                   <span className="text-sm font-medium text-gray-700">Accept Online Payments</span>
                   <p className="text-xs text-gray-500 mt-1">
-                    Allows tenants to pay rent through the app with cards. Disable if you prefer manual tracking.
+                    {!stripeOnboarded 
+                      ? 'Complete bank account setup to enable online payments'
+                      : 'Allows tenants to pay rent through the app with cards. Disable if you prefer manual tracking.'
+                    }
                   </p>
                 </div>
                 <div className="ml-4">
@@ -392,7 +382,8 @@ export const LandlordProperties: React.FC = () => {
                     onChange={(e) =>
                       setPropertyForm({ ...propertyForm, acceptOnlinePayments: e.target.checked })
                     }
-                    className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                    disabled={!stripeOnboarded && !propertyForm.acceptOnlinePayments}
+                    className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
               </label>

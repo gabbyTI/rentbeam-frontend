@@ -20,8 +20,6 @@ export const TenantRegister: React.FC = () => {
   const [formData, setFormData] = useState({
     password: '',
     confirmPassword: '',
-    phone: '',
-    emergencyContact: '',
   });
 
   const [errors, setErrors] = useState({
@@ -95,8 +93,6 @@ export const TenantRegister: React.FC = () => {
     try {
       await acceptInvite(token, {
         password: formData.password,
-        phone: formData.phone || undefined,
-        emergencyContact: formData.emergencyContact || undefined,
       });
 
       showToast('Registration complete! Please login with your credentials.');
@@ -175,26 +171,6 @@ export const TenantRegister: React.FC = () => {
                 placeholder="Confirm your password"
                 required
                 error={errors.confirmPassword}
-              />
-
-              <Input
-                label="Phone Number (optional)"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
-                placeholder="604-555-0100"
-              />
-
-              <Input
-                label="Emergency Contact (optional)"
-                type="text"
-                value={formData.emergencyContact}
-                onChange={(e) =>
-                  setFormData({ ...formData, emergencyContact: e.target.value })
-                }
-                placeholder="Jane Doe - 604-555-0101"
               />
 
               <Button type="submit" className="w-full" disabled={submitting}>

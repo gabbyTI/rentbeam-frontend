@@ -43,10 +43,6 @@ export const LandlordDashboard: React.FC = () => {
   const landlordTenants = useMemo(() => {
     return tenants
       .filter((t) => t.landlordId === currentUser?.id && t.status === 'ACTIVE')
-      .filter((t) => {
-        const unit = units.find((u) => u.id === t.unitId);
-        return isPaymentWindowOpen(unit);
-      }) // Only show tenants with open payment windows
       .map((tenant) => {
         const unit = units.find((u) => u.id === tenant.unitId);
         const property = properties.find((p) => p.id === unit?.propertyId);
@@ -135,14 +131,16 @@ export const LandlordDashboard: React.FC = () => {
           <div className="grid grid-cols-1 gap-6 mb-6 md:grid-cols-3">
             <MetricCard
               title="Occupancy Rate"
-              value={`${analytics.occupancy.rate.toFixed(1)}%`}
+              value={analytics.occupancy.total === 0 ? '—' : `${analytics.occupancy.rate.toFixed(1)}%`}
               subValue={`${analytics.occupancy.occupied}/${analytics.occupancy.total} units`}
               icon="🏠"
-              variant={analytics.occupancy.rate >= 90 ? 'success' : analytics.occupancy.rate >= 70 ? 'warning' : 'danger'}
+              variant={analytics.occupancy.total === 0 ? 'neutral' : analytics.occupancy.rate >= 90 ? 'success' : analytics.occupancy.rate >= 70 ? 'warning' : 'danger'}
               size="large"
               progressBar={{ value: analytics.occupancy.occupied, max: analytics.occupancy.total }}
               footer={
-                analytics.occupancy.vacant > 0 ? (
+                analytics.occupancy.total === 0 ? (
+                  <span className="text-sm text-gray-600">Add your first property to get started</span>
+                ) : analytics.occupancy.vacant > 0 ? (
                   <span className="text-sm text-gray-600">
                     {analytics.occupancy.vacant} vacant unit{analytics.occupancy.vacant !== 1 ? 's' : ''}
                   </span>
@@ -183,40 +181,40 @@ export const LandlordDashboard: React.FC = () => {
           </div>
 
           {/* Payment Status Bar */}
-          <div className="p-4 sm:p-6 mb-6 bg-white border border-gray-200 rounded-lg shadow-sm">
-            <h3 className="mb-4 text-base sm:text-lg font-semibold">Payment Status</h3>
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 md:grid-cols-4">
-              <div className="text-center p-2">
-                <div className="text-2xl sm:text-3xl font-bold text-green-600">
+          <div className="p-4 mb-6 bg-white border border-gray-200 rounded-lg shadow-sm sm:p-6">
+            <h3 className="mb-4 text-base font-semibold sm:text-lg">Payment Status</h3>
+            <div className="grid grid-cols-2 gap-3 mb-4 sm:gap-4 md:grid-cols-4">
+              <div className="p-2 text-center">
+                <div className="text-2xl font-bold text-green-600 sm:text-3xl">
                   {analytics.paymentStatus.paid}
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600 mt-1">Paid</div>
+                <div className="mt-1 text-xs text-gray-600 sm:text-sm">Paid</div>
               </div>
-              <div className="text-center p-2">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-600">
+              <div className="p-2 text-center">
+                <div className="text-2xl font-bold text-blue-600 sm:text-3xl">
                   {analytics.paymentStatus.pending}
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600 mt-1">Pending</div>
+                <div className="mt-1 text-xs text-gray-600 sm:text-sm">Pending</div>
               </div>
-              <div className="text-center p-2">
-                <div className="text-2xl sm:text-3xl font-bold text-yellow-600">
+              <div className="p-2 text-center">
+                <div className="text-2xl font-bold text-yellow-600 sm:text-3xl">
                   {analytics.paymentStatus.late}
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600 mt-1">Late</div>
+                <div className="mt-1 text-xs text-gray-600 sm:text-sm">Late</div>
               </div>
-              <div className="text-center p-2">
-                <div className="text-2xl sm:text-3xl font-bold text-red-600">
+              <div className="p-2 text-center">
+                <div className="text-2xl font-bold text-red-600 sm:text-3xl">
                   {analytics.paymentStatus.unpaid}
                 </div>
-                <div className="text-xs sm:text-sm text-gray-600 mt-1">Unpaid</div>
+                <div className="mt-1 text-xs text-gray-600 sm:text-sm">Unpaid</div>
               </div>
             </div>
           </div>
 
-          {/* Bottom Row - Active Tenants & Recent Activity */}
+          {/* Bottom Row - Tenants & Recent Activity */}
           <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2">
             <MetricCard
-              title="Active Tenants"
+              title="Tenants"
               value={analytics.activeTenants.total.toString()}
               subValue={`${analytics.activeTenants.autopayEnabled} with autopay enabled`}
               icon="👥"
@@ -253,19 +251,19 @@ export const LandlordDashboard: React.FC = () => {
       {/* Tenants by Property */}
       {Object.entries(groupedByProperty).map(([propertyName, propertyTenants]) => (
         <div key={propertyName} className="mb-8">
-          <h2 className="mb-4 text-base sm:text-lg font-semibold">{propertyName}</h2>
+          <h2 className="mb-4 text-base font-semibold sm:text-lg">{propertyName}</h2>
           
           {/* Mobile Card View */}
-          <div className="block lg:hidden space-y-3">
+          <div className="block space-y-3 lg:hidden">
             {propertyTenants.map((tenant) => {
               const rentMonth = formatRentMonth(getCurrentRentMonth(tenant.unit));
               return (
-                <div key={tenant.id} className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+                <div key={tenant.id} className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-900 text-sm">{tenant.name}</p>
+                      <p className="text-sm font-semibold text-gray-900">{tenant.name}</p>
                       <p className="text-xs text-gray-500 mt-0.5">{tenant.email}</p>
-                      <p className="text-xs text-gray-600 mt-1">Unit {tenant.unit?.name}</p>
+                      <p className="mt-1 text-xs text-gray-600">Unit {tenant.unit?.name}</p>
                     </div>
                     <Badge variant={tenant.status}>
                       {tenant.status.charAt(0).toUpperCase() + tenant.status.slice(1)}
@@ -305,7 +303,7 @@ export const LandlordDashboard: React.FC = () => {
                     </Button>
                   )}
                   {tenant.status === 'paid' && (
-                    <div className="text-center text-sm text-green-600 font-medium">
+                    <div className="text-sm font-medium text-center text-green-600">
                       ✓ Received
                     </div>
                   )}
@@ -315,7 +313,7 @@ export const LandlordDashboard: React.FC = () => {
           </div>
 
           {/* Desktop Table View */}
-          <div className="hidden lg:block overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm">
+          <div className="hidden overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm lg:block">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
