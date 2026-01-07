@@ -29,7 +29,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, title }) => {
                 className="text-lg sm:text-xl font-bold text-primary-600 cursor-pointer"
                 onClick={() => navigate(currentUser?.role === 'landlord' ? '/landlord/dashboard' : '/tenant/dashboard')}
               >
-                RentTrack Lite
+                RentBeam
               </h1>
             </div>
             {currentUser && (

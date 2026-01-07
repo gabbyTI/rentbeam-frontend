@@ -287,7 +287,7 @@ export const TenantAutopay: React.FC = () => {
                         className="mt-1"
                       />
                       <span className="text-sm text-gray-700">
-                        I authorize RentTrack to automatically charge my payment method for 
+                        I authorize RentBeam to automatically charge my payment method for 
                         {' '}{formatCurrency(totalAmount)} on the {unit.dueDay}
                         {unit.dueDay === 1 ? 'st' : unit.dueDay === 2 ? 'nd' : unit.dueDay === 3 ? 'rd' : 'th'} of each month.
                         I understand I can disable autopay at any time.

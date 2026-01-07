@@ -1,14 +1,17 @@
+import api from './api';
+import { APP_CONFIG } from '../config/app';
+
 /**
  * Authentication Service
  * Handles token management and auth state
  */
 
-const TOKEN_KEY = 'renttrack_access_token';
-const REFRESH_TOKEN_KEY = 'renttrack_refresh_token';
-const ID_TOKEN_KEY = 'renttrack_id_token';
-const COGNITO_ID_KEY = 'renttrack_cognito_id';
-const USER_KEY = 'renttrack_user';
-const MEMBERSHIPS_KEY = 'renttrack_memberships';
+const TOKEN_KEY = `${APP_CONFIG.storage.prefix}access_token`;
+const REFRESH_TOKEN_KEY = `${APP_CONFIG.storage.prefix}refresh_token`;
+const ID_TOKEN_KEY = `${APP_CONFIG.storage.prefix}id_token`;
+const COGNITO_ID_KEY = `${APP_CONFIG.storage.prefix}cognito_id`;
+const USER_KEY = `${APP_CONFIG.storage.prefix}user`;
+const MEMBERSHIPS_KEY = `${APP_CONFIG.storage.prefix}memberships`;
 
 export interface AuthTokens {
   accessToken: string;

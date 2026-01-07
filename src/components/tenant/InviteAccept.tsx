@@ -71,7 +71,7 @@ export const InviteAccept: React.FC = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary-600">RentTrack Lite</h1>
+          <h1 className="text-3xl font-bold text-primary-600">RentBeam</h1>
           <p className="mt-2 text-gray-600">You've been invited!</p>
         </div>
 
@@ -80,7 +80,7 @@ export const InviteAccept: React.FC = () => {
             <div className="text-center mb-6">
               <h2 className="text-xl font-semibold mb-2">Tenant Invite</h2>
               <p className="text-gray-600">
-                {inviteData.landlordName} has invited you to join RentTrack Lite
+                {inviteData.landlordName} has invited you to join RentBeam
               </p>
             </div>
 

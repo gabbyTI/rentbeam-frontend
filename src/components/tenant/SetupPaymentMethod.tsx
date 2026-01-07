@@ -79,7 +79,7 @@ const SetupForm: React.FC<{ tenantData: TenantMembershipDetails }> = ({ tenantDa
         {/* Terms and Submit */}
         <div className="space-y-4">
           <p className="text-xs text-gray-600">
-            By saving your payment method, you authorize RentTrack to securely store your card
+            By saving your payment method, you authorize RentBeam to securely store your card
             details for future rent payments. Processing fees apply to each transaction.
           </p>
 

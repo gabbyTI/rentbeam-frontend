@@ -108,7 +108,7 @@ export const LandlordOnboarding: React.FC = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary-600">RentTrack Lite</h1>
+          <h1 className="text-3xl font-bold text-primary-600">RentBeam</h1>
           <p className="mt-2 text-gray-600">Let's get you set up</p>
         </div>
 

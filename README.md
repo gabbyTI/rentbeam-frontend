@@ -1,4 +1,4 @@
-# RentTrack Lite
+# RentBeam Lite
 
 A simple rent tracking and tenant-enabled autopay application for small landlords managing 1-20 units. Built with React, TypeScript, and Tailwind CSS with mock data only (no real backend).
 

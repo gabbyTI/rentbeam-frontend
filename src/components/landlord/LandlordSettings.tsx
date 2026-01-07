@@ -623,7 +623,7 @@ export const LandlordSettings: React.FC = () => {
 
             <div className="pt-4 sm:pt-6 mt-4 sm:mt-6 border-t">
               <p className="mb-3 sm:mb-4 text-xs sm:text-sm text-center text-gray-500">
-                RentTrack Lite v1.0.0
+                RentBeam v1.0.0
               </p>
               <Button
                 variant="secondary"

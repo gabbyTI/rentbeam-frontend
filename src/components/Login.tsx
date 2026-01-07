@@ -101,7 +101,7 @@ export const Login: React.FC = () => {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <h1 className="mb-2 text-4xl font-bold text-primary-600">
-            RentTrack Lite
+            RentBeam
           </h1>
           <p className="text-gray-600">Welcome back</p>
         </div>
