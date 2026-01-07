@@ -6,6 +6,7 @@
 const TOKEN_KEY = 'renttrack_access_token';
 const REFRESH_TOKEN_KEY = 'renttrack_refresh_token';
 const ID_TOKEN_KEY = 'renttrack_id_token';
+const COGNITO_ID_KEY = 'renttrack_cognito_id';
 const USER_KEY = 'renttrack_user';
 const MEMBERSHIPS_KEY = 'renttrack_memberships';
 
@@ -13,6 +14,7 @@ export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
   idToken: string;
+  cognitoId: string;
 }
 
 export interface User {
@@ -39,6 +41,7 @@ class AuthService {
     localStorage.setItem(TOKEN_KEY, tokens.accessToken);
     localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
     localStorage.setItem(ID_TOKEN_KEY, tokens.idToken);
+    localStorage.setItem(COGNITO_ID_KEY, tokens.cognitoId);
   }
 
   /**
@@ -53,6 +56,13 @@ class AuthService {
    */
   getRefreshToken(): string | null {
     return localStorage.getItem(REFRESH_TOKEN_KEY);
+  }
+
+  /**
+   * Get Cognito ID
+   */
+  getCognitoId(): string | null {
+    return localStorage.getItem(COGNITO_ID_KEY);
   }
 
   /**
@@ -109,6 +119,7 @@ class AuthService {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(ID_TOKEN_KEY);
+    localStorage.removeItem(COGNITO_ID_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(MEMBERSHIPS_KEY);
   }
