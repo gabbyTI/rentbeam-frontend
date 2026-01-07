@@ -264,6 +264,21 @@ export const confirmNotificationEmailChange = async (code: string): Promise<void
   }
 };
 
+export const resendNotificationEmailCode = async (notificationEmail: string): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/notification-email/resend`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authService.getAccessToken()}`
+    },
+    body: JSON.stringify({ notificationEmail }),
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+};
+
 export interface CurrentUserProfile {
   user: {
     id: string;

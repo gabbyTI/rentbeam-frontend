@@ -8,7 +8,7 @@ import { Modal } from '../ui/Modal';
 import { FeeBreakdown } from '../ui/FeeBreakdown';
 import { useToast } from '../../context/ToastContext';
 import { useApp } from '../../context/AppContext';
-import api, { getCurrentUser, changePassword, initiateNotificationEmailChange, confirmNotificationEmailChange, getTenantMembership, TenantMembershipDetails } from '../../services/api';
+import api, { getCurrentUser, changePassword, initiateNotificationEmailChange, confirmNotificationEmailChange, resendNotificationEmailCode, getTenantMembership, TenantMembershipDetails } from '../../services/api';
 import { calculateProcessingFee, formatCurrency } from '../../utils/stripe';
 
 export const TenantSettings: React.FC = () => {
@@ -37,6 +37,8 @@ export const TenantSettings: React.FC = () => {
   const [verificationStep, setVerificationStep] = useState<'initial' | 'code-sent' | 'verifying'>('initial');
   const [verificationCode, setVerificationCode] = useState('');
   const [pendingNotificationEmail, setPendingNotificationEmail] = useState('');
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Account Information
   const [name, setName] = useState('');
@@ -148,10 +150,41 @@ export const TenantSettings: React.FC = () => {
     }
   };
 
+  const handleResendCode = async () => {
+    if (resendCooldown > 0) {
+      showToast(`Please wait ${resendCooldown} seconds before resending`, 'error');
+      return;
+    }
+
+    setResending(true);
+    try {
+      await resendNotificationEmailCode(pendingNotificationEmail);
+      showToast('Verification code resent successfully', 'success');
+      
+      // Start 60-second cooldown
+      setResendCooldown(60);
+      const interval = setInterval(() => {
+        setResendCooldown(prev => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.error || err.message || 'Failed to resend code';
+      showToast(errorMsg, 'error');
+    } finally {
+      setResending(false);
+    }
+  };
+
   const handleCancelVerification = () => {
     setVerificationStep('initial');
     setVerificationCode('');
     setPendingNotificationEmail('');
+    setResendCooldown(0);
     // Reset to the original value loaded from server
     const resetEmail = async () => {
       try {
@@ -443,9 +476,23 @@ export const TenantSettings: React.FC = () => {
                     placeholder="Enter 6-digit code"
                     maxLength={6}
                   />
-                  <p className="text-xs text-gray-600 mt-2">
-                    Check your email for the verification code. It expires in 15 minutes.
-                  </p>
+                  <div className="flex items-center justify-between mt-2 gap-2">
+                    <p className="text-xs text-gray-600">
+                      Check your email for the verification code. It expires in 10 minutes.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleResendCode}
+                      disabled={resending || resendCooldown > 0}
+                      className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:text-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                      {resending
+                        ? 'Sending...'
+                        : resendCooldown > 0
+                        ? `Resend in ${resendCooldown}s`
+                        : 'Resend code'}
+                    </button>
+                  </div>
                 </div>
               )}
 
