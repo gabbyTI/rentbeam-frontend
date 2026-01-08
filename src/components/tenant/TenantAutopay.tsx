@@ -142,7 +142,7 @@ export const TenantAutopay: React.FC = () => {
 
   const { unit } = tenantData;
   const rentAmount = Number(unit.rentAmount);
-  const { processingFee, totalAmount } = calculateProcessingFee(rentAmount);
+  const { totalAmount } = calculateProcessingFee(rentAmount);
 
   const getNextChargeDate = () => {
     const today = new Date();

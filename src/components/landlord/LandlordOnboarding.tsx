@@ -69,6 +69,9 @@ export const LandlordOnboarding: React.FC = () => {
       name: landlordData.name,
       email: landlordData.email,
       payoutsEnabled: true,
+      userId: landlordId,
+      user: { id: landlordId, email: landlordData.email, name: landlordData.name, phone: undefined, cognitoId: undefined, notificationEmail: undefined, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
     };
 
@@ -79,6 +82,8 @@ export const LandlordOnboarding: React.FC = () => {
       landlordId,
       name: propertyData.name,
       address: propertyData.address,
+      acceptOnlinePayments: true,
+      updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
     };
 
@@ -90,11 +95,12 @@ export const LandlordOnboarding: React.FC = () => {
       rentAmount: parseFloat(u.rentAmount),
       dueDay: parseInt(u.dueDay),
       gracePeriodDays: 5, // Default grace period
+      updatedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
     }));
 
     updateState({
-      landlords: [...landlords, newLandlord],
+      landlordAccounts: [...landlords, newLandlord],
       properties: [...properties, newProperty],
       units: [...units, ...newUnits],
       currentUser: { role: 'landlord', id: landlordId },

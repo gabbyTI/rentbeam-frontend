@@ -246,9 +246,6 @@ export function generatePaymentTimeline(
       });
     } else {
       // Check if this month is in the past, current, or future
-      const dueDate = new Date(date.getFullYear(), date.getMonth(), dueDay);
-      const isPast = dueDate < today;
-      const isFuture = date > today;
       
       // Check for pending/failed payment
       const pendingPayment = payments.find(p => p.month === monthString && p.status === 'PENDING');

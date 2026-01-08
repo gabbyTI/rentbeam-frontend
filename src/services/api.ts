@@ -336,6 +336,7 @@ export interface TenantMembershipDetails {
   inviteStatus: string;
   autopayEnabled: boolean;
   stripeCustomerId: string | null;
+  defaultPaymentMethodId: string | null;
   paymentMethodLabel: string | null;
   status: string;
   user: {
@@ -354,6 +355,7 @@ export interface TenantMembershipDetails {
       id: string;
       name: string;
       address: string;
+      acceptOnlinePayments: boolean;
       landlord: {
         id: string;
         user: {
@@ -718,6 +720,7 @@ export interface InviteDetails {
   property: {
     name: string;
     address: string;
+      acceptOnlinePayments: boolean;
   };
   unit: {
     name: string;

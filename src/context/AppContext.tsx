@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
-import { AppState, UserRole, LandlordAccount, TenantMembership } from '../types';
+import { AppState, UserRole, LandlordAccount, TenantMembership, Property, Unit, Payment } from '../types';
 import { initializeApi, fetchProperties, fetchUnits, fetchTenants, fetchPayments, getStripeConnectStatus } from '../services/api';
 import { authService } from '../services/auth';
 
@@ -103,16 +103,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.log('ðŸ”µ Loading data from backend...');
       setLoading(true);
       try {
-        const promises = [
+        const promises: [
+          Promise<Property[]>,
+          Promise<Unit[]>,
+          Promise<TenantMembership[]>,
+          Promise<Payment[]>
+        ] = [
           fetchProperties(),
           fetchUnits(),
           fetchTenants(),
           fetchPayments(),
         ];
 
-        // Load Stripe status only for landlords
+        // Load Stripe status only for landlords (handled separately to avoid type issues)
         if (state.currentUser.role === 'landlord') {
-          promises.push(getStripeConnectStatus().then(status => {
+          getStripeConnectStatus().then(status => {
             setStripeOnboarded(status.onboarded);
             setStripeStatus({
               requirementsDue: status.requirementsDue || [],
@@ -120,13 +125,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               disabledReason: status.disabledReason || null,
               payoutsEnabled: status.payoutsEnabled || false,
             });
-            return status;
           }).catch(error => {
-            console.error('ðŸ”´ Failed to load Stripe status:', error);
+            console.error('í´´ Failed to load Stripe status:', error);
             setStripeOnboarded(false);
             setStripeStatus(null);
-            return { onboarded: false };
-          }));
+          });
         }
 
         const [properties, units, tenants, payments] = await Promise.all(promises);

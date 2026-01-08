@@ -5,7 +5,6 @@ import { Input } from '../ui/Input';
 import { Card, CardContent } from '../ui/Card';
 import { useToast } from '../../context/ToastContext';
 import { acceptInvite, fetchInviteDetails, InviteDetails } from '../../services/api';
-import { authService } from '../../services/auth';
 
 export const TenantRegister: React.FC = () => {
   const [searchParams] = useSearchParams();

@@ -9,7 +9,7 @@ interface AppShellProps {
   title?: string;
 }
 
-export const AppShell: React.FC<AppShellProps> = ({ children, title }) => {
+export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const { currentUser, logout } = useApp();
   const navigate = useNavigate();
 

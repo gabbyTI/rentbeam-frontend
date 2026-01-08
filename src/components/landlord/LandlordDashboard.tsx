@@ -9,7 +9,7 @@ import { Button } from '../ui/Button';
 import { MetricCard } from '../ui/MetricCard';
 import { ActivityFeed } from '../ui/ActivityFeed';
 import { formatCurrency } from '../../utils/helpers';
-import { getPaymentStatus, getCurrentRentMonth, formatRentMonth, isPaymentWindowOpen } from '../../utils/helpers';
+import { getPaymentStatus, getCurrentRentMonth, formatRentMonth } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';

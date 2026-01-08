@@ -17,7 +17,6 @@ import { TenantDetails } from './components/landlord/TenantDetails';
 import { InviteAccept } from './components/tenant/InviteAccept';
 import { TenantRegister } from './components/tenant/TenantRegister';
 import { TenantDashboard } from './components/tenant/TenantDashboard';
-import { TenantAutopay } from './components/tenant/TenantAutopay';
 import { TenantSettings } from './components/tenant/TenantSettings';
 import { LandlordSettings } from './components/landlord/LandlordSettings';
 import { SetupPaymentMethod } from './components/tenant/SetupPaymentMethod';

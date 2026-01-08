@@ -41,7 +41,7 @@ export const PayNowModal: React.FC<PayNowModalProps> = ({
         month,
       });
 
-      const { clientSecret, fees } = response.data;
+      const { clientSecret } = response.data;
 
       // Confirm the payment
       const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret);

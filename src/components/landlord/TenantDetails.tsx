@@ -68,7 +68,7 @@ export const TenantDetails: React.FC = () => {
       if (result.outstandingBalance) {
         showToast(
           `Tenant moved out successfully. Warning: Unpaid rent for ${result.unpaidPeriods.join(', ')}`,
-          'warning'
+          'info'
         );
       } else {
         showToast('Tenant moved out successfully');
@@ -115,7 +115,7 @@ export const TenantDetails: React.FC = () => {
         : t
     );
 
-    updateState({ tenants: [...updatedTenants, newTenantRecord] });
+    updateState({ tenantMemberships: [...updatedTenants, newTenantRecord] });
     showToast('Tenant transferred successfully');
     setShowTransferModal(false);
     setTransferPropertyId('');
@@ -165,12 +165,12 @@ export const TenantDetails: React.FC = () => {
               user: {
                 ...t.user!,
                 name: editName,
-                phone: editPhone || null,
+                phone: editPhone || undefined,
               },
             }
           : t
       );
-      updateState({ tenants: updatedTenants });
+      updateState({ tenantMemberships: updatedTenants });
 
       showToast('Tenant information updated successfully');
       setShowEditModal(false);
@@ -448,7 +448,7 @@ export const TenantDetails: React.FC = () => {
         >
           <div className="space-y-4">
             <p className="text-sm sm:text-base text-gray-700">
-              Are you sure you want to move out <strong>{tenant?.name}</strong>?
+              Are you sure you want to move out <strong>{tenant?.user?.name}</strong>?
             </p>
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
               <p className="text-xs sm:text-sm text-yellow-900">
@@ -491,7 +491,7 @@ export const TenantDetails: React.FC = () => {
         >
           <div className="space-y-4">
             <p className="text-gray-700">
-              Transfer <strong>{tenant?.name}</strong> to a different unit
+              Transfer <strong>{tenant?.user?.name}</strong> to a different unit
             </p>
 
             <Select

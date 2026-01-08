@@ -81,6 +81,7 @@ export interface Payment {
   paymentMethod?: 'Cash' | 'Check' | 'Zelle' | 'Venmo' | 'Other'; // For manual payments
   date: string;
   month: string; // Format: "YYYY-MM"
+  status?: 'PENDING' | 'SUCCEEDED' | 'FAILED';
   note?: string;
   // Card payment fields
   rentAmount?: number;

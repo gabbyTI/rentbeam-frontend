@@ -1,4 +1,3 @@
-import api from './api';
 import { APP_CONFIG } from '../config/app';
 
 /**

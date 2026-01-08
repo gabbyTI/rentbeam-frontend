@@ -50,7 +50,7 @@ export const LandlordSignup: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await signupLandlord({
+      await signupLandlord({
         name: formData.name,
         email: formData.email,
         password: formData.password,
