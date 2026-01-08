@@ -27,7 +27,7 @@ export const StripeOnboardingBanner: React.FC = () => {
     title = 'Verification in Progress';
     
     if (stripeStatus?.requirementsPending && stripeStatus.requirementsPending.length > 0) {
-      message = 'Stripe is reviewing your information. This usually takes 1-2 business days. You can check the status anytime.';
+      message = 'Your payment account is being verified. This usually takes 1-2 business days. You can check the status anytime.';
       buttonText = 'View Dashboard';
       actionType = 'navigate';
     } else if (stripeStatus?.requirementsDue && stripeStatus.requirementsDue.length > 0) {
@@ -35,7 +35,7 @@ export const StripeOnboardingBanner: React.FC = () => {
       buttonText = 'Complete Verification';
       actionType = 'stripe';
     } else {
-      message = 'Your account is being reviewed by Stripe. You\'ll be able to accept payments once approved (usually within 1-2 business days).';
+      message = 'Your payment account is being verified. You\'ll be able to accept payments once approved (usually within 1-2 business days).';
       buttonText = 'View Status';
       actionType = 'navigate';
     }

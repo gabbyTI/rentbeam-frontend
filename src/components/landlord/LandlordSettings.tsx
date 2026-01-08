@@ -36,7 +36,7 @@ export const LandlordSettings: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [taxId, setTaxId] = useState('');
 
-  // Stripe Connect Status
+  // Payment Account Status
   const [stripeConnected, setStripeConnected] = useState(false);
   const [stripeAccountId, setStripeAccountId] = useState('');
 
@@ -334,7 +334,7 @@ export const LandlordSettings: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Stripe Connect */}
+        {/* Payment Account */}
         <Card>
           <CardHeader>
             <h2 className="text-lg sm:text-xl font-semibold">Payment Processing</h2>
@@ -344,7 +344,7 @@ export const LandlordSettings: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4 sm:justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <p className="text-sm sm:text-base font-medium">Stripe Connect</p>
+                    <p className="text-sm sm:text-base font-medium">Payment Account</p>
                     {stripeConnected ? (
                       <Badge variant="accepted">Connected</Badge>
                     ) : (
@@ -354,7 +354,7 @@ export const LandlordSettings: React.FC = () => {
                   {stripeConnected ? (
                     <div>
                       <p className="mb-1 text-xs sm:text-sm text-gray-600">
-                        Your Stripe account is connected and ready to receive payments.
+                        Your bank account is connected and ready to receive payments.
                       </p>
                       <p className="text-xs text-gray-500 break-all">
                         Account ID: {stripeAccountId}
@@ -362,13 +362,13 @@ export const LandlordSettings: React.FC = () => {
                     </div>
                   ) : (
                     <p className="text-xs sm:text-sm text-gray-600">
-                      Connect your Stripe account to accept tenant payments and receive payouts.
+                      Connect your bank account to accept tenant payments and receive payouts.
                     </p>
                   )}
                 </div>
                 {stripeConnected ? (
                   <Button variant="secondary" size="sm" onClick={handleManageStripe}>
-                    <span className="hidden sm:inline">Manage Stripe</span>
+                    <span className="hidden sm:inline">Banking & Payouts</span>
                     <span className="sm:hidden">Manage</span>
                   </Button>
                 ) : (
@@ -679,7 +679,7 @@ export const LandlordSettings: React.FC = () => {
               <li>All properties and units</li>
               <li>All tenant memberships and invites</li>
               <li>All payment history</li>
-              <li>Your Stripe connection (payouts will be paused)</li>
+              <li>Your payment account (payouts will be paused)</li>
             </ul>
             <p className="mt-3 text-xs sm:text-sm font-medium text-red-600">
               This action cannot be undone.
