@@ -18,6 +18,16 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     navigate('/login');
   };
 
+  const handleSwitchRole = () => {
+    // Clear selected role to force role selector
+    localStorage.removeItem('rentbeam_selected_role');
+    window.location.reload();
+  };
+
+  // Check for dual roles from stored memberships instead of availableRoles
+  const memberships = JSON.parse(localStorage.getItem('rentbeam_memberships') || 'null');
+  const hasDualRoles = memberships && memberships.landlord && memberships.tenants && memberships.tenants.length > 0;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -37,6 +47,16 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 <span className="hidden sm:inline text-sm text-gray-600 capitalize">
                   {currentUser.role}
                 </span>
+                {hasDualRoles && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleSwitchRole}
+                    className="text-xs sm:text-sm"
+                  >
+                    Switch Account
+                  </Button>
+                )}
                 <Button 
                   variant="ghost" 
                   size="sm" 

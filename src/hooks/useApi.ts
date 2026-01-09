@@ -48,7 +48,7 @@ export const useApi = () => {
 
     // Tenants
     createTenant: (tenant: Parameters<typeof api.createTenant>[0]) =>
-      api.createTenant(tenant, state.tenants),
+      api.createTenant(tenant),
     
     updateTenant: (tenantId: string, updates: Parameters<typeof api.updateTenant>[1]) =>
       api.updateTenant(tenantId, updates, state.tenants),

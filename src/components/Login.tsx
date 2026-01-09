@@ -52,9 +52,18 @@ export const Login: React.FC = () => {
 
       // Step 3: Set current user in app context
       console.log('🔵 Step 3: Setting current user...');
-      if (response.memberships.landlord) {
-        console.log('🔵 User is landlord, id:', response.memberships.landlord.id);
-        login('landlord', response.memberships.landlord.id);
+      const hasLandlord = !!response.memberships.landlord;
+      const hasTenants = response.memberships.tenants && response.memberships.tenants.length > 0;
+      
+      // Check if user has both roles - let AppContext handle role selection
+      if (hasLandlord && hasTenants) {
+        console.log('🔵 User has both roles - redirecting to home for AppContext to handle');
+        // Don't call login() here - let AppContext detect dual roles and show selector
+        window.location.href = '/';
+        return;
+      } else if (hasLandlord) {
+        console.log('🔵 User is landlord only, id:', response.memberships.landlord!.id);
+        login('landlord', response.memberships.landlord!.id);
 
         // Step 4: Check Stripe status
         console.log('🔵 Step 4: Checking Stripe status...');
@@ -73,8 +82,8 @@ export const Login: React.FC = () => {
           console.error('🔴 Stripe check failed:', stripeError);
           navigate('/landlord/complete-setup');
         }
-      } else if (response.memberships.tenants && response.memberships.tenants.length > 0) {
-        console.log('🔵 User is tenant, id:', response.memberships.tenants[0].id);
+      } else if (hasTenants) {
+        console.log('🔵 User is tenant only, id:', response.memberships.tenants[0].id);
         login('tenant', response.memberships.tenants[0].id);
         navigate('/tenant/dashboard');
       } else {

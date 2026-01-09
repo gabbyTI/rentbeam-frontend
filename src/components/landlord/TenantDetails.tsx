@@ -10,7 +10,7 @@ import { Select, Input } from '../ui/Input';
 import { PaymentHistoryList } from '../ui/PaymentHistoryList';
 import { formatCurrency } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
-import { resendTenantInvite, moveOutTenant, updateTenantInfo } from '../../services/api';
+import { resendTenantInvite, moveOutTenant, updateTenantInfo, transferTenant } from '../../services/api';
 import api from '../../services/api';
 
 export const TenantDetails: React.FC = () => {
@@ -49,14 +49,14 @@ export const TenantDetails: React.FC = () => {
   }, [properties, tenant]);
 
   const availableUnits = useMemo(() => {
-    if (!transferPropertyId) return [];
+    if (!transferPropertyId || !tenant) return [];
     const occupiedUnitIds = tenants
-      .filter((t) => t.status === 'ACTIVE' && t.id !== tenantId)
+      .filter((t) => t.status === 'ACTIVE')
       .map((t) => t.unitId);
     return units.filter(
       (u) => u.propertyId === transferPropertyId && !occupiedUnitIds.includes(u.id)
     );
-  }, [units, transferPropertyId, tenants, tenantId]);
+  }, [units, transferPropertyId, tenants, tenant]);
 
   const handleMoveOut = async () => {
     if (!tenant) return;
@@ -75,13 +75,13 @@ export const TenantDetails: React.FC = () => {
       }
       
       setShowMoveOutModal(false);
-      navigate('/landlord/tenants');
+      window.location.reload();
     } catch (error: any) {
       showToast(error.message || 'Failed to move out tenant', 'error');
     }
   };
 
-  const handleTransfer = () => {
+  const handleTransfer = async () => {
     if (!tenant || !transferUnitId) {
       showToast('Please select a unit', 'error');
       return;
@@ -90,37 +90,30 @@ export const TenantDetails: React.FC = () => {
     const newUnit = units.find((u) => u.id === transferUnitId);
     if (!newUnit) return;
 
-    // Create new tenant record for new unit
-    const newTenantRecord = {
-      ...tenant,
-      id: `tenant-${Date.now()}`,
-      unitId: transferUnitId,
-      rentAmount: newUnit.rentAmount,
-      status: 'ACTIVE' as const,
-      moveInDate: new Date().toISOString().split('T')[0],
-      moveOutDate: undefined,
-      createdAt: new Date().toISOString(),
-    };
+    setSaving(true);
+    try {
+      await transferTenant(
+        tenant,
+        {
+          email: tenant.user?.email || '',
+          name: tenant.user?.name || '',
+          phone: tenant.user?.phone,
+          unitId: transferUnitId,
+          moveInDate: new Date().toISOString().split('T')[0],
+        },
+        tenants
+      );
 
-    // Mark old tenant record as past (preserves old unit history)
-    const updatedTenants = tenants.map((t) =>
-      t.id === tenant.id
-        ? {
-            ...t,
-            status: 'INACTIVE' as const,
-            autopayEnabled: false,
-            paymentMethodLabel: undefined,
-            moveOutDate: new Date().toISOString().split('T')[0],
-          }
-        : t
-    );
-
-    updateState({ tenantMemberships: [...updatedTenants, newTenantRecord] });
-    showToast('Tenant transferred successfully');
-    setShowTransferModal(false);
-    setTransferPropertyId('');
-    setTransferUnitId('');
-    navigate('/landlord/tenants');
+      showToast('Tenant transferred successfully');
+      setShowTransferModal(false);
+      setTransferPropertyId('');
+      setTransferUnitId('');
+      window.location.reload();
+    } catch (error: any) {
+      showToast(error.message || 'Failed to transfer tenant', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleResendInvite = async () => {
@@ -545,8 +538,8 @@ export const TenantDetails: React.FC = () => {
               >
                 Cancel
               </Button>
-              <Button onClick={handleTransfer} className="flex-1">
-                Transfer Tenant
+              <Button onClick={handleTransfer} disabled={saving} className="flex-1">
+                {saving ? 'Transferring...' : 'Transfer Tenant'}
               </Button>
             </div>
           </div>

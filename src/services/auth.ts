@@ -11,6 +11,7 @@ const ID_TOKEN_KEY = `${APP_CONFIG.storage.prefix}id_token`;
 const COGNITO_ID_KEY = `${APP_CONFIG.storage.prefix}cognito_id`;
 const USER_KEY = `${APP_CONFIG.storage.prefix}user`;
 const MEMBERSHIPS_KEY = `${APP_CONFIG.storage.prefix}memberships`;
+const SELECTED_ROLE_KEY = `${APP_CONFIG.storage.prefix}selected_role`;
 
 export interface AuthTokens {
   accessToken: string;
@@ -31,7 +32,13 @@ export interface LoginResponse {
   user: User;
   memberships: {
     landlord: { id: string } | null;
-    tenants: Array<{ id: string; unitId: string }>;
+    tenants: Array<{ 
+      id: string; 
+      unitId: string; 
+      unitName: string;
+      propertyName: string;
+      status: string;
+    }>;
   };
 }
 
@@ -97,14 +104,32 @@ class AuthService {
   /**
    * Store memberships
    */
-  setMemberships(memberships: { landlord: { id: string } | null; tenants: Array<{ id: string; unitId: string }> }): void {
+  setMemberships(memberships: { 
+    landlord: { id: string } | null; 
+    tenants: Array<{ 
+      id: string; 
+      unitId: string; 
+      unitName: string;
+      propertyName: string;
+      status: string;
+    }> 
+  }): void {
     localStorage.setItem(MEMBERSHIPS_KEY, JSON.stringify(memberships));
   }
 
   /**
    * Get memberships
    */
-  getMemberships(): { landlord: { id: string } | null; tenants: Array<{ id: string; unitId: string }> } | null {
+  getMemberships(): { 
+    landlord: { id: string } | null; 
+    tenants: Array<{ 
+      id: string; 
+      unitId: string; 
+      unitName: string;
+      propertyName: string;
+      status: string;
+    }> 
+  } | null {
     const membershipsStr = localStorage.getItem(MEMBERSHIPS_KEY);
     if (!membershipsStr) return null;
     try {
@@ -124,6 +149,27 @@ class AuthService {
     localStorage.removeItem(COGNITO_ID_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(MEMBERSHIPS_KEY);
+    localStorage.removeItem(SELECTED_ROLE_KEY);
+  }
+
+  /**
+   * Store selected role for dual-role users
+   */
+  setSelectedRole(role: 'landlord' | 'tenant', id: string): void {
+    localStorage.setItem(SELECTED_ROLE_KEY, JSON.stringify({ role, id }));
+  }
+
+  /**
+   * Get selected role for dual-role users
+   */
+  getSelectedRole(): { role: 'landlord' | 'tenant'; id: string } | null {
+    const selectedRoleStr = localStorage.getItem(SELECTED_ROLE_KEY);
+    if (!selectedRoleStr) return null;
+    try {
+      return JSON.parse(selectedRoleStr);
+    } catch {
+      return null;
+    }
   }
 
   /**

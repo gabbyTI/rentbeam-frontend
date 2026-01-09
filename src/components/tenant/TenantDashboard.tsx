@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Elements } from '@stripe/react-stripe-js';
 import stripePromise from '../../utils/stripeLoader';
+import { useApp } from '../../context/AppContext';
 import { AppShell } from '../ui/AppShell';
 import { Card, CardHeader, CardContent } from '../ui/Card';
 import { Badge } from '../ui/Badge';
@@ -14,12 +15,13 @@ import { PayNowModal } from './PayNowModal';
 import { formatCurrency, getPaymentStatus } from '../../utils/helpers';
 import { calculateTenantPaymentSummary, calculateYearToDateSummary, generatePaymentTimeline } from '../../utils/tenantAnalytics';
 import { useToast } from '../../context/ToastContext';
-import { getCurrentUser, getTenantMembership, TenantMembershipDetails, fetchPayments } from '../../services/api';
+import { getTenantMembership, TenantMembershipDetails, fetchPayments } from '../../services/api';
 import api from '../../services/api';
 import { Payment, PaymentStatus, TenantMembership } from '../../types';
 
 export const TenantDashboard: React.FC = () => {
   const { showToast } = useToast();
+  const { currentUser } = useApp();
   const navigate = useNavigate();
   const [showDisableModal, setShowDisableModal] = useState(false);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
@@ -31,15 +33,14 @@ export const TenantDashboard: React.FC = () => {
   useEffect(() => {
     const loadTenantData = async () => {
       try {
-        const profile = await getCurrentUser();
-        
-        if (!profile.memberships.tenants || profile.memberships.tenants.length === 0) {
-          showToast('No tenant membership found', 'error');
+        // Use the selected tenant membership ID from currentUser context
+        if (!currentUser || currentUser.role !== 'tenant') {
+          showToast('No tenant access', 'error');
           navigate('/login');
           return;
         }
 
-        const membershipId = profile.memberships.tenants[0].id;
+        const membershipId = currentUser.id; // This is the selected tenant membership ID
         const membership = await getTenantMembership(membershipId);
         setTenantData(membership);
 
@@ -62,7 +63,7 @@ export const TenantDashboard: React.FC = () => {
     };
 
     loadTenantData();
-  }, [navigate, showToast]);
+  }, [navigate, showToast, currentUser]);
 
   // Calculate analytics using useMemo for performance
   const paymentSummary = useMemo(() => {
@@ -91,8 +92,9 @@ export const TenantDashboard: React.FC = () => {
 
   const handlePaymentSuccess = async () => {
     try {
-      const profile = await getCurrentUser();
-      const membershipId = profile.memberships.tenants[0].id;
+      if (!currentUser || currentUser.role !== 'tenant') return;
+      
+      const membershipId = currentUser.id; // Use selected tenant membership ID
       const membership = await getTenantMembership(membershipId);
       setTenantData(membership);
 

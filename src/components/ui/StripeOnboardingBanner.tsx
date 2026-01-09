@@ -6,11 +6,11 @@ import { connectStripe } from '../../services/api';
 
 export const StripeOnboardingBanner: React.FC = () => {
   const navigate = useNavigate();
-  const { stripeOnboarded, stripeStatus } = useApp();
+  const { stripeOnboarded, stripeStatus, loading } = useApp();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Don't show banner if fully onboarded and payouts enabled
-  if (stripeOnboarded && stripeStatus?.payoutsEnabled) {
+  // Don't show banner while loading or if fully onboarded and payouts enabled
+  if (loading || stripeOnboarded === null || (stripeOnboarded && stripeStatus?.payoutsEnabled)) {
     return null;
   }
 

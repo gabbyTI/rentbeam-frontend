@@ -651,8 +651,7 @@ export const fetchTenants = async (): Promise<Tenant[]> => {
 };
 
 export const createTenant = async (
-  tenant: { email: string; name: string; phone?: string; unitId: string; moveInDate?: string },
-  existingTenants: Tenant[]
+  tenant: { email: string; name: string; phone?: string; unitId: string; moveInDate?: string }
 ): Promise<any> => {
   const token = authService.getAccessToken();
   const response = await fetch(`${API_BASE_URL}/api/tenants`, {
@@ -672,10 +671,13 @@ export const createTenant = async (
   const data = result.data || result;
   const created = data.membership || data;
   
+  // Refetch all tenants to ensure we have the latest state
+  const updatedTenants = await fetchTenants();
   getUpdateState()({
-    tenants: [...existingTenants, created],
+    tenants: updatedTenants,
   });
-  return tenant;
+  
+  return created;
 };
 
 export const resendTenantInvite = async (tenantId: string): Promise<void> => {
@@ -860,7 +862,7 @@ export const moveOutTenant = async (
 
 export const transferTenant = async (
   tenant: Tenant,
-  newTenantData: { email: string; name: string; phone?: string; moveInDate?: string },
+  newTenantData: { email: string; name: string; phone?: string; unitId: string; moveInDate?: string },
   existingTenants: Tenant[]
 ): Promise<Tenant> => {
   const token = authService.getAccessToken();
@@ -871,14 +873,8 @@ export const transferTenant = async (
       'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify({
-      oldTenantMembershipId: tenant.id,
-      newTenant: {
-        email: newTenantData.email,
-        name: newTenantData.name,
-        phone: newTenantData.phone,
-        unitId: tenant.unitId,
-        moveInDate: newTenantData.moveInDate,
-      }
+      tenantId: tenant.id,
+      newUnitId: newTenantData.unitId
     })
   });
 

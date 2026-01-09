@@ -3,14 +3,20 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { Card, CardContent } from '../ui/Card';
 import { formatCurrency } from '../../utils/helpers';
-import { fetchInviteDetails, InviteDetails } from '../../services/api';
+import { fetchInviteDetails, InviteDetails, acceptInvite } from '../../services/api';
+import { authService } from '../../services/auth';
+import { useToast } from '../../context/ToastContext';
 
 export const InviteAccept: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [inviteData, setInviteData] = useState<InviteDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [accepting, setAccepting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const isLoggedIn = authService.isAuthenticated();
 
   useEffect(() => {
     const loadInvite = async () => {
@@ -63,8 +69,26 @@ export const InviteAccept: React.FC = () => {
     );
   }
 
-  const handleAccept = () => {
-    navigate(`/tenant/register?token=${token}`);
+  const handleAccept = async () => {
+    if (!token) return;
+    
+    if (isLoggedIn) {
+      // User is already logged in - accept invite directly
+      setAccepting(true);
+      try {
+        await acceptInvite(token, { password: '' }); // Empty password for existing users
+        showToast('Invite accepted! You now have access to this property.');
+        // Force page reload to update memberships and show role selector
+        window.location.href = '/';
+      } catch (error: any) {
+        showToast(error.message || 'Failed to accept invite', 'error');
+      } finally {
+        setAccepting(false);
+      }
+    } else {
+      // User not logged in - redirect to registration
+      navigate(`/tenant/register?token=${token}`);
+    }
   };
 
   return (
@@ -104,8 +128,12 @@ export const InviteAccept: React.FC = () => {
               </div>
             </div>
 
-            <Button onClick={handleAccept} className="w-full">
-              Accept Invite
+            <Button 
+              onClick={handleAccept} 
+              className="w-full"
+              disabled={accepting}
+            >
+              {accepting ? 'Accepting...' : (isLoggedIn ? 'Accept Invite' : 'Accept Invite & Register')}
             </Button>
           </CardContent>
         </Card>

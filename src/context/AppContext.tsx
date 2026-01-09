@@ -15,6 +15,13 @@ interface AppContextType extends AppState {
     disabledReason: string | null;
     payoutsEnabled: boolean;
   } | null;
+  // Dual role handling
+  needsRoleSelection: boolean;
+  availableRoles: {
+    landlord?: { id: string };
+    tenants: Array<{ id: string; unitName: string; propertyName: string }>;
+  } | null;
+  selectRole: (role: UserRole, id: string) => void;
   // Backward compatibility aliases
   landlords: LandlordAccount[];
   tenants: TenantMembership[];
@@ -26,6 +33,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [loading, setLoading] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
+  const [needsRoleSelection, setNeedsRoleSelection] = useState(false);
+  const [availableRoles, setAvailableRoles] = useState<{
+    landlord?: { id: string };
+    tenants: Array<{ id: string; unitName: string; propertyName: string }>;
+  } | null>(null);
   const [stripeOnboarded, setStripeOnboarded] = useState<boolean | null>(null);
   const [stripeStatus, setStripeStatus] = useState<{
     requirementsDue: string[];
@@ -63,14 +75,38 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         console.log('🔵 Retrieved memberships:', memberships);
         
         if (memberships) {
-          // Determine role based on stored memberships
-          if (memberships.landlord) {
-            console.log('🔵 Setting landlord user, id:', memberships.landlord.id);
+          const hasLandlord = !!memberships.landlord;
+          const hasTenants = memberships.tenants && memberships.tenants.length > 0;
+          
+          // Check if user has both roles
+          if (hasLandlord && hasTenants) {
+            const selectedRole = authService.getSelectedRole();
+            // If user has stored preference, use it
+            if (selectedRole) {
+              console.log('🔵 User has both roles, using stored preference:', selectedRole);
+              setState(prev => ({
+                ...prev,
+                currentUser: { role: selectedRole.role, id: selectedRole.id },
+              }));
+            } else {
+              console.log('🔵 User has both roles, no stored preference - showing role selector');
+              setAvailableRoles({
+                landlord: { id: memberships.landlord!.id },
+                tenants: memberships.tenants.map(t => ({
+                  id: t.id,
+                  unitName: t.unitName,
+                  propertyName: t.propertyName
+                }))
+              });
+              setNeedsRoleSelection(true);
+            }
+          } else if (hasLandlord) {
+            console.log('🔵 Setting landlord user, id:', memberships.landlord!.id);
             setState(prev => ({
               ...prev,
               currentUser: { role: 'landlord', id: memberships.landlord!.id },
             }));
-          } else if (memberships.tenants && memberships.tenants.length > 0) {
+          } else if (hasTenants) {
             console.log('🔵 Setting tenant user, id:', memberships.tenants[0].id);
             setState(prev => ({
               ...prev,
@@ -126,7 +162,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               payoutsEnabled: status.payoutsEnabled || false,
             });
           }).catch(error => {
-            console.error('��� Failed to load Stripe status:', error);
+            console.error('��� Failed to load Stripe status:', error);
             setStripeOnboarded(false);
             setStripeStatus(null);
           });
@@ -155,6 +191,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     loadData();
   }, [state.currentUser?.id, dataLoaded]);
 
+  const selectRole = (role: UserRole, id: string) => {
+    console.log(`🔵 User selected role: ${role}, id: ${id}`);
+    // Store the selection for future sessions
+    authService.setSelectedRole(role, id);
+    setState(prev => ({
+      ...prev,
+      currentUser: { role, id },
+    }));
+    setNeedsRoleSelection(false);
+    setAvailableRoles(null);
+  };
+
   const login = (role: UserRole, id: string) => {
     setState((prev) => ({
       ...prev,
@@ -165,6 +213,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const logout = () => {
     authService.clearAuth();
     setDataLoaded(false);
+    setNeedsRoleSelection(false);
+    setAvailableRoles(null);
     setState({
       users: [],
       landlordAccounts: [],
@@ -187,7 +237,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     loading: !sessionReady || loading,
     stripeOnboarded,
     stripeStatus,
-  }), [state, loading, sessionReady, stripeOnboarded, stripeStatus]);
+    needsRoleSelection,
+    availableRoles,
+    selectRole,
+  }), [
+    state.users,
+    state.landlordAccounts,
+    state.properties,
+    state.units,
+    state.tenantMemberships,
+    state.payments,
+    state.currentUser,
+    loading,
+    sessionReady,
+    stripeOnboarded,
+    stripeStatus,
+    needsRoleSelection,
+    availableRoles
+  ]);
 
   return (
     <AppContext.Provider value={contextValue}>

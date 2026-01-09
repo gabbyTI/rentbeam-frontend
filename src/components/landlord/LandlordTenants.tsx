@@ -97,6 +97,7 @@ export const LandlordTenants: React.FC = () => {
         propertyId: '',
         unitId: '',
       });
+      window.location.reload();
     } catch (error: any) {
       showToast(error.message || 'Failed to add tenant', 'error');
     } finally {

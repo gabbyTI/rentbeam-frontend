@@ -4,6 +4,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import { ToastProvider } from './context/ToastContext';
 import { ToastContainer } from './components/ui/Toast';
 import { Login } from './components/Login';
+import { AccountSelector } from './components/AccountSelector';
 import { LandlordSignup } from './components/landlord/LandlordSignup';
 import { VerifyEmail } from './components/VerifyEmail';
 import { ForgotPassword } from './components/ForgotPassword';
@@ -51,7 +52,18 @@ const ProtectedRoute: React.FC<{
 };
 
 const AppRoutes: React.FC = () => {
-  const { currentUser } = useApp();
+  const { currentUser, needsRoleSelection, availableRoles, selectRole } = useApp();
+
+  // Show role selector if user has multiple roles
+  if (needsRoleSelection && availableRoles) {
+    return (
+      <AccountSelector
+        onSelectAccount={selectRole}
+        landlordId={availableRoles.landlord?.id}
+        tenantMemberships={availableRoles.tenants}
+      />
+    );
+  }
 
   return (
     <Routes>
