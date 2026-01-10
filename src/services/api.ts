@@ -719,6 +719,7 @@ export interface InviteDetails {
   landlordName: string;
   email: string;
   name: string;
+  userExists: boolean;
   property: {
     name: string;
     address: string;

@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Card, CardContent } from './ui/Card';
-import { login as apiLogin, getStripeConnectStatus } from '../services/api';
+import { login as apiLogin, getStripeConnectStatus, acceptInvite } from '../services/api';
 import { authService } from '../services/auth';
 import { useToast } from '../context/ToastContext';
 
@@ -16,7 +16,6 @@ export const Login: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  // Redirect if already logged in
   useEffect(() => {
     if (currentUser) {
       const redirectPath = currentUser.role === 'landlord' 
@@ -25,6 +24,10 @@ export const Login: React.FC = () => {
       navigate(redirectPath, { replace: true });
     }
   }, [currentUser, navigate]);
+
+  // Check for invite token in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const inviteToken = urlParams.get('token');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,6 +88,17 @@ export const Login: React.FC = () => {
       } else if (hasTenants) {
         console.log('🔵 User is tenant only, id:', response.memberships.tenants[0].id);
         login('tenant', response.memberships.tenants[0].id);
+        
+        // Handle invite acceptance if token present
+        if (inviteToken) {
+          try {
+            await acceptInvite(inviteToken, { password: '' });
+            showToast('Invite accepted! Welcome to your new property.');
+          } catch (error: any) {
+            showToast(error.message || 'Failed to accept invite', 'error');
+          }
+        }
+        
         navigate('/tenant/dashboard');
       } else {
         console.error('🔴 No memberships found');

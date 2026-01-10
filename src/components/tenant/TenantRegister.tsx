@@ -90,12 +90,21 @@ export const TenantRegister: React.FC = () => {
     setSubmitting(true);
 
     try {
-      await acceptInvite(token, {
+      const result = await acceptInvite(token, {
         password: formData.password,
       });
 
-      showToast('Registration complete! Please login with your credentials.');
-      navigate('/login');
+      if (result.tokens) {
+        // User was created and logged in automatically
+        showToast('Account created and invite accepted! Welcome!');
+        // Store tokens and redirect
+        // Note: You may want to handle token storage here
+        window.location.href = '/';
+      } else {
+        // Existing user case
+        showToast('Registration complete! Please login with your credentials.');
+        navigate('/login');
+      }
     } catch (err: any) {
       showToast(err.message || 'Registration failed', 'error');
     } finally {
