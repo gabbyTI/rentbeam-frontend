@@ -966,3 +966,76 @@ export const updateLandlord = async (
   getUpdateState()({ landlords: updatedLandlords });
   return updatedLandlords.find(l => l.id === landlordId)!;
 };
+
+// ============================================================================
+// Subscription API Functions
+// ============================================================================
+
+import type { 
+  CurrentSubscription, 
+  CreateSubscriptionResponse, 
+  SubscriptionActionResponse,
+  SubscriptionPlan 
+} from '../types';
+
+/**
+ * Get current user's subscription details
+ */
+export const getCurrentSubscription = async (): Promise<CurrentSubscription> => {
+  const response = await api.get('/api/subscriptions/current');
+  return response.data;
+};
+
+/**
+ * Create a new subscription for a plan
+ * @returns Subscription details and hosted invoice URL for payment
+ */
+export const createSubscription = async (planType: SubscriptionPlan): Promise<CreateSubscriptionResponse> => {
+  const response = await api.post('/api/subscriptions', { planType });
+  return {
+    subscription: response.data,
+    hostedInvoiceUrl: response.data.hostedInvoiceUrl,
+    message: response.message
+  };
+};
+
+/**
+ * Upgrade subscription to a higher-tier plan (immediate with proration)
+ */
+export const upgradeSubscription = async (planType: SubscriptionPlan): Promise<SubscriptionActionResponse> => {
+  const response = await api.post('/api/subscriptions/upgrade', { planType });
+  return response.data;
+};
+
+/**
+ * Downgrade subscription to a lower-tier plan (scheduled for end of billing period)
+ */
+export const downgradeSubscription = async (planType: SubscriptionPlan): Promise<SubscriptionActionResponse> => {
+  const response = await api.post('/api/subscriptions/downgrade', { planType });
+  return response.data;
+};
+
+/**
+ * Cancel subscription
+ * @param immediately If true, cancels immediately. If false, cancels at end of billing period.
+ */
+export const cancelSubscription = async (immediately: boolean = false): Promise<SubscriptionActionResponse> => {
+  const response = await api.post('/api/subscriptions/cancel', { immediately });
+  return response.data;
+};
+
+/**
+ * Reactivate a canceled subscription (removes scheduled cancellation)
+ */
+export const reactivateSubscription = async (): Promise<SubscriptionActionResponse> => {
+  const response = await api.post('/api/subscriptions/reactivate');
+  return response.data;
+};
+
+/**
+ * Get Stripe Customer Portal URL for managing payment methods
+ */
+export const getCustomerPortal = async (): Promise<{ url: string }> => {
+  const response = await api.get('/api/subscriptions/portal');
+  return response.data;
+};

@@ -98,6 +98,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 Tenants
               </button>
               <button
+                onClick={() => navigate('/landlord/subscription')}
+                className="py-4 px-1 text-xs sm:text-sm font-medium text-gray-700 hover:text-primary-600 border-b-2 border-transparent hover:border-primary-600 whitespace-nowrap"
+              >
+                Subscription
+              </button>
+              <button
                 onClick={() => navigate('/landlord/settings')}
                 className="py-4 px-1 text-xs sm:text-sm font-medium text-gray-700 hover:text-primary-600 border-b-2 border-transparent hover:border-primary-600 whitespace-nowrap"
               >

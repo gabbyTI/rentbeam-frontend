@@ -154,3 +154,60 @@ export interface DashboardAnalytics {
   activeTenants: ActiveTenantsMetrics;
   recentActivity: RecentActivityItem[];
 }
+
+// Subscription Types
+export type SubscriptionPlan = 'free' | 'starter' | 'growth' | 'professional';
+export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'incomplete' | 'trialing' | 'incomplete_expired' | 'unpaid';
+
+export interface PlanDetails {
+  name: string;
+  price: number;
+  unitLimit: number;
+  features: string[];
+  recommended?: boolean;
+}
+
+export interface CurrentSubscription {
+  planType: SubscriptionPlan;
+  planName: string;
+  price: number;
+  unitLimit: number;
+  currentUnitCount: number;
+  unitsRemaining: number;
+  subscriptionStatus: SubscriptionStatus;
+  isActive: boolean;
+  isInGracePeriod: boolean;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd: boolean;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+}
+
+export interface SubscriptionHistoryEvent {
+  id: string;
+  userId: string;
+  eventType: string; // created, upgraded, downgraded, canceled, payment_failed, reactivated, etc.
+  fromPlan?: string;
+  toPlan?: string;
+  stripeObjectId?: string;
+  stripeEventId?: string;
+  metadata?: Record<string, any>;
+  createdAt: string;
+}
+
+export interface CreateSubscriptionResponse {
+  subscription: {
+    id: string;
+    status: SubscriptionStatus;
+    planType: SubscriptionPlan;
+  };
+  hostedInvoiceUrl: string;
+  message: string;
+}
+
+export interface SubscriptionActionResponse {
+  id: string;
+  status: SubscriptionStatus;
+  planType?: SubscriptionPlan;
+  cancelAtPeriodEnd?: boolean;
+}
