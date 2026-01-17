@@ -181,6 +181,11 @@ export interface CurrentSubscription {
   cancelAtPeriodEnd: boolean;
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
+  // Enforcement fields
+  unitCount: number;
+  isOverLimit: boolean;
+  overLimitBy?: number;
+  restrictions?: string[];
 }
 
 export interface SubscriptionHistoryEvent {

@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useApi } from '../../hooks/useApi';
+import { getCurrentSubscription } from '../../services/api';
 import { AppShell } from '../ui/AppShell';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -8,15 +9,30 @@ import { Card, CardHeader, CardContent } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 import { EmptyState } from '../ui/EmptyState';
 import { useToast } from '../../context/ToastContext';
+import { CurrentSubscription } from '../../types';
 
 export const LandlordProperties: React.FC = () => {
   const { currentUser, properties, units, tenants, stripeOnboarded } = useApp();
   const api = useApi();
   const { showToast } = useToast();
+  const [subscription, setSubscription] = useState<CurrentSubscription | null>(null);
   const [isAddingProperty, setIsAddingProperty] = useState(false);
   const [isAddingUnit, setIsAddingUnit] = useState<string | null>(null);
   const [isEditingProperty, setIsEditingProperty] = useState<string | null>(null);
   const [isEditingUnit, setIsEditingUnit] = useState<string | null>(null);
+
+  // Load subscription data
+  useEffect(() => {
+    const loadSubscription = async () => {
+      try {
+        const data = await getCurrentSubscription();
+        setSubscription(data);
+      } catch (error) {
+        console.error('Failed to load subscription:', error);
+      }
+    };
+    loadSubscription();
+  }, []);
 
   const [propertyForm, setPropertyForm] = useState({
     name: '',
@@ -240,6 +256,8 @@ export const LandlordProperties: React.FC = () => {
                     <Button
                       size="sm"
                       onClick={() => setIsAddingUnit(property.id)}
+                      disabled={subscription?.isOverLimit}
+                      title={subscription?.isOverLimit ? 'Cannot add units - account over limit' : ''}
                     >
                       <span className="hidden sm:inline">Add Unit</span>
                       <span className="sm:hidden">+</span>

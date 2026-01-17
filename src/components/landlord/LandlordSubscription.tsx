@@ -348,7 +348,7 @@ export const LandlordSubscription: React.FC = () => {
       </div>
 
       {/* Available Plans */}
-      <div className="mb-8">
+      <div id="available-plans" className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Available Plans</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {(Object.keys(PLAN_DETAILS) as SubscriptionPlan[]).map((plan) => (

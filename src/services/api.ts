@@ -98,8 +98,20 @@ const handleApiError = async (response: Response, isAuthEndpoint: boolean = fals
     throw new Error(`Request failed with status ${response.status}`);
   }
   
-  // Throw the actual error message from backend (prioritize message over error object)
+  // Extract the error message
   const errorMessage = errorData.message || errorData.error || `Request failed with status ${response.status}`;
+  
+  // Special handling for over-limit errors (403)
+  if (response.status === 403) {
+    // Check for subscription-related limit errors
+    if (errorMessage.toLowerCase().includes('limit') || 
+        errorMessage.toLowerCase().includes('subscription') ||
+        errorMessage.toLowerCase().includes('upgrade')) {
+      throw new Error(`${errorMessage}\n\nPlease upgrade your plan to continue.`);
+    }
+  }
+  
+  // Throw the error message
   throw new Error(errorMessage);
 };
 

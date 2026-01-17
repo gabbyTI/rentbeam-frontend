@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { AppShell } from '../ui/AppShell';
@@ -10,14 +10,16 @@ import { Select, Input } from '../ui/Input';
 import { PaymentHistoryList } from '../ui/PaymentHistoryList';
 import { formatCurrency } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
-import { resendTenantInvite, moveOutTenant, updateTenantInfo, transferTenant } from '../../services/api';
+import { resendTenantInvite, moveOutTenant, updateTenantInfo, transferTenant, getCurrentSubscription } from '../../services/api';
 import api from '../../services/api';
+import { CurrentSubscription } from '../../types';
 
 export const TenantDetails: React.FC = () => {
   const { tenantId } = useParams<{ tenantId: string }>();
   const { tenants, units, properties, payments, updateState } = useApp();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [subscription, setSubscription] = useState<CurrentSubscription | null>(null);
   const [showMoveOutModal, setShowMoveOutModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -31,6 +33,19 @@ export const TenantDetails: React.FC = () => {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Check' | 'Zelle' | 'Venmo' | 'Other'>('Cash');
   const [paymentNote, setPaymentNote] = useState('');
+
+  // Load subscription data
+  useEffect(() => {
+    const loadSubscription = async () => {
+      try {
+        const data = await getCurrentSubscription();
+        setSubscription(data);
+      } catch (error) {
+        console.error('Failed to load subscription:', error);
+      }
+    };
+    loadSubscription();
+  }, []);
 
   const tenant = useMemo(() => {
     const t = tenants.find((t) => t.id === tenantId);
@@ -249,8 +264,8 @@ export const TenantDetails: React.FC = () => {
               <Button
                 variant="primary"
                 size="sm"
-                onClick={openMarkAsPaidModal}
-              >
+                onClick={openMarkAsPaidModal}                disabled={subscription?.isOverLimit}
+                title={subscription?.isOverLimit ? 'Payment collection disabled - account over limit' : ''}              >
                 <span className="hidden sm:inline">Mark as Paid</span>
                 <span className="sm:hidden">Mark Paid</span>
               </Button>

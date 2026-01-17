@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useApi } from '../../hooks/useApi';
 import { useDashboardAnalytics } from '../../hooks/useDashboardAnalytics';
+import { getCurrentSubscription } from '../../services/api';
 import { AppShell } from '../ui/AppShell';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -13,6 +14,8 @@ import { getPaymentStatus, getCurrentRentMonth, formatRentMonth } from '../../ut
 import { useToast } from '../../context/ToastContext';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
+import { AlertTriangle } from 'lucide-react';
+import { CurrentSubscription } from '../../types';
 
 export const LandlordDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -20,12 +23,26 @@ export const LandlordDashboard: React.FC = () => {
   const api = useApi();
   const { showToast } = useToast();
   const { analytics, loading: analyticsLoading } = useDashboardAnalytics();
+  const [subscription, setSubscription] = useState<CurrentSubscription | null>(null);
   const [markPaidModal, setMarkPaidModal] = useState<string | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(
     new Date().toISOString().split('T')[0]
   );
   const [paymentNote, setPaymentNote] = useState('Paid via Interac e-Transfer');
+
+  // Load subscription data
+  useEffect(() => {
+    const loadSubscription = async () => {
+      try {
+        const data = await getCurrentSubscription();
+        setSubscription(data);
+      } catch (error) {
+        console.error('Failed to load subscription:', error);
+      }
+    };
+    loadSubscription();
+  }, []);
 
   if (loading) {
     return (
@@ -117,6 +134,30 @@ export const LandlordDashboard: React.FC = () => {
 
   return (
     <AppShell title="Dashboard">
+      {/* Over-Limit Warning */}
+      {subscription?.isOverLimit && (
+        <div className="mb-6 bg-red-50 border-l-4 border-red-600 p-4">
+          <div className="flex items-start">
+            <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <div className="ml-3 flex-1">
+              <h3 className="text-sm font-medium text-red-900">
+                Account Over Limit
+              </h3>
+              <p className="mt-1 text-sm text-red-800">
+                You have {subscription.overLimitBy} more {subscription.overLimitBy === 1 ? 'unit' : 'units'} than your {subscription.planName} plan allows.
+                Some features are temporarily disabled.
+              </p>
+              <button
+                onClick={() => navigate('/landlord/subscription')}
+                className="mt-3 inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700"
+              >
+                Upgrade Your Plan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Analytics Section */}
       {analyticsLoading ? (
         <div className="flex items-center justify-center py-12">
@@ -298,6 +339,8 @@ export const LandlordDashboard: React.FC = () => {
                       size="sm"
                       onClick={() => handleMarkAsPaid(tenant.id)}
                       className="w-full"
+                      disabled={subscription?.isOverLimit}
+                      title={subscription?.isOverLimit ? 'Payment collection disabled - account over limit' : ''}
                     >
                       Mark Paid
                     </Button>
@@ -381,6 +424,8 @@ export const LandlordDashboard: React.FC = () => {
                         <Button
                           size="sm"
                           onClick={() => handleMarkAsPaid(tenant.id)}
+                          disabled={subscription?.isOverLimit}
+                          title={subscription?.isOverLimit ? 'Payment collection disabled - account over limit' : ''}
                         >
                           Mark Paid
                         </Button>
