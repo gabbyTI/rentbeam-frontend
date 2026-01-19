@@ -1012,6 +1012,19 @@ export const createSubscription = async (planType: SubscriptionPlan): Promise<Cr
 };
 
 /**
+ * Preview upcoming invoice for subscription upgrade (shows proration)
+ */
+export const previewUpgrade = async (planType: SubscriptionPlan): Promise<{
+  currentPlan: { name: string; price: number };
+  newPlan: { name: string; price: number; features: string[] };
+  proration: { creditAmount: number; newPlanCharge: number; totalDueNow: number; currency: string };
+  nextBilling: { date: string; amount: number };
+}> => {
+  const response = await api.get(`/api/subscriptions/preview-upgrade?planType=${planType}`);
+  return response.data;
+};
+
+/**
  * Upgrade subscription to a higher-tier plan (immediate with proration)
  */
 export const upgradeSubscription = async (planType: SubscriptionPlan): Promise<SubscriptionActionResponse> => {
@@ -1033,6 +1046,14 @@ export const downgradeSubscription = async (planType: SubscriptionPlan): Promise
  */
 export const cancelSubscription = async (immediately: boolean = false): Promise<SubscriptionActionResponse> => {
   const response = await api.post('/api/subscriptions/cancel', { immediately });
+  return response.data;
+};
+
+/**
+ * Cancel incomplete subscription and return to free plan
+ */
+export const cancelIncompleteSubscription = async (): Promise<SubscriptionActionResponse> => {
+  const response = await api.post('/api/subscriptions/cancel-incomplete');
   return response.data;
 };
 

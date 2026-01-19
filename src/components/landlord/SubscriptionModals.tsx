@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, XCircle, TrendingUp } from 'lucide-react';
 import { SubscriptionPlan, CurrentSubscription } from '../../types';
 
 interface CancelConfirmationModalProps {
@@ -84,7 +84,6 @@ export const DowngradeConfirmationModal: React.FC<DowngradeConfirmationModalProp
   isOpen,
   onClose,
   onConfirm,
-  currentPlan,
   targetPlan,
   currentUnitCount,
   targetUnitLimit,
@@ -222,3 +221,118 @@ export const ReactivateConfirmationModal: React.FC<ReactivateConfirmationModalPr
 function formatPlanName(plan: string): string {
   return plan.charAt(0).toUpperCase() + plan.slice(1);
 }
+
+interface UpgradePreviewData {
+  currentPlan: {
+    name: string;
+    price: number;
+  };
+  newPlan: {
+    name: string;
+    price: number;
+    features: string[];
+  };
+  stripeCalculation: {
+    creditAmount: number;
+    newPlanCharge: number;
+    totalDueNow: number;
+    currency: string;
+  };
+  nextBilling: {
+    date: string;
+    amount: number;
+  };
+}
+
+interface UpgradeConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  previewData: UpgradePreviewData | null;
+  targetPlan: string;
+  isLoading?: boolean;
+}
+
+export const UpgradeConfirmationModal: React.FC<UpgradeConfirmationModalProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  previewData,
+  isLoading = false
+}) => {
+  if (!previewData) {
+    return null;
+  }
+
+  const { currentPlan, newPlan, stripeCalculation, nextBilling } = previewData;
+  const nextBillingDate = new Date(nextBilling.date).toLocaleDateString();
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={`Upgrade to ${formatPlanName(newPlan.name)}?`}>
+      <div className="space-y-4">
+        <div className="flex items-start gap-3">
+          <TrendingUp className="w-6 h-6 text-blue-500 flex-shrink-0 mt-1" />
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Confirm Your Upgrade
+            </h3>
+            <p className="text-gray-600">
+              You'll be charged immediately for the prorated amount. Your next billing date will be {nextBillingDate}.
+            </p>
+          </div>
+        </div>
+
+        {/* Charge Breakdown */}
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+          <h4 className="font-medium text-blue-900 mb-3">Charge Breakdown:</h4>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between text-blue-800">
+              <span>Credit for unused time on {formatPlanName(currentPlan.name)}</span>
+              <span className="font-medium">-${stripeCalculation.creditAmount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-blue-800">
+              <span>Charge for {formatPlanName(newPlan.name)} (prorated)</span>
+              <span className="font-medium">${stripeCalculation.newPlanCharge.toFixed(2)}</span>
+            </div>
+            <div className="border-t border-blue-300 pt-2 flex justify-between text-blue-900 font-semibold">
+              <span>Total Due Now</span>
+              <span>${stripeCalculation.totalDueNow.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Features */}
+        <div className="bg-green-50 border border-green-200 rounded-md p-4">
+          <h4 className="font-medium text-green-900 mb-2">What you'll get:</h4>
+          <ul className="list-disc list-inside text-sm text-green-800 space-y-1">
+            {newPlan.features.map((feature, index) => (
+              <li key={index}>{feature}</li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Next Billing */}
+        <div className="text-sm text-gray-600">
+          Your next billing date will be <strong>{nextBillingDate}</strong> for <strong>${nextBilling.amount.toFixed(2)}</strong>.
+        </div>
+
+        <div className="flex gap-3 justify-end pt-4">
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={onConfirm}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Processing...' : `Confirm Upgrade - $${stripeCalculation.totalDueNow.toFixed(2)}`}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+};

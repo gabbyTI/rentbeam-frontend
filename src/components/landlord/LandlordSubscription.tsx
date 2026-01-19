@@ -5,9 +5,11 @@ import {
   createSubscription, 
   upgradeSubscription,
   downgradeSubscription, 
-  cancelSubscription, 
+  cancelSubscription,
+  cancelIncompleteSubscription,
   reactivateSubscription,
-  getCustomerPortal 
+  getCustomerPortal,
+  previewUpgrade
 } from '../../services/api';
 import { AppShell } from '../ui/AppShell';
 import { UsageWidget } from './UsageWidget';
@@ -16,7 +18,8 @@ import { SubscriptionBanner } from './SubscriptionBanner';
 import { 
   CancelConfirmationModal,
   DowngradeConfirmationModal,
-  ReactivateConfirmationModal
+  ReactivateConfirmationModal,
+  UpgradeConfirmationModal
 } from './SubscriptionModals';
 import { 
   CurrentSubscription, 
@@ -86,7 +89,10 @@ export const LandlordSubscription: React.FC = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showDowngradeModal, setShowDowngradeModal] = useState(false);
   const [showReactivateModal, setShowReactivateModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [pendingDowngradePlan, setPendingDowngradePlan] = useState<SubscriptionPlan | null>(null);
+  const [pendingUpgradePlan, setPendingUpgradePlan] = useState<SubscriptionPlan | null>(null);
+  const [upgradePreviewData, setUpgradePreviewData] = useState<any>(null);
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -141,7 +147,21 @@ export const LandlordSubscription: React.FC = () => {
       return;
     }
 
-    // Execute upgrade or new subscription immediately
+    // For upgrades on paid plans, show preview modal
+    if (isUpgrade && subscription.planType !== 'free') {
+      setPendingUpgradePlan(plan);
+      try {
+        const preview = await previewUpgrade(plan);
+        setUpgradePreviewData(preview);
+        setShowUpgradeModal(true);
+      } catch (error: any) {
+        showToast(error.message || 'Failed to load upgrade preview', 'error');
+        setSelectedPlan(null);
+      }
+      return;
+    }
+
+    // Execute new subscription (free to paid) immediately
     await executePlanChange(plan);
   };
 
@@ -199,6 +219,27 @@ export const LandlordSubscription: React.FC = () => {
     }
   };
 
+  // Handle upgrade confirmation
+  const handleConfirmUpgrade = async () => {
+    if (!pendingUpgradePlan) return;
+
+    setShowUpgradeModal(false);
+    setActionLoading(true);
+
+    try {
+      await upgradeSubscription(pendingUpgradePlan);
+      showToast('Subscription upgraded successfully!', 'success');
+      await loadSubscription();
+    } catch (error: any) {
+      showToast(error.message || 'Failed to upgrade subscription', 'error');
+    } finally {
+      setActionLoading(false);
+      setSelectedPlan(null);
+      setPendingUpgradePlan(null);
+      setUpgradePreviewData(null);
+    }
+  };
+
   // Handle cancel subscription
   const handleCancel = () => {
     setShowCancelModal(true);
@@ -240,7 +281,20 @@ export const LandlordSubscription: React.FC = () => {
       setActionLoading(false);
     }
   };
+  // Handle cancel incomplete subscription
+  const handleCancelIncomplete = async () => {
+    setActionLoading(true);
 
+    try {
+      await cancelIncompleteSubscription();
+      showToast('Incomplete subscription canceled. You can now use the free plan.', 'success');
+      await loadSubscription();
+    } catch (error: any) {
+      showToast(error.message || 'Failed to cancel incomplete subscription', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
   // Open Stripe customer portal
   const handleOpenPortal = async () => {
     try {
@@ -282,6 +336,7 @@ export const LandlordSubscription: React.FC = () => {
         subscription={subscription}
         onReactivate={handleReactivate}
         onUpdatePayment={handleOpenPortal}
+        onCancelIncomplete={handleCancelIncomplete}
       />
 
       {/* Current Plan & Usage */}
@@ -396,6 +451,22 @@ export const LandlordSubscription: React.FC = () => {
               targetPlan={pendingDowngradePlan}
               currentUnitCount={subscription.currentUnitCount}
               targetUnitLimit={PLAN_DETAILS[pendingDowngradePlan].unitLimit}
+              isLoading={actionLoading}
+            />
+          )}
+
+          {pendingUpgradePlan && (
+            <UpgradeConfirmationModal
+              isOpen={showUpgradeModal}
+              onClose={() => {
+                setShowUpgradeModal(false);
+                setSelectedPlan(null);
+                setPendingUpgradePlan(null);
+                setUpgradePreviewData(null);
+              }}
+              onConfirm={handleConfirmUpgrade}
+              previewData={upgradePreviewData}
+              targetPlan={pendingUpgradePlan}
               isLoading={actionLoading}
             />
           )}

@@ -1,20 +1,20 @@
 import React from 'react';
 import { CurrentSubscription } from '../../types';
-import { AlertCircle, Info, Clock, XCircle, AlertTriangle } from 'lucide-react';
+import { AlertCircle, Clock, XCircle, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface SubscriptionBannerProps {
   subscription: CurrentSubscription;
-  onPayNow?: () => void;
   onReactivate?: () => void;
   onUpdatePayment?: () => void;
+  onCancelIncomplete?: () => void;
 }
 
 export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
   subscription,
-  onPayNow,
   onReactivate,
-  onUpdatePayment
+  onUpdatePayment,
+  onCancelIncomplete
 }) => {
   const { subscriptionStatus, cancelAtPeriodEnd, currentPeriodEnd, planName, isOverLimit, overLimitBy, restrictions } = subscription;
   
@@ -35,17 +35,27 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
                   : 'Your previous subscription attempt expired. Please start a new subscription to access premium features.'
                 : 'Complete your payment to activate your subscription.'}
             </p>
-            <button
-              onClick={() => {
-                const plansSection = document.getElementById('available-plans');
-                if (plansSection) {
-                  plansSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-              }}
-              className="inline-block mt-3 px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-md hover:bg-yellow-700"
-            >
-              {subscriptionStatus === 'incomplete_expired' ? 'View Plans' : 'Complete Payment'}
-            </button>
+            <div className="flex gap-3 mt-3">
+              <button
+                onClick={() => {
+                  const plansSection = document.getElementById('available-plans');
+                  if (plansSection) {
+                    plansSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }}
+                className="px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-md hover:bg-yellow-700"
+              >
+                {subscriptionStatus === 'incomplete_expired' ? 'View Plans' : 'Complete Payment'}
+              </button>
+              {onCancelIncomplete && (
+                <button
+                  onClick={onCancelIncomplete}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300"
+                >
+                  Cancel & Stay on Free
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -113,7 +123,7 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
   
   // Past due - payment failed
   if (subscriptionStatus === 'past_due') {
-    const endDate = format(new Date(currentPeriodEnd), 'MMMM d, yyyy');
+    const endDate = currentPeriodEnd ? format(new Date(currentPeriodEnd), 'MMMM d, yyyy') : 'N/A';
     
     return (
       <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mb-6">
