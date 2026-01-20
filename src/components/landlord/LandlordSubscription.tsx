@@ -227,9 +227,17 @@ export const LandlordSubscription: React.FC = () => {
     setActionLoading(true);
 
     try {
-      await upgradeSubscription(pendingUpgradePlan);
-      showToast('Subscription upgraded successfully!', 'success');
-      await loadSubscription();
+      const response = await upgradeSubscription(pendingUpgradePlan);
+      
+      // If hostedInvoiceUrl is present, redirect to payment page
+      if (response.hostedInvoiceUrl) {
+        showToast('Redirecting to secure payment page...', 'info');
+        window.location.href = response.hostedInvoiceUrl;
+      } else {
+        // No payment needed (shouldn't happen for upgrades)
+        showToast('Subscription upgraded successfully!', 'success');
+        await loadSubscription();
+      }
     } catch (error: any) {
       showToast(error.message || 'Failed to upgrade subscription', 'error');
     } finally {

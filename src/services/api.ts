@@ -1026,10 +1026,15 @@ export const previewUpgrade = async (planType: SubscriptionPlan): Promise<{
 
 /**
  * Upgrade subscription to a higher-tier plan (immediate with proration)
+ * Returns hostedInvoiceUrl for payment redirect
  */
-export const upgradeSubscription = async (planType: SubscriptionPlan): Promise<SubscriptionActionResponse> => {
+export const upgradeSubscription = async (planType: SubscriptionPlan): Promise<CreateSubscriptionResponse> => {
   const response = await api.post('/api/subscriptions/upgrade', { planType });
-  return response.data;
+  return {
+    subscription: response.data,
+    hostedInvoiceUrl: response.data.hostedInvoiceUrl,
+    message: response.message
+  };
 };
 
 /**
