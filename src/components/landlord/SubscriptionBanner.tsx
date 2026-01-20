@@ -21,10 +21,10 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
   // Incomplete subscription - payment required (highest priority - must fix this before upgrading)
   if (subscriptionStatus === 'incomplete' || subscriptionStatus === 'incomplete_expired') {
     return (
-      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+      <div className="p-4 mb-6 border-l-4 border-yellow-400 bg-yellow-50">
         <div className="flex items-start">
           <AlertCircle className="h-5 w-5 text-yellow-400 mt-0.5" />
-          <div className="ml-3 flex-1">
+          <div className="flex-1 ml-3">
             <h3 className="text-sm font-medium text-yellow-800">
               {subscriptionStatus === 'incomplete_expired' ? 'Subscription Expired' : 'Payment Required'}
             </h3>
@@ -43,14 +43,14 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
                     plansSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }
                 }}
-                className="px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-md hover:bg-yellow-700"
+                className="px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-md hover:bg-yellow-700"
               >
                 {subscriptionStatus === 'incomplete_expired' ? 'View Plans' : 'Complete Payment'}
               </button>
               {onCancelIncomplete && (
                 <button
                   onClick={onCancelIncomplete}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
                 >
                   Cancel & Stay on Free
                 </button>
@@ -65,10 +65,10 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
   // Over limit - critical warning
   if (isOverLimit) {
     return (
-      <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+      <div className="p-4 mb-6 border-l-4 border-red-400 bg-red-50">
         <div className="flex items-start">
           <XCircle className="h-5 w-5 text-red-400 mt-0.5" />
-          <div className="ml-3 flex-1">
+          <div className="flex-1 ml-3">
             <h3 className="text-sm font-medium text-red-800">
               Payment Failed
             </h3>
@@ -78,7 +78,7 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
             {onUpdatePayment && (
               <button
                 onClick={onUpdatePayment}
-                className="mt-3 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700"
+                className="px-4 py-2 mt-3 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
               >
                 Update Payment Method
               </button>
@@ -92,10 +92,10 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
   // Over limit - critical warning
   if (isOverLimit) {
     return (
-      <div className="bg-red-50 border-l-4 border-red-600 p-4 mb-6">
+      <div className="p-4 mb-6 border-l-4 border-red-600 bg-red-50">
         <div className="flex items-start">
           <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
-          <div className="ml-3 flex-1">
+          <div className="flex-1 ml-3">
             <h3 className="text-sm font-medium text-red-900">
               Account Over Limit
             </h3>
@@ -111,7 +111,7 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
             )}
             <a
               href="/landlord/subscription"
-              className="inline-block mt-3 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700"
+              className="inline-block px-4 py-2 mt-3 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
             >
               Upgrade Now
             </a>
@@ -126,10 +126,10 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
     const endDate = currentPeriodEnd ? format(new Date(currentPeriodEnd), 'MMMM d, yyyy') : 'N/A';
     
     return (
-      <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mb-6">
+      <div className="p-4 mb-6 border-l-4 border-orange-400 bg-orange-50">
         <div className="flex items-start">
           <Clock className="h-5 w-5 text-orange-400 mt-0.5" />
-          <div className="ml-3 flex-1">
+          <div className="flex-1 ml-3">
             <h3 className="text-sm font-medium text-orange-800">
               Subscription Ending
             </h3>
@@ -139,7 +139,7 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
             {onReactivate && (
               <button
                 onClick={onReactivate}
-                className="mt-3 px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700"
+                className="px-4 py-2 mt-3 text-sm font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700"
               >
                 Keep My Subscription
               </button>
@@ -155,10 +155,10 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
     const endDate = format(new Date(currentPeriodEnd), 'MMMM d, yyyy');
     
     return (
-      <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mb-6">
+      <div className="p-4 mb-6 border-l-4 border-orange-400 bg-orange-50">
         <div className="flex items-start">
           <Clock className="h-5 w-5 text-orange-400 mt-0.5" />
-          <div className="ml-3 flex-1">
+          <div className="flex-1 ml-3">
             <h3 className="text-sm font-medium text-orange-800">
               Subscription Ending
             </h3>
@@ -168,7 +168,7 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
             {onReactivate && (
               <button
                 onClick={onReactivate}
-                className="mt-3 px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-md hover:bg-orange-700"
+                className="px-4 py-2 mt-3 text-sm font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700"
               >
                 Keep My Subscription
               </button>
