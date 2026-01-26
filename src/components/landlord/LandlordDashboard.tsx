@@ -134,6 +134,54 @@ export const LandlordDashboard: React.FC = () => {
 
   return (
     <AppShell title="Dashboard">
+      {/* Payment Failed Warning */}
+      {subscription?.subscriptionStatus === 'past_due' && (
+        <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4">
+          <div className="flex items-start">
+            <AlertTriangle className="h-5 w-5 text-red-400 mt-0.5 flex-shrink-0" />
+            <div className="ml-3 flex-1">
+              <h3 className="text-sm font-medium text-red-800">
+                Payment Failed
+              </h3>
+              <p className="mt-1 text-sm text-red-700">
+                Your subscription payment failed. Please update your payment method to keep your account active.
+              </p>
+              <button
+                onClick={() => navigate('/landlord/subscription')}
+                className="mt-3 inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700"
+              >
+                Update Payment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Incomplete Subscription Warning */}
+      {(subscription?.subscriptionStatus === 'incomplete' || subscription?.subscriptionStatus === 'incomplete_expired') && (
+        <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4">
+          <div className="flex items-start">
+            <AlertTriangle className="h-5 w-5 text-yellow-400 mt-0.5 flex-shrink-0" />
+            <div className="ml-3 flex-1">
+              <h3 className="text-sm font-medium text-yellow-800">
+                {subscription.subscriptionStatus === 'incomplete_expired' ? 'Payment Expired' : 'Payment Pending'}
+              </h3>
+              <p className="mt-1 text-sm text-yellow-700">
+                {subscription.subscriptionStatus === 'incomplete_expired'
+                  ? 'Your payment window expired. Please start a new subscription to access premium features.'
+                  : 'Complete your payment to activate your subscription.'}
+              </p>
+              <button
+                onClick={() => navigate('/landlord/subscription')}
+                className="mt-3 inline-flex items-center px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-md hover:bg-yellow-700"
+              >
+                {subscription.subscriptionStatus === 'incomplete_expired' ? 'View Plans' : 'Go to Billing'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Over-Limit Warning */}
       {subscription?.isOverLimit && (
         <div className="mb-6 bg-red-50 border-l-4 border-red-600 p-4">

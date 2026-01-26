@@ -1,88 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { 
-  getCurrentSubscription, 
-  createSubscription, 
+import {
+  getCurrentSubscription,
+  createSubscription,
   upgradeSubscription,
-  downgradeSubscription, 
+  downgradeSubscription,
   cancelSubscription,
   cancelIncompleteSubscription,
   reactivateSubscription,
   getCustomerPortal,
-  previewUpgrade
+  getSubscriptionPlans,
+  PlanConfig
 } from '../../services/api';
 import { AppShell } from '../ui/AppShell';
 import { UsageWidget } from './UsageWidget';
 import { PlanCard } from './PlanCard';
 import { SubscriptionBanner } from './SubscriptionBanner';
-import { 
+import {
   CancelConfirmationModal,
   DowngradeConfirmationModal,
   ReactivateConfirmationModal,
   UpgradeConfirmationModal
 } from './SubscriptionModals';
-import { 
-  CurrentSubscription, 
-  SubscriptionPlan, 
-  PlanDetails 
+import {
+  CurrentSubscription,
+  SubscriptionPlan,
+  PlanDetails
 } from '../../types';
 import { useToast } from '../../context/ToastContext';
 import { ExternalLink, Loader2 } from 'lucide-react';
 
-// Plan definitions with features
-const PLAN_DETAILS: Record<SubscriptionPlan, PlanDetails> = {
-  free: {
-    name: 'Free',
-    price: 0,
-    unitLimit: 3,
-    features: [
-      'Up to 3 units',
-      'Basic property management',
-      'Manual rent collection',
-      'Email support'
-    ]
-  },
-  starter: {
-    name: 'Starter',
-    price: 29,
-    unitLimit: 10,
-    features: [
-      'Up to 10 units',
-      'Online rent collection',
-      'Automated reminders',
-      'Payment tracking',
-      'Priority email support'
-    ]
-  },
-  growth: {
-    name: 'Growth',
-    price: 79,
-    unitLimit: 50,
-    recommended: true,
-    features: [
-      'Up to 50 units',
-      'Everything in Starter',
-      'Auto-pay for tenants',
-      'Advanced reporting',
-      'Phone & email support'
-    ]
-  },
-  professional: {
-    name: 'Professional',
-    price: 149,
-    unitLimit: 100,
-    features: [
-      'Up to 100 units',
-      'Everything in Growth',
-      'Dedicated account manager',
-      'Custom integrations',
-      'Priority support'
-    ]
-  }
-};
-
 export const LandlordSubscription: React.FC = () => {
   const [subscription, setSubscription] = useState<CurrentSubscription | null>(null);
+  const [plans, setPlans] = useState<Record<string, PlanDetails>>({});
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
@@ -92,40 +42,77 @@ export const LandlordSubscription: React.FC = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [pendingDowngradePlan, setPendingDowngradePlan] = useState<SubscriptionPlan | null>(null);
   const [pendingUpgradePlan, setPendingUpgradePlan] = useState<SubscriptionPlan | null>(null);
-  const [upgradePreviewData, setUpgradePreviewData] = useState<any>(null);
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Load subscription data
-  const loadSubscription = async () => {
+  // Load subscription data and plans
+  const loadData = async () => {
     try {
-      const data = await getCurrentSubscription();
-      setSubscription(data);
+      const [subData, plansData] = await Promise.all([
+        getCurrentSubscription(),
+        getSubscriptionPlans()
+      ]);
+
+      setSubscription(subData);
+
+      // Transform PlanConfig[] to Record<SubscriptionPlan, PlanDetails>
+      const plansMap: Record<string, PlanDetails> = {};
+      plansData.forEach(p => {
+        plansMap[p.id] = {
+          name: p.name,
+          price: p.price,
+          unitLimit: p.limits.units,
+          features: p.features,
+          recommended: p.id === 'growth' // Preserve recommended flag logic if needed, or get from backend
+        };
+      });
+      setPlans(plansMap);
+
     } catch (error: any) {
-      showToast(error.message || 'Failed to load subscription', 'error');
+      showToast(error.message || 'Failed to load subscription data', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadSubscription();
+    loadData();
   }, []);
 
+  // Poll for updates (helper)
+  const pollForUpdate = async (attempts = 0) => {
+    try {
+      const data = await getCurrentSubscription();
+
+      if (data.subscriptionStatus === 'active') {
+        setSubscription(data);
+        showToast('Your subscription is now active!', 'success');
+        navigate('/landlord/subscription', { replace: true });
+      } else if (attempts < 10) {
+        setTimeout(() => pollForUpdate(attempts + 1), 1000);
+      } else {
+        setSubscription(data);
+        showToast('Subscription is being processed. Refresh if not updated.', 'info');
+        navigate('/landlord/subscription', { replace: true });
+      }
+    } catch (error) {
+      console.error('Polling error', error);
+    }
+  };
+
   // Handle return from Stripe payment
+  // With webhook-driven architecture, there may be a brief delay before DB is updated
   useEffect(() => {
     const status = searchParams.get('status');
     const sessionId = searchParams.get('session_id');
-    
+
     if (status === 'success' && sessionId) {
-      showToast('Payment successful! Your subscription is now active.', 'success');
-      loadSubscription();
-      // Clean up URL
-      navigate('/landlord/subscription', { replace: true });
+      showToast('Payment received! Activating your subscription...', 'success');
+      pollForUpdate();
     } else if (status === 'canceled') {
       showToast('Payment was canceled. You can try again anytime.', 'info');
-      // Clean up URL
+      loadData();
       navigate('/landlord/subscription', { replace: true });
     }
   }, [searchParams]);
@@ -133,13 +120,13 @@ export const LandlordSubscription: React.FC = () => {
   // Handle plan selection
   const handlePlanSelect = async (plan: SubscriptionPlan) => {
     if (!subscription) return;
-    
+
     setSelectedPlan(plan);
 
     // Determine if upgrade or downgrade
     const isUpgrade = getPlanTier(plan) > getPlanTier(subscription.planType);
     const isDowngrade = getPlanTier(plan) < getPlanTier(subscription.planType);
-    
+
     // Show confirmation modal for downgrades
     if (isDowngrade) {
       setPendingDowngradePlan(plan);
@@ -147,17 +134,10 @@ export const LandlordSubscription: React.FC = () => {
       return;
     }
 
-    // For upgrades on paid plans, show preview modal
+    // For upgrades on paid plans, show confirmation modal
     if (isUpgrade && subscription.planType !== 'free') {
       setPendingUpgradePlan(plan);
-      try {
-        const preview = await previewUpgrade(plan);
-        setUpgradePreviewData(preview);
-        setShowUpgradeModal(true);
-      } catch (error: any) {
-        showToast(error.message || 'Failed to load upgrade preview', 'error');
-        setSelectedPlan(null);
-      }
+      setShowUpgradeModal(true);
       return;
     }
 
@@ -173,7 +153,7 @@ export const LandlordSubscription: React.FC = () => {
 
     try {
       const isUpgrade = getPlanTier(plan) > getPlanTier(subscription.planType);
-      
+
       if (subscription.planType === 'free') {
         // Create new subscription
         const response = await createSubscription(plan);
@@ -184,12 +164,12 @@ export const LandlordSubscription: React.FC = () => {
         // Upgrade immediately
         await upgradeSubscription(plan);
         showToast('Subscription upgraded successfully!', 'success');
-        await loadSubscription();
+        await loadData(); // Reload all data
       } else {
         // Downgrade (should have been caught by modal, but just in case)
         await downgradeSubscription(plan);
         showToast('Downgrade scheduled for end of billing period', 'success');
-        await loadSubscription();
+        await loadData();
       }
     } catch (error: any) {
       showToast(error.message || 'Failed to update subscription', 'error');
@@ -209,7 +189,7 @@ export const LandlordSubscription: React.FC = () => {
     try {
       await downgradeSubscription(pendingDowngradePlan);
       showToast('Downgrade scheduled for end of billing period', 'success');
-      await loadSubscription();
+      await loadData();
     } catch (error: any) {
       showToast(error.message || 'Failed to schedule downgrade', 'error');
     } finally {
@@ -228,15 +208,14 @@ export const LandlordSubscription: React.FC = () => {
 
     try {
       const response = await upgradeSubscription(pendingUpgradePlan);
-      
-      // If hostedInvoiceUrl is present, redirect to payment page
+
+      // Redirect to payment page if invoice URL provided
       if (response.hostedInvoiceUrl) {
         showToast('Redirecting to secure payment page...', 'info');
         window.location.href = response.hostedInvoiceUrl;
       } else {
-        // No payment needed (shouldn't happen for upgrades)
-        showToast('Subscription upgraded successfully!', 'success');
-        await loadSubscription();
+        showToast('Upgrade initiated successfully!', 'success');
+        await loadData();
       }
     } catch (error: any) {
       showToast(error.message || 'Failed to upgrade subscription', 'error');
@@ -244,7 +223,6 @@ export const LandlordSubscription: React.FC = () => {
       setActionLoading(false);
       setSelectedPlan(null);
       setPendingUpgradePlan(null);
-      setUpgradePreviewData(null);
     }
   };
 
@@ -257,11 +235,11 @@ export const LandlordSubscription: React.FC = () => {
   const handleConfirmCancel = async () => {
     setShowCancelModal(false);
     setActionLoading(true);
-    
+
     try {
       await cancelSubscription(false);
       showToast('Subscription will be canceled at the end of billing period', 'success');
-      await loadSubscription();
+      await loadData();
     } catch (error: any) {
       showToast(error.message || 'Failed to cancel subscription', 'error');
     } finally {
@@ -282,7 +260,7 @@ export const LandlordSubscription: React.FC = () => {
     try {
       await reactivateSubscription();
       showToast('Subscription reactivated successfully!', 'success');
-      await loadSubscription();
+      await loadData();
     } catch (error: any) {
       showToast(error.message || 'Failed to reactivate subscription', 'error');
     } finally {
@@ -294,15 +272,17 @@ export const LandlordSubscription: React.FC = () => {
     setActionLoading(true);
 
     try {
-      await cancelIncompleteSubscription();
-      showToast('Incomplete subscription canceled. You can now use the free plan.', 'success');
-      await loadSubscription();
+      const response = await cancelIncompleteSubscription();
+      const message = response?.message || 'Subscription canceled successfully.';
+      showToast(message, 'success');
+      await loadData();
     } catch (error: any) {
-      showToast(error.message || 'Failed to cancel incomplete subscription', 'error');
+      showToast(error.message || 'Failed to cancel subscription', 'error');
     } finally {
       setActionLoading(false);
     }
   };
+
   // Open Stripe customer portal
   const handleOpenPortal = async () => {
     try {
@@ -330,6 +310,11 @@ export const LandlordSubscription: React.FC = () => {
       </div>
     );
   }
+
+  // Sort plans: free, starter, growth, professional
+  const sortedPlans = ['free', 'starter', 'growth', 'professional']
+    .filter(id => plans[id])
+    .map(id => id as SubscriptionPlan);
 
   return (
     <AppShell>
@@ -363,11 +348,11 @@ export const LandlordSubscription: React.FC = () => {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Status:</span>
-              <span className={`font-semibold ${
-                subscription.subscriptionStatus === 'active' ? 'text-green-600' :
+              <span className={`font-semibold ${subscription.subscriptionStatus === 'active' ? 'text-green-600' :
                 subscription.subscriptionStatus === 'past_due' ? 'text-red-600' :
-                'text-yellow-600'
-              }`}>
+                  subscription.subscriptionStatus === 'incomplete' ? 'text-yellow-600' :
+                    'text-gray-600'
+                }`}>
                 {subscription.subscriptionStatus?.replace('_', ' ').toUpperCase() || 'FREE'}
               </span>
             </div>
@@ -414,11 +399,11 @@ export const LandlordSubscription: React.FC = () => {
       <div id="available-plans" className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Available Plans</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {(Object.keys(PLAN_DETAILS) as SubscriptionPlan[]).map((plan) => (
+          {sortedPlans.map((plan) => (
             <PlanCard
               key={plan}
               plan={plan}
-              details={PLAN_DETAILS[plan]}
+              details={plans[plan]}
               currentPlan={subscription.planType}
               onSelect={handlePlanSelect}
               isLoading={actionLoading && selectedPlan === plan}
@@ -458,7 +443,7 @@ export const LandlordSubscription: React.FC = () => {
               currentPlan={subscription.planType}
               targetPlan={pendingDowngradePlan}
               currentUnitCount={subscription.currentUnitCount}
-              targetUnitLimit={PLAN_DETAILS[pendingDowngradePlan].unitLimit}
+              targetUnitLimit={plans[pendingDowngradePlan].unitLimit}
               isLoading={actionLoading}
             />
           )}
@@ -470,11 +455,10 @@ export const LandlordSubscription: React.FC = () => {
                 setShowUpgradeModal(false);
                 setSelectedPlan(null);
                 setPendingUpgradePlan(null);
-                setUpgradePreviewData(null);
               }}
               onConfirm={handleConfirmUpgrade}
-              previewData={upgradePreviewData}
               targetPlan={pendingUpgradePlan}
+              currentPlan={subscription.planType}
               isLoading={actionLoading}
             />
           )}

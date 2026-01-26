@@ -27,10 +27,9 @@ export const PlanCard: React.FC<PlanCardProps> = ({
     if (isCurrent) {
       return { text: 'Current Plan', disabled: true, variant: 'current' };
     }
-    // Hide button for free plan when user is on a paid plan
-    // Users should use "Cancel Subscription" to return to free
+    // Free plan downgrade is like a cancellation - show as downgrade
     if (isFree && currentPlan !== 'free') {
-      return { text: '', disabled: true, variant: 'hidden', hidden: true };
+      return { text: 'Downgrade to Free', disabled: false, variant: 'downgrade' };
     }
     if (isUpgrade) {
       return { text: 'Upgrade', disabled: false, variant: 'upgrade' };
@@ -104,19 +103,17 @@ export const PlanCard: React.FC<PlanCardProps> = ({
         </ul>
         
         {/* Action Button */}
-        {!buttonConfig.hidden && (
-          <button
-            onClick={() => onSelect(plan)}
-            disabled={buttonConfig.disabled || isLoading}
-            className={`
-              w-full py-3 px-4 rounded-lg font-semibold transition-colors
-              disabled:opacity-50 disabled:cursor-not-allowed
-              ${getButtonClass()}
-            `}
-          >
-            {isLoading ? 'Processing...' : buttonConfig.text}
-          </button>
-        )}
+        <button
+          onClick={() => onSelect(plan)}
+          disabled={buttonConfig.disabled || isLoading}
+          className={`
+            w-full py-3 px-4 rounded-lg font-semibold transition-colors
+            disabled:opacity-50 disabled:cursor-not-allowed
+            ${getButtonClass()}
+          `}
+        >
+          {isLoading ? 'Processing...' : buttonConfig.text}
+        </button>
       </div>
     </div>
   );

@@ -211,8 +211,9 @@ export interface CreateSubscriptionResponse {
 }
 
 export interface SubscriptionActionResponse {
-  id: string;
-  status: SubscriptionStatus;
+  id?: string;
+  status?: SubscriptionStatus;
   planType?: SubscriptionPlan;
   cancelAtPeriodEnd?: boolean;
+  message?: string;
 }

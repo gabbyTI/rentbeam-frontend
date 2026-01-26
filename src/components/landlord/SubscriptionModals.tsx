@@ -90,19 +90,21 @@ export const DowngradeConfirmationModal: React.FC<DowngradeConfirmationModalProp
   isLoading = false
 }) => {
   const willExceedLimit = currentUnitCount > targetUnitLimit;
+  const isDowngradeToFree = targetPlan === 'free';
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Confirm Downgrade">
+    <Modal isOpen={isOpen} onClose={onClose} title={isDowngradeToFree ? "Cancel Subscription" : "Confirm Downgrade"}>
       <div className="space-y-4">
         <div className="flex items-start gap-3">
           <AlertTriangle className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Downgrade to {formatPlanName(targetPlan)}?
+              {isDowngradeToFree ? 'Switch to Free Plan?' : `Downgrade to ${formatPlanName(targetPlan)}?`}
             </h3>
             <p className="text-gray-600">
-              Your plan will be downgraded at the end of your current billing period.
-              You won't be charged for the new plan until then.
+              {isDowngradeToFree 
+                ? 'Your subscription will be canceled at the end of your current billing period. You\'ll be moved to the Free plan.'
+                : 'Your plan will be downgraded at the end of your current billing period. You won\'t be charged for the new plan until then.'}
             </p>
           </div>
         </div>
@@ -115,19 +117,33 @@ export const DowngradeConfirmationModal: React.FC<DowngradeConfirmationModalProp
             </h4>
             <p className="text-sm text-red-800">
               You currently have <strong>{currentUnitCount} units</strong>, but the {formatPlanName(targetPlan)} plan 
-              only allows <strong>{targetUnitLimit} units</strong>. You'll need to remove{' '}
-              <strong>{currentUnitCount - targetUnitLimit} unit{currentUnitCount - targetUnitLimit > 1 ? 's' : ''}</strong>{' '}
-              before the downgrade takes effect.
+              only allows <strong>{targetUnitLimit} units</strong>. 
+              {isDowngradeToFree 
+                ? ' After the change, some features will be restricted until you remove excess units or upgrade.'
+                : ` You'll need to remove ${currentUnitCount - targetUnitLimit} unit${currentUnitCount - targetUnitLimit > 1 ? 's' : ''} before the downgrade takes effect.`}
             </p>
           </div>
         )}
 
         <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-          <h4 className="font-medium text-blue-900 mb-2">Plan Changes:</h4>
+          <h4 className="font-medium text-blue-900 mb-2">
+            {isDowngradeToFree ? 'What you\'ll lose:' : 'Plan Changes:'}
+          </h4>
           <div className="text-sm text-blue-800 space-y-1">
-            <p>• Unit limit: {targetUnitLimit} (currently {currentUnitCount} used)</p>
-            <p>• Features will be limited to {formatPlanName(targetPlan)} tier</p>
-            <p>• Change takes effect at end of billing period</p>
+            {isDowngradeToFree ? (
+              <>
+                <p>• Online rent collection</p>
+                <p>• Automated payment reminders</p>
+                <p>• Advanced reporting features</p>
+                <p>• Unit limit reduced to {targetUnitLimit} (currently {currentUnitCount} used)</p>
+              </>
+            ) : (
+              <>
+                <p>• Unit limit: {targetUnitLimit} (currently {currentUnitCount} used)</p>
+                <p>• Features will be limited to {formatPlanName(targetPlan)} tier</p>
+                <p>• Change takes effect at end of billing period</p>
+              </>
+            )}
           </div>
         </div>
 
@@ -137,14 +153,14 @@ export const DowngradeConfirmationModal: React.FC<DowngradeConfirmationModalProp
             onClick={onClose}
             disabled={isLoading}
           >
-            Cancel
+            {isDowngradeToFree ? 'Keep Subscription' : 'Cancel'}
           </Button>
           <Button
-            variant="primary"
+            variant={isDowngradeToFree ? 'danger' : 'primary'}
             onClick={onConfirm}
             disabled={isLoading}
           >
-            {isLoading ? 'Processing...' : 'Confirm Downgrade'}
+            {isLoading ? 'Processing...' : (isDowngradeToFree ? 'Yes, Cancel Subscription' : 'Confirm Downgrade')}
           </Button>
         </div>
       </div>
@@ -222,34 +238,12 @@ function formatPlanName(plan: string): string {
   return plan.charAt(0).toUpperCase() + plan.slice(1);
 }
 
-interface UpgradePreviewData {
-  currentPlan: {
-    name: string;
-    price: number;
-  };
-  newPlan: {
-    name: string;
-    price: number;
-    features: string[];
-  };
-  stripeCalculation: {
-    creditAmount: number;
-    newPlanCharge: number;
-    totalDueNow: number;
-    currency: string;
-  };
-  nextBilling: {
-    date: string;
-    amount: number;
-  };
-}
-
 interface UpgradeConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  previewData: UpgradePreviewData | null;
   targetPlan: string;
+  currentPlan: string;
   isLoading?: boolean;
 }
 
@@ -257,18 +251,15 @@ export const UpgradeConfirmationModal: React.FC<UpgradeConfirmationModalProps> =
   isOpen,
   onClose,
   onConfirm,
-  previewData,
+  targetPlan,
+  currentPlan,
   isLoading = false
 }) => {
-  if (!previewData) {
-    return null;
-  }
-
-  const { currentPlan, newPlan, stripeCalculation, nextBilling } = previewData;
-  const nextBillingDate = new Date(nextBilling.date).toLocaleDateString();
+  const targetPlanName = formatPlanName(targetPlan);
+  const currentPlanName = formatPlanName(currentPlan);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Upgrade to ${formatPlanName(newPlan.name)}?`}>
+    <Modal isOpen={isOpen} onClose={onClose} title={`Upgrade to ${targetPlanName}?`}>
       <div className="space-y-4">
         <div className="flex items-start gap-3">
           <TrendingUp className="w-6 h-6 text-blue-500 flex-shrink-0 mt-1" />
@@ -277,43 +268,19 @@ export const UpgradeConfirmationModal: React.FC<UpgradeConfirmationModalProps> =
               Confirm Your Upgrade
             </h3>
             <p className="text-gray-600">
-              You'll be charged immediately for the prorated amount. Your next billing date will be {nextBillingDate}.
+              You're upgrading from {currentPlanName} to {targetPlanName}. You'll be redirected to a secure payment page to complete your upgrade.
             </p>
           </div>
         </div>
 
-        {/* Charge Breakdown */}
+        {/* Info */}
         <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-          <h4 className="font-medium text-blue-900 mb-3">Charge Breakdown:</h4>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between text-blue-800">
-              <span>Credit for unused time on {formatPlanName(currentPlan.name)}</span>
-              <span className="font-medium">-${stripeCalculation.creditAmount.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-blue-800">
-              <span>Charge for {formatPlanName(newPlan.name)} (prorated)</span>
-              <span className="font-medium">${stripeCalculation.newPlanCharge.toFixed(2)}</span>
-            </div>
-            <div className="border-t border-blue-300 pt-2 flex justify-between text-blue-900 font-semibold">
-              <span>Total Due Now</span>
-              <span>${stripeCalculation.totalDueNow.toFixed(2)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Features */}
-        <div className="bg-green-50 border border-green-200 rounded-md p-4">
-          <h4 className="font-medium text-green-900 mb-2">What you'll get:</h4>
-          <ul className="list-disc list-inside text-sm text-green-800 space-y-1">
-            {newPlan.features.map((feature, index) => (
-              <li key={index}>{feature}</li>
-            ))}
+          <h4 className="font-medium text-blue-900 mb-2">What happens next:</h4>
+          <ul className="list-disc list-inside text-sm text-blue-800 space-y-1">
+            <li>You'll be taken to a secure payment page</li>
+            <li>Your credit will be applied for unused time on your current plan</li>
+            <li>Your upgrade activates immediately after payment</li>
           </ul>
-        </div>
-
-        {/* Next Billing */}
-        <div className="text-sm text-gray-600">
-          Your next billing date will be <strong>{nextBillingDate}</strong> for <strong>${nextBilling.amount.toFixed(2)}</strong>.
         </div>
 
         <div className="flex gap-3 justify-end pt-4">
@@ -329,7 +296,7 @@ export const UpgradeConfirmationModal: React.FC<UpgradeConfirmationModalProps> =
             onClick={onConfirm}
             disabled={isLoading}
           >
-            {isLoading ? 'Processing...' : `Confirm Upgrade - $${stripeCalculation.totalDueNow.toFixed(2)}`}
+            {isLoading ? 'Processing...' : `Continue to Payment`}
           </Button>
         </div>
       </div>

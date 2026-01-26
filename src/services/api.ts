@@ -6,8 +6,26 @@
  * Components won't need to change - they'll keep calling these same functions.
  */
 
-import { Property, Unit, Tenant, Payment, Landlord } from '../types';
+import { Property, Unit, Tenant, Payment, Landlord, SubscriptionPlan } from '../types';
 import { authService, LoginResponse } from './auth';
+
+export interface PlanConfig {
+  id: SubscriptionPlan;
+  name: string;
+  price: number;
+  features: string[];
+  limits: {
+    units: number;
+    properties: number;
+    users: number;
+    supportLevel: string;
+    features: Record<string, boolean>;
+    rateLimit?: {
+      emailsPerMonth: number;
+      smsPerMonth: number;
+    };
+  };
+}
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -97,20 +115,20 @@ const handleApiError = async (response: Response, isAuthEndpoint: boolean = fals
     // If response body isn't JSON, use generic message
     throw new Error(`Request failed with status ${response.status}`);
   }
-  
+
   // Extract the error message
   const errorMessage = errorData.message || errorData.error || `Request failed with status ${response.status}`;
-  
+
   // Special handling for over-limit errors (403)
   if (response.status === 403) {
     // Check for subscription-related limit errors
-    if (errorMessage.toLowerCase().includes('limit') || 
-        errorMessage.toLowerCase().includes('subscription') ||
-        errorMessage.toLowerCase().includes('upgrade')) {
+    if (errorMessage.toLowerCase().includes('limit') ||
+      errorMessage.toLowerCase().includes('subscription') ||
+      errorMessage.toLowerCase().includes('upgrade')) {
       throw new Error(`${errorMessage}\n\nPlease upgrade your plan to continue.`);
     }
   }
-  
+
   // Throw the error message
   throw new Error(errorMessage);
 };
@@ -443,6 +461,22 @@ export const connectStripe = async (refreshUrl: string, returnUrl: string): Prom
   return result.data || result;
 };
 
+export const getSubscriptionPlans = async (): Promise<PlanConfig[]> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/subscriptions/plans`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  return result.data || result;
+};
+
 // ==================== Properties ====================
 
 export const fetchProperties = async (): Promise<Property[]> => {
@@ -469,7 +503,7 @@ export const createProperty = async (
   const token = authService.getAccessToken();
   console.log('🔵 Token:', token ? 'exists' : 'missing');
   console.log('🔵 Making POST request to:', `${API_BASE_URL}/api/properties`);
-  
+
   const response = await fetch(`${API_BASE_URL}/api/properties`, {
     method: 'POST',
     headers: {
@@ -489,7 +523,7 @@ export const createProperty = async (
   const result = await response.json();
   console.log('🔵 API Response:', result);
   const created = result.data || result;
-  
+
   getUpdateState()({
     properties: [...existingProperties, created],
   });
@@ -517,7 +551,7 @@ export const updateProperty = async (
 
   const result = await response.json();
   const updated = result.data || result;
-  
+
   const updatedProperties = existingProperties.map((p) =>
     p.id === propertyId ? updated : p
   );
@@ -541,7 +575,7 @@ export const deleteProperty = async (
   if (!response.ok) {
     await handleApiError(response);
   }
-  
+
   const updatedProperties = existingProperties.filter((p) => p.id !== propertyId);
   const updatedUnits = existingUnits.filter((u) => u.propertyId !== propertyId);
   getUpdateState()({
@@ -588,7 +622,7 @@ export const createUnit = async (
 
   const result = await response.json();
   const created = result.data || result;
-  
+
   getUpdateState()({
     units: [...existingUnits, created],
   });
@@ -616,7 +650,7 @@ export const updateUnit = async (
 
   const result = await response.json();
   const updated = result.data || result;
-  
+
   const updatedUnits = existingUnits.map((u) =>
     u.id === unitId ? updated : u
   );
@@ -639,7 +673,7 @@ export const deleteUnit = async (
   if (!response.ok) {
     await handleApiError(response);
   }
-  
+
   const updatedUnits = existingUnits.filter((u) => u.id !== unitId);
   getUpdateState()({ units: updatedUnits });
 };
@@ -682,13 +716,13 @@ export const createTenant = async (
   const result = await response.json();
   const data = result.data || result;
   const created = data.membership || data;
-  
+
   // Refetch all tenants to ensure we have the latest state
   const updatedTenants = await fetchTenants();
   getUpdateState()({
     tenants: updatedTenants,
   });
-  
+
   return created;
 };
 
@@ -707,7 +741,7 @@ export const resendTenantInvite = async (tenantId: string): Promise<void> => {
 };
 
 export const updateTenantInfo = async (
-  tenantId: string, 
+  tenantId: string,
   data: { name?: string; phone?: string }
 ): Promise<void> => {
   const token = authService.getAccessToken();
@@ -735,7 +769,7 @@ export interface InviteDetails {
   property: {
     name: string;
     address: string;
-      acceptOnlinePayments: boolean;
+    acceptOnlinePayments: boolean;
   };
   unit: {
     name: string;
@@ -810,7 +844,7 @@ export const updateTenant = async (
 
   const result = await response.json();
   const updated = result.data || result;
-  
+
   const updatedTenants = existingTenants.map((t) =>
     t.id === tenantId ? updated : t
   );
@@ -833,7 +867,7 @@ export const deleteTenant = async (
   if (!response.ok) {
     await handleApiError(response);
   }
-  
+
   const updatedTenants = existingTenants.filter((t) => t.id !== tenantId);
   getUpdateState()({ tenants: updatedTenants });
 };
@@ -863,13 +897,13 @@ export const moveOutTenant = async (
 
   const result = await response.json();
   const movedOutTenant = result.data.membership;
-  
+
   // Update local state - set tenant to INACTIVE
   const updatedTenants = existingTenants.map((t) =>
     t.id === tenantId ? movedOutTenant : t
   );
   getUpdateState()({ tenants: updatedTenants });
-  
+
   return result.data;
 };
 
@@ -899,16 +933,16 @@ export const transferTenant = async (
   const data = result.data || result;
   const oldMembership = data.oldMembership || data.old;
   const newMembership = data.newMembership || data.new;
-  
+
   // Update old tenant's status to INACTIVE and add new tenant
   const updatedTenants = existingTenants.map((t) =>
     t.id === tenant.id ? oldMembership : t
   );
-  
+
   getUpdateState()({
     tenants: [...updatedTenants, newMembership],
   });
-  
+
   return newMembership;
 };
 
@@ -950,7 +984,7 @@ export const createPayment = async (
 
   const result = await response.json();
   const created = result.data || result;
-  
+
   getUpdateState()({
     payments: [...existingPayments, created],
   });
@@ -971,7 +1005,7 @@ export const updateLandlord = async (
   //   body: JSON.stringify(updates)
   // });
   // const updated = await response.json();
-  
+
   const updatedLandlords = existingLandlords.map((l) =>
     l.id === landlordId ? { ...l, ...updates } : l
   );
@@ -983,11 +1017,11 @@ export const updateLandlord = async (
 // Subscription API Functions
 // ============================================================================
 
-import type { 
-  CurrentSubscription, 
-  CreateSubscriptionResponse, 
+import type {
+  CurrentSubscription,
+  CreateSubscriptionResponse,
   SubscriptionActionResponse,
-  SubscriptionPlan 
+  SubscriptionPlan
 } from '../types';
 
 /**
@@ -1009,19 +1043,6 @@ export const createSubscription = async (planType: SubscriptionPlan): Promise<Cr
     hostedInvoiceUrl: response.data.hostedInvoiceUrl,
     message: response.message
   };
-};
-
-/**
- * Preview upcoming invoice for subscription upgrade (shows proration)
- */
-export const previewUpgrade = async (planType: SubscriptionPlan): Promise<{
-  currentPlan: { name: string; price: number };
-  newPlan: { name: string; price: number; features: string[] };
-  proration: { creditAmount: number; newPlanCharge: number; totalDueNow: number; currency: string };
-  nextBilling: { date: string; amount: number };
-}> => {
-  const response = await api.get(`/api/subscriptions/preview-upgrade?planType=${planType}`);
-  return response.data;
 };
 
 /**
@@ -1055,10 +1076,11 @@ export const cancelSubscription = async (immediately: boolean = false): Promise<
 };
 
 /**
- * Cancel incomplete subscription and return to free plan
+ * Cancel incomplete or past_due subscription
+ * Webhook handles cleanup when Stripe deletes subscription
  */
 export const cancelIncompleteSubscription = async (): Promise<SubscriptionActionResponse> => {
-  const response = await api.post('/api/subscriptions/cancel-incomplete');
+  const response = await api.delete('/api/subscriptions/incomplete');
   return response.data;
 };
 
