@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardContent } from '../ui/Card';
-import { updateProfile } from '../../services/api';
+import { updateProfile, getStripeConnectStatus } from '../../services/api';
 import { authService } from '../../services/auth';
 import { useToast } from '../../context/ToastContext';
 
@@ -11,6 +11,7 @@ export const LandlordCompleteProfile: React.FC = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
     const [loading, setLoading] = useState(false);
+    const [checkingProfile, setCheckingProfile] = useState(true);
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -18,6 +19,40 @@ export const LandlordCompleteProfile: React.FC = () => {
         businessName: '',
         phone: '',
     });
+
+    // Check if profile is already complete and redirect
+    useEffect(() => {
+        const checkProfileStatus = async () => {
+            const isComplete = authService.getProfileComplete();
+            if (isComplete) {
+                // Profile already complete, redirect to appropriate page
+                try {
+                    const stripeStatus = await getStripeConnectStatus();
+                    if (stripeStatus.onboarded) {
+                        navigate('/landlord/dashboard');
+                    } else {
+                        navigate('/landlord/complete-setup');
+                    }
+                } catch {
+                    navigate('/landlord/complete-setup');
+                }
+            } else {
+                setCheckingProfile(false);
+            }
+        };
+        checkProfileStatus();
+    }, [navigate]);
+
+    if (checkingProfile) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Loading...</p>
+                </div>
+            </div>
+        );
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

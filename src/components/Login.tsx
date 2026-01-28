@@ -51,8 +51,8 @@ export const Login: React.FC = () => {
       authService.setTokens(response.tokens);
       authService.setUser(response.user);
       authService.setMemberships(response.memberships);
-      authService.setProfileComplete(response.profileComplete ?? true);
-      console.log('🔵 Step 2: Auth data stored, profileComplete:', response.profileComplete);
+      authService.setProfileComplete(response.user.profileComplete ?? true);
+      console.log('🔵 Step 2: Auth data stored, profileComplete:', response.user.profileComplete);
 
       // Step 3: Set current user in app context
       console.log('🔵 Step 3: Setting current user...');
@@ -70,7 +70,7 @@ export const Login: React.FC = () => {
         login('landlord', response.memberships.landlord!.id);
 
         // Step 4a: Check if profile is incomplete
-        if (!response.profileComplete) {
+        if (!response.user.profileComplete) {
           console.log('🔵 Profile incomplete - redirecting to complete-profile');
           navigate('/landlord/complete-profile');
           return;

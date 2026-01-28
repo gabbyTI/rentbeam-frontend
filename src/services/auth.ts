@@ -26,12 +26,12 @@ export interface User {
   email: string;
   name: string;
   cognitoId: string;
+  profileComplete?: boolean;
 }
 
 export interface LoginResponse {
   tokens: AuthTokens;
   user: User;
-  profileComplete: boolean;
   memberships: {
     landlord: { id: string } | null;
     tenants: Array<{
