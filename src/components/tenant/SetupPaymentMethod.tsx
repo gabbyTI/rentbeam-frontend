@@ -109,8 +109,14 @@ export const SetupPaymentMethod: React.FC = () => {
   const [tenantData, setTenantData] = useState<TenantMembershipDetails | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
 
+  const initialized = React.useRef(false);
+
   useEffect(() => {
     const initializeSetup = async () => {
+      // Prevent double-call in React Strict Mode
+      if (initialized.current) return;
+      initialized.current = true;
+
       try {
         const profile = await getCurrentUser();
 
