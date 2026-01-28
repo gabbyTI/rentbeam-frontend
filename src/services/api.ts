@@ -684,7 +684,7 @@ export const fetchTenants = async (): Promise<Tenant[]> => {
 };
 
 export const createTenant = async (
-  tenant: { email: string; name: string; phone?: string; unitId: string; moveInDate?: string }
+  tenant: { email: string; firstName: string; lastName: string; phone?: string; unitId: string; moveInDate?: string }
 ): Promise<any> => {
   const token = authService.getAccessToken();
   const response = await fetch(`${API_BASE_URL}/api/tenants`, {

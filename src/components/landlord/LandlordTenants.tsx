@@ -21,7 +21,8 @@ export const LandlordTenants: React.FC = () => {
   const [showArchive, setShowArchive] = useState(false);
 
   const [tenantForm, setTenantForm] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
     propertyId: '',
@@ -70,7 +71,8 @@ export const LandlordTenants: React.FC = () => {
 
   const handleAddTenant = async () => {
     if (
-      !tenantForm.name ||
+      !tenantForm.firstName ||
+      !tenantForm.lastName ||
       !tenantForm.email ||
       !tenantForm.unitId
     ) {
@@ -82,7 +84,8 @@ export const LandlordTenants: React.FC = () => {
     try {
       await api.createTenant({
         email: tenantForm.email,
-        name: tenantForm.name,
+        firstName: tenantForm.firstName,
+        lastName: tenantForm.lastName,
         phone: tenantForm.phone || undefined,
         unitId: tenantForm.unitId,
         moveInDate: new Date().toISOString().split('T')[0],
@@ -91,7 +94,8 @@ export const LandlordTenants: React.FC = () => {
       showToast(`Tenant added successfully. Invite sent to ${tenantForm.email}`);
       setIsAdding(false);
       setTenantForm({
-        name: '',
+        firstName: '',
+        lastName: '',
         email: '',
         phone: '',
         propertyId: '',
@@ -151,7 +155,7 @@ export const LandlordTenants: React.FC = () => {
                     {tenant.status === 'ACTIVE' ? 'Current' : 'Past'}
                   </Badge>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
                   <div>
                     <span className="text-gray-500">Rent</span>
@@ -186,7 +190,7 @@ export const LandlordTenants: React.FC = () => {
                     </div>
                   )}
                 </div>
-                
+
                 <Button
                   size="sm"
                   variant="ghost"
@@ -201,98 +205,98 @@ export const LandlordTenants: React.FC = () => {
 
           {/* Desktop Table View */}
           <div className="hidden lg:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tenant
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Property & Unit
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rent
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Residency
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Portal Access
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Payment Method
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Autopay
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {landlordTenants.map((tenant) => (
-                <tr key={tenant.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {tenant.user?.name}
-                    </div>
-                    <div className="text-sm text-gray-500">{tenant.user?.email}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {tenant.property?.name}
-                    </div>
-                    <div className="text-sm text-gray-500">{tenant.unit?.name}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatCurrency(tenant.unit!.rentAmount)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge variant={tenant.status === 'ACTIVE' ? 'current' : 'past'}>
-                      {tenant.status === 'ACTIVE' ? 'Current' : 'Past'}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {tenant.status === 'ACTIVE' ? (
-                      <Badge variant={tenant.inviteStatus === 'ACCEPTED' ? 'accepted' : 'pending'}>
-                        {tenant.inviteStatus === 'ACCEPTED' ? 'Accepted' : 'Pending'}
-                      </Badge>
-                    ) : (
-                      <span className="text-sm text-gray-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {tenant.defaultPaymentMethodId ? (
-                      <div className="flex items-center gap-1">
-                        <span>💳</span>
-                        <span className="text-gray-900">{tenant.paymentMethodLabel}</span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">No card</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {tenant.inviteStatus === 'ACCEPTED' && tenant.status === 'ACTIVE' && (
-                      <Badge variant={tenant.autopayEnabled ? 'autopay' : 'manual'}>
-                        {tenant.autopayEnabled ? 'Enabled' : 'Disabled'}
-                      </Badge>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => navigate(`/landlord/tenants/${tenant.id}`)}
-                    >
-                      View Details
-                    </Button>
-                  </td>
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Tenant
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Property & Unit
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Rent
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Residency
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Portal Access
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Payment Method
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Autopay
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {landlordTenants.map((tenant) => (
+                  <tr key={tenant.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {tenant.user?.name}
+                      </div>
+                      <div className="text-sm text-gray-500">{tenant.user?.email}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {tenant.property?.name}
+                      </div>
+                      <div className="text-sm text-gray-500">{tenant.unit?.name}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatCurrency(tenant.unit!.rentAmount)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Badge variant={tenant.status === 'ACTIVE' ? 'current' : 'past'}>
+                        {tenant.status === 'ACTIVE' ? 'Current' : 'Past'}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {tenant.status === 'ACTIVE' ? (
+                        <Badge variant={tenant.inviteStatus === 'ACCEPTED' ? 'accepted' : 'pending'}>
+                          {tenant.inviteStatus === 'ACCEPTED' ? 'Accepted' : 'Pending'}
+                        </Badge>
+                      ) : (
+                        <span className="text-sm text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {tenant.defaultPaymentMethodId ? (
+                        <div className="flex items-center gap-1">
+                          <span>💳</span>
+                          <span className="text-gray-900">{tenant.paymentMethodLabel}</span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">No card</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {tenant.inviteStatus === 'ACCEPTED' && tenant.status === 'ACTIVE' && (
+                        <Badge variant={tenant.autopayEnabled ? 'autopay' : 'manual'}>
+                          {tenant.autopayEnabled ? 'Enabled' : 'Disabled'}
+                        </Badge>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => navigate(`/landlord/tenants/${tenant.id}`)}
+                      >
+                        View Details
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
 
@@ -305,15 +309,26 @@ export const LandlordTenants: React.FC = () => {
           maxWidth="lg"
         >
           <div className="space-y-4">
-            <Input
-              label="Tenant Name"
-              type="text"
-              value={tenantForm.name}
-              onChange={(e) =>
-                setTenantForm({ ...tenantForm, name: e.target.value })
-              }
-              placeholder="John Doe"
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="First Name"
+                type="text"
+                value={tenantForm.firstName}
+                onChange={(e) =>
+                  setTenantForm({ ...tenantForm, firstName: e.target.value })
+                }
+                placeholder="John"
+              />
+              <Input
+                label="Last Name"
+                type="text"
+                value={tenantForm.lastName}
+                onChange={(e) =>
+                  setTenantForm({ ...tenantForm, lastName: e.target.value })
+                }
+                placeholder="Doe"
+              />
+            </div>
 
             <Input
               label="Tenant Email"

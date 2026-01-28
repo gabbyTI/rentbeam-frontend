@@ -41,7 +41,8 @@ export const TenantSettings: React.FC = () => {
   const [resendCooldown, setResendCooldown] = useState(0);
 
   // Account Information
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [notificationEmail, setNotificationEmail] = useState('');
@@ -62,7 +63,8 @@ export const TenantSettings: React.FC = () => {
     const loadUserData = async () => {
       try {
         const profile = await getCurrentUser();
-        setName(profile.user.name);
+        setFirstName(profile.user.firstName || '');
+        setLastName(profile.user.lastName || '');
         setEmail(profile.user.email);
         setPhone(profile.user.phone || '');
         setNotificationEmail(profile.user.notificationEmail || '');
@@ -139,7 +141,7 @@ export const TenantSettings: React.FC = () => {
       setVerificationStep('initial');
       setVerificationCode('');
       setPendingNotificationEmail('');
-      
+
       // Reload user data to get updated notification email
       const profile = await getCurrentUser();
       setNotificationEmail(profile.user.notificationEmail || '');
@@ -160,7 +162,7 @@ export const TenantSettings: React.FC = () => {
     try {
       await resendNotificationEmailCode(pendingNotificationEmail);
       showToast('Verification code resent successfully', 'success');
-      
+
       // Start 60-second cooldown
       setResendCooldown(60);
       const interval = setInterval(() => {
@@ -258,7 +260,7 @@ export const TenantSettings: React.FC = () => {
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      
+
       // Log out for security - invalidates all sessions
       logout();
       navigate('/login');
@@ -283,7 +285,7 @@ export const TenantSettings: React.FC = () => {
       });
 
       showToast('Autopay enabled successfully!', 'success');
-      
+
       const membershipId = tenantData!.id;
       const membership = await getTenantMembership(membershipId);
       setTenantData(membership);
@@ -304,7 +306,7 @@ export const TenantSettings: React.FC = () => {
 
       showToast('Autopay disabled', 'success');
       setShowDisableModal(false);
-      
+
       const membershipId = tenantData!.id;
       const membership = await getTenantMembership(membershipId);
       setTenantData(membership);
@@ -322,7 +324,7 @@ export const TenantSettings: React.FC = () => {
 
       showToast('Payment method removed successfully', 'success');
       setShowRemoveCardModal(false);
-      
+
       const membershipId = tenantData!.id;
       const membership = await getTenantMembership(membershipId);
       setTenantData(membership);
@@ -338,15 +340,15 @@ export const TenantSettings: React.FC = () => {
     const today = new Date();
     const dueDay = tenantData.unit.dueDay;
     let nextCharge = new Date(today.getFullYear(), today.getMonth(), dueDay);
-    
+
     if (today.getDate() >= dueDay) {
       nextCharge = new Date(today.getFullYear(), today.getMonth() + 1, dueDay);
     }
-    
-    return nextCharge.toLocaleDateString('en-US', { 
-      month: 'long', 
-      day: 'numeric', 
-      year: 'numeric' 
+
+    return nextCharge.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
     });
   };
 
@@ -384,16 +386,29 @@ export const TenantSettings: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3 sm:space-y-4">
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                  Full Name
-                </label>
-                <Input
-                  type="text"
-                  value={name}
-                  disabled
-                  className="bg-gray-50"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                    First Name
+                  </label>
+                  <Input
+                    type="text"
+                    value={firstName}
+                    disabled
+                    className="bg-gray-50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                    Last Name
+                  </label>
+                  <Input
+                    type="text"
+                    value={lastName}
+                    disabled
+                    className="bg-gray-50"
+                  />
+                </div>
               </div>
 
               <div>
@@ -489,8 +504,8 @@ export const TenantSettings: React.FC = () => {
                       {resending
                         ? 'Sending...'
                         : resendCooldown > 0
-                        ? `Resend in ${resendCooldown}s`
-                        : 'Resend code'}
+                          ? `Resend in ${resendCooldown}s`
+                          : 'Resend code'}
                     </button>
                   </div>
                 </div>
@@ -676,11 +691,10 @@ export const TenantSettings: React.FC = () => {
                 <div className="flex gap-2 sm:gap-3">
                   <button
                     onClick={() => setTheme('light')}
-                    className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg transition-colors ${
-                      theme === 'light'
+                    className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg transition-colors ${theme === 'light'
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-center gap-1 sm:gap-2">
                       <span className="text-xl sm:text-2xl">☀️</span>
@@ -689,11 +703,10 @@ export const TenantSettings: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setTheme('dark')}
-                    className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg transition-colors ${
-                      theme === 'dark'
+                    className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg transition-colors ${theme === 'dark'
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-center gap-1 sm:gap-2">
                       <span className="text-xl sm:text-2xl">🌙</span>
@@ -857,7 +870,7 @@ export const TenantSettings: React.FC = () => {
                             className="mt-1 flex-shrink-0"
                           />
                           <span className="text-xs sm:text-sm text-gray-700">
-                            I authorize RentBeam to automatically charge my payment method for 
+                            I authorize RentBeam to automatically charge my payment method for
                             {' '}{formatCurrency(calculateProcessingFee(Number(tenantData.unit.rentAmount)).totalAmount)} on the {tenantData.unit.dueDay}
                             {tenantData.unit.dueDay === 1 ? 'st' : tenantData.unit.dueDay === 2 ? 'nd' : tenantData.unit.dueDay === 3 ? 'rd' : 'th'} of each month.
                             I understand I can disable autopay at any time.
@@ -970,7 +983,7 @@ export const TenantSettings: React.FC = () => {
                 ✕
               </button>
             </div>
-            
+
             <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
               <div>
                 <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
