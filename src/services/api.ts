@@ -97,7 +97,7 @@ const handleApiError = async (response: Response, isAuthEndpoint: boolean = fals
     // If response body isn't JSON, use generic message
     throw new Error(`Request failed with status ${response.status}`);
   }
-  
+
   // Throw the actual error message from backend (prioritize message over error object)
   const errorMessage = errorData.message || errorData.error || `Request failed with status ${response.status}`;
   throw new Error(errorMessage);
@@ -116,7 +116,6 @@ const getUpdateState = () => {
 export interface SignupLandlordRequest {
   email: string;
   password: string;
-  name: string;
 }
 
 export interface SignupLandlordResponse {
@@ -234,6 +233,35 @@ export const changePassword = async (oldPassword: string, newPassword: string): 
   }
 };
 
+export interface UpdateProfileRequest {
+  firstName?: string;
+  lastName?: string;
+  country?: string;
+  name?: string;
+  phone?: string | null;
+  businessName?: string | null;
+  taxId?: string | null;
+  notificationEmail?: string;
+}
+
+export const updateProfile = async (data: UpdateProfileRequest): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authService.getAccessToken()}`
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  return result.data || result;
+};
+
 export const initiateNotificationEmailChange = async (notificationEmail: string): Promise<void> => {
   const response = await fetch(`${API_BASE_URL}/api/auth/notification-email/initiate`, {
     method: 'POST',
@@ -285,6 +313,9 @@ export interface CurrentUserProfile {
     email: string;
     notificationEmail?: string;
     name: string;
+    firstName?: string;
+    lastName?: string;
+    country?: string;
     phone?: string;
     businessName?: string;
     taxId?: string;
@@ -295,6 +326,7 @@ export interface CurrentUserProfile {
       id: string;
       defaultDueDay?: number;
       defaultGracePeriodDays?: number;
+      useBusinessName?: boolean;
     } | null;
     tenants: Array<{
       id: string;
@@ -361,6 +393,7 @@ export interface TenantMembershipDetails {
         user: {
           id: string;
           name: string;
+          displayName?: string;
           email: string;
         };
       };
@@ -457,7 +490,7 @@ export const createProperty = async (
   const token = authService.getAccessToken();
   console.log('🔵 Token:', token ? 'exists' : 'missing');
   console.log('🔵 Making POST request to:', `${API_BASE_URL}/api/properties`);
-  
+
   const response = await fetch(`${API_BASE_URL}/api/properties`, {
     method: 'POST',
     headers: {
@@ -477,7 +510,7 @@ export const createProperty = async (
   const result = await response.json();
   console.log('🔵 API Response:', result);
   const created = result.data || result;
-  
+
   getUpdateState()({
     properties: [...existingProperties, created],
   });
@@ -505,7 +538,7 @@ export const updateProperty = async (
 
   const result = await response.json();
   const updated = result.data || result;
-  
+
   const updatedProperties = existingProperties.map((p) =>
     p.id === propertyId ? updated : p
   );
@@ -529,7 +562,7 @@ export const deleteProperty = async (
   if (!response.ok) {
     await handleApiError(response);
   }
-  
+
   const updatedProperties = existingProperties.filter((p) => p.id !== propertyId);
   const updatedUnits = existingUnits.filter((u) => u.propertyId !== propertyId);
   getUpdateState()({
@@ -576,7 +609,7 @@ export const createUnit = async (
 
   const result = await response.json();
   const created = result.data || result;
-  
+
   getUpdateState()({
     units: [...existingUnits, created],
   });
@@ -604,7 +637,7 @@ export const updateUnit = async (
 
   const result = await response.json();
   const updated = result.data || result;
-  
+
   const updatedUnits = existingUnits.map((u) =>
     u.id === unitId ? updated : u
   );
@@ -627,7 +660,7 @@ export const deleteUnit = async (
   if (!response.ok) {
     await handleApiError(response);
   }
-  
+
   const updatedUnits = existingUnits.filter((u) => u.id !== unitId);
   getUpdateState()({ units: updatedUnits });
 };
@@ -670,13 +703,13 @@ export const createTenant = async (
   const result = await response.json();
   const data = result.data || result;
   const created = data.membership || data;
-  
+
   // Refetch all tenants to ensure we have the latest state
   const updatedTenants = await fetchTenants();
   getUpdateState()({
     tenants: updatedTenants,
   });
-  
+
   return created;
 };
 
@@ -695,7 +728,7 @@ export const resendTenantInvite = async (tenantId: string): Promise<void> => {
 };
 
 export const updateTenantInfo = async (
-  tenantId: string, 
+  tenantId: string,
   data: { name?: string; phone?: string }
 ): Promise<void> => {
   const token = authService.getAccessToken();
@@ -723,7 +756,7 @@ export interface InviteDetails {
   property: {
     name: string;
     address: string;
-      acceptOnlinePayments: boolean;
+    acceptOnlinePayments: boolean;
   };
   unit: {
     name: string;
@@ -798,7 +831,7 @@ export const updateTenant = async (
 
   const result = await response.json();
   const updated = result.data || result;
-  
+
   const updatedTenants = existingTenants.map((t) =>
     t.id === tenantId ? updated : t
   );
@@ -821,7 +854,7 @@ export const deleteTenant = async (
   if (!response.ok) {
     await handleApiError(response);
   }
-  
+
   const updatedTenants = existingTenants.filter((t) => t.id !== tenantId);
   getUpdateState()({ tenants: updatedTenants });
 };
@@ -851,13 +884,13 @@ export const moveOutTenant = async (
 
   const result = await response.json();
   const movedOutTenant = result.data.membership;
-  
+
   // Update local state - set tenant to INACTIVE
   const updatedTenants = existingTenants.map((t) =>
     t.id === tenantId ? movedOutTenant : t
   );
   getUpdateState()({ tenants: updatedTenants });
-  
+
   return result.data;
 };
 
@@ -887,16 +920,16 @@ export const transferTenant = async (
   const data = result.data || result;
   const oldMembership = data.oldMembership || data.old;
   const newMembership = data.newMembership || data.new;
-  
+
   // Update old tenant's status to INACTIVE and add new tenant
   const updatedTenants = existingTenants.map((t) =>
     t.id === tenant.id ? oldMembership : t
   );
-  
+
   getUpdateState()({
     tenants: [...updatedTenants, newMembership],
   });
-  
+
   return newMembership;
 };
 
@@ -938,7 +971,7 @@ export const createPayment = async (
 
   const result = await response.json();
   const created = result.data || result;
-  
+
   getUpdateState()({
     payments: [...existingPayments, created],
   });
@@ -959,7 +992,7 @@ export const updateLandlord = async (
   //   body: JSON.stringify(updates)
   // });
   // const updated = await response.json();
-  
+
   const updatedLandlords = existingLandlords.map((l) =>
     l.id === landlordId ? { ...l, ...updates } : l
   );

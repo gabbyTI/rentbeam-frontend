@@ -18,8 +18,8 @@ export const Login: React.FC = () => {
 
   useEffect(() => {
     if (currentUser) {
-      const redirectPath = currentUser.role === 'landlord' 
-        ? '/landlord/dashboard' 
+      const redirectPath = currentUser.role === 'landlord'
+        ? '/landlord/dashboard'
         : '/tenant/dashboard';
       navigate(redirectPath, { replace: true });
     }
@@ -51,13 +51,14 @@ export const Login: React.FC = () => {
       authService.setTokens(response.tokens);
       authService.setUser(response.user);
       authService.setMemberships(response.memberships);
-      console.log('🔵 Step 2: Auth data stored');
+      authService.setProfileComplete(response.profileComplete ?? true);
+      console.log('🔵 Step 2: Auth data stored, profileComplete:', response.profileComplete);
 
       // Step 3: Set current user in app context
       console.log('🔵 Step 3: Setting current user...');
       const hasLandlord = !!response.memberships.landlord;
       const hasTenants = response.memberships.tenants && response.memberships.tenants.length > 0;
-      
+
       // Check if user has both roles - let AppContext handle role selection
       if (hasLandlord && hasTenants) {
         console.log('🔵 User has both roles - redirecting to home for AppContext to handle');
@@ -68,12 +69,19 @@ export const Login: React.FC = () => {
         console.log('🔵 User is landlord only, id:', response.memberships.landlord!.id);
         login('landlord', response.memberships.landlord!.id);
 
-        // Step 4: Check Stripe status
+        // Step 4a: Check if profile is incomplete
+        if (!response.profileComplete) {
+          console.log('🔵 Profile incomplete - redirecting to complete-profile');
+          navigate('/landlord/complete-profile');
+          return;
+        }
+
+        // Step 4b: Check Stripe status
         console.log('🔵 Step 4: Checking Stripe status...');
         try {
           const stripeStatus = await getStripeConnectStatus();
           console.log('🔵 Stripe status:', stripeStatus);
-          
+
           if (!stripeStatus.onboarded) {
             console.log('🔵 Redirecting to complete setup');
             navigate('/landlord/complete-setup');
@@ -88,7 +96,7 @@ export const Login: React.FC = () => {
       } else if (hasTenants) {
         console.log('🔵 User is tenant only, id:', response.memberships.tenants[0].id);
         login('tenant', response.memberships.tenants[0].id);
-        
+
         // Handle invite acceptance if token present
         if (inviteToken) {
           try {
@@ -98,7 +106,7 @@ export const Login: React.FC = () => {
             showToast(error.message || 'Failed to accept invite', 'error');
           }
         }
-        
+
         navigate('/tenant/dashboard');
       } else {
         console.error('🔴 No memberships found');
@@ -107,7 +115,7 @@ export const Login: React.FC = () => {
     } catch (error: any) {
       console.error('🔴 Login error:', error);
       const errorMessage = error.message || 'Login failed';
-      
+
       if (errorMessage.includes('not confirmed') || errorMessage.includes('verify')) {
         showToast('Please verify your email first', 'error');
         navigate('/verify-email', { state: { email } });

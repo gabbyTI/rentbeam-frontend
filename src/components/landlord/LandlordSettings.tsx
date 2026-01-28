@@ -15,7 +15,7 @@ export const LandlordSettings: React.FC = () => {
   const { logout } = useApp();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  
+
   // Separate loading states for each section
   const [savingAccount, setSavingAccount] = useState(false);
   const [savingPayment, setSavingPayment] = useState(false);
@@ -29,10 +29,13 @@ export const LandlordSettings: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   // Account Information
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [country, setCountry] = useState('CA');
   const [email, setEmail] = useState('');
   const [notificationEmail, setNotificationEmail] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [useBusinessName, setUseBusinessName] = useState(false);
   const [phone, setPhone] = useState('');
   const [taxId, setTaxId] = useState('');
 
@@ -55,7 +58,9 @@ export const LandlordSettings: React.FC = () => {
     const loadUserData = async () => {
       try {
         const profile = await getCurrentUser();
-        setName(profile.user.name);
+        setFirstName(profile.user.firstName || '');
+        setLastName(profile.user.lastName || '');
+        setCountry(profile.user.country || 'CA');
         setEmail(profile.user.email);
         setNotificationEmail(profile.user.notificationEmail || '');
         setPhone(profile.user.phone || '');
@@ -66,6 +71,7 @@ export const LandlordSettings: React.FC = () => {
         if (profile.memberships?.landlord) {
           setDefaultDueDay(profile.memberships.landlord.defaultDueDay?.toString() || '1');
           setGracePeriodDays(profile.memberships.landlord.defaultGracePeriodDays?.toString() || '5');
+          setUseBusinessName(profile.memberships.landlord.useBusinessName || false);
         }
 
         // Load Stripe status
@@ -89,13 +95,22 @@ export const LandlordSettings: React.FC = () => {
   const handleSaveAccount = async () => {
     setSavingAccount(true);
     try {
+      // Save profile info
       await api.patch('/api/auth/profile', {
-        name,
+        firstName,
+        lastName,
+        country,
         notificationEmail: notificationEmail || null,
         phone: phone || null,
         businessName: businessName || null,
         taxId: taxId || null,
       });
+
+      // Save useBusinessName preference
+      await api.patch('/api/landlord/preferences', {
+        useBusinessName,
+      });
+
       showToast('Account information updated', 'success');
     } catch (err: any) {
       const errorMsg = err.response?.data?.error || err.message || 'Failed to update account';
@@ -182,7 +197,7 @@ export const LandlordSettings: React.FC = () => {
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      
+
       // Log out for security - invalidates all sessions
       logout();
       navigate('/login');
@@ -245,16 +260,44 @@ export const LandlordSettings: React.FC = () => {
               <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
                 <div>
                   <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
-                    Full Name
+                    First Name
                   </label>
                   <Input
                     type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="John Doe"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="John"
                   />
                 </div>
 
+                <div>
+                  <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
+                    Last Name
+                  </label>
+                  <Input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Doe"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
+                  Country
+                </label>
+                <select
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="CA">Canada</option>
+                  <option value="US">United States</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
                 <div>
                   <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">
                     Business Name (Optional)
@@ -265,6 +308,20 @@ export const LandlordSettings: React.FC = () => {
                     onChange={(e) => setBusinessName(e.target.value)}
                     placeholder="ABC Property Management"
                   />
+                </div>
+
+                <div className="flex items-center h-full pt-4">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useBusinessName}
+                      onChange={(e) => setUseBusinessName(e.target.checked)}
+                      className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                    />
+                    <span className="ml-2 text-xs sm:text-sm text-gray-700">
+                      Show business name to tenants
+                    </span>
+                  </label>
                 </div>
               </div>
 
@@ -719,7 +776,7 @@ export const LandlordSettings: React.FC = () => {
                 ✕
               </button>
             </div>
-            
+
             <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
               <div>
                 <label className="block mb-1 text-xs sm:text-sm font-medium text-gray-700">

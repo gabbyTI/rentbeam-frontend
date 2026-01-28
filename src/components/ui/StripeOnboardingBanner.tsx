@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from './Button';
 import { useApp } from '../../context/AppContext';
 import { connectStripe } from '../../services/api';
 
 export const StripeOnboardingBanner: React.FC = () => {
-  const navigate = useNavigate();
   const { stripeOnboarded, stripeStatus, loading } = useApp();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -25,10 +23,10 @@ export const StripeOnboardingBanner: React.FC = () => {
     // Onboarded but verification pending
     variant = 'info';
     title = 'Verification in Progress';
-    
+
     if (stripeStatus?.requirementsPending && stripeStatus.requirementsPending.length > 0) {
       message = 'Your payment account is being verified. This usually takes 1-2 business days. You can check the status anytime.';
-      buttonText = 'View Dashboard';
+      buttonText = 'Refresh';
       actionType = 'navigate';
     } else if (stripeStatus?.requirementsDue && stripeStatus.requirementsDue.length > 0) {
       message = 'Additional information required. Please complete your verification to start accepting payments.';
@@ -36,7 +34,7 @@ export const StripeOnboardingBanner: React.FC = () => {
       actionType = 'stripe';
     } else {
       message = 'Your payment account is being verified. You\'ll be able to accept payments once approved (usually within 1-2 business days).';
-      buttonText = 'View Status';
+      buttonText = 'Refresh';
       actionType = 'navigate';
     }
   }
@@ -56,7 +54,7 @@ export const StripeOnboardingBanner: React.FC = () => {
         setIsLoading(false);
       }
     } else {
-      navigate('/landlord/dashboard');
+      window.location.reload();
     }
   };
 

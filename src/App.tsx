@@ -10,6 +10,7 @@ import { VerifyEmail } from './components/VerifyEmail';
 import { ForgotPassword } from './components/ForgotPassword';
 import { ResetPassword } from './components/ResetPassword';
 import { LandlordCompleteSetup } from './components/landlord/LandlordCompleteSetup';
+import { LandlordCompleteProfile } from './components/landlord/LandlordCompleteProfile';
 import { LandlordOnboarding } from './components/landlord/LandlordOnboarding';
 import { LandlordDashboard } from './components/landlord/LandlordDashboard';
 import { LandlordProperties } from './components/landlord/LandlordProperties';
@@ -72,6 +73,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/landlord/complete-profile" element={<LandlordCompleteProfile />} />
       <Route path="/landlord/complete-setup" element={<LandlordCompleteSetup />} />
       <Route path="/landlord/onboarding" element={<LandlordOnboarding />} />
       <Route path="/invite/:token" element={<InviteAccept />} />

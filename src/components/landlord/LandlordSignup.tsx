@@ -13,7 +13,6 @@ export const LandlordSignup: React.FC = () => {
   const { currentUser } = useApp();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -22,8 +21,8 @@ export const LandlordSignup: React.FC = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (currentUser) {
-      const redirectPath = currentUser.role === 'landlord' 
-        ? '/landlord/dashboard' 
+      const redirectPath = currentUser.role === 'landlord'
+        ? '/landlord/dashboard'
         : '/tenant/dashboard';
       navigate(redirectPath, { replace: true });
     }
@@ -32,7 +31,7 @@ export const LandlordSignup: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.email || !formData.password) {
+    if (!formData.email || !formData.password) {
       showToast('Please fill in all fields', 'error');
       return;
     }
@@ -51,7 +50,6 @@ export const LandlordSignup: React.FC = () => {
 
     try {
       await signupLandlord({
-        name: formData.name,
         email: formData.email,
         password: formData.password,
       });
@@ -78,17 +76,6 @@ export const LandlordSignup: React.FC = () => {
         <Card>
           <CardContent className="py-8">
             <form onSubmit={handleSubmit} className="space-y-6">
-              <Input
-                label="Full Name"
-                type="text"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                placeholder="John Doe"
-                required
-              />
-
               <Input
                 label="Email Address"
                 type="email"

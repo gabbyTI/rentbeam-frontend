@@ -12,6 +12,7 @@ const COGNITO_ID_KEY = `${APP_CONFIG.storage.prefix}cognito_id`;
 const USER_KEY = `${APP_CONFIG.storage.prefix}user`;
 const MEMBERSHIPS_KEY = `${APP_CONFIG.storage.prefix}memberships`;
 const SELECTED_ROLE_KEY = `${APP_CONFIG.storage.prefix}selected_role`;
+const PROFILE_COMPLETE_KEY = `${APP_CONFIG.storage.prefix}profile_complete`;
 
 export interface AuthTokens {
   accessToken: string;
@@ -30,11 +31,12 @@ export interface User {
 export interface LoginResponse {
   tokens: AuthTokens;
   user: User;
+  profileComplete: boolean;
   memberships: {
     landlord: { id: string } | null;
-    tenants: Array<{ 
-      id: string; 
-      unitId: string; 
+    tenants: Array<{
+      id: string;
+      unitId: string;
       unitName: string;
       propertyName: string;
       status: string;
@@ -104,15 +106,15 @@ class AuthService {
   /**
    * Store memberships
    */
-  setMemberships(memberships: { 
-    landlord: { id: string } | null; 
-    tenants: Array<{ 
-      id: string; 
-      unitId: string; 
+  setMemberships(memberships: {
+    landlord: { id: string } | null;
+    tenants: Array<{
+      id: string;
+      unitId: string;
       unitName: string;
       propertyName: string;
       status: string;
-    }> 
+    }>
   }): void {
     localStorage.setItem(MEMBERSHIPS_KEY, JSON.stringify(memberships));
   }
@@ -120,15 +122,15 @@ class AuthService {
   /**
    * Get memberships
    */
-  getMemberships(): { 
-    landlord: { id: string } | null; 
-    tenants: Array<{ 
-      id: string; 
-      unitId: string; 
+  getMemberships(): {
+    landlord: { id: string } | null;
+    tenants: Array<{
+      id: string;
+      unitId: string;
       unitName: string;
       propertyName: string;
       status: string;
-    }> 
+    }>
   } | null {
     const membershipsStr = localStorage.getItem(MEMBERSHIPS_KEY);
     if (!membershipsStr) return null;
@@ -136,6 +138,26 @@ class AuthService {
       return JSON.parse(membershipsStr);
     } catch {
       return null;
+    }
+  }
+
+  /**
+   * Store profile complete status
+   */
+  setProfileComplete(complete: boolean): void {
+    localStorage.setItem(PROFILE_COMPLETE_KEY, JSON.stringify(complete));
+  }
+
+  /**
+   * Get profile complete status
+   */
+  getProfileComplete(): boolean {
+    const val = localStorage.getItem(PROFILE_COMPLETE_KEY);
+    if (!val) return true; // Default to true for existing users
+    try {
+      return JSON.parse(val);
+    } catch {
+      return true;
     }
   }
 
@@ -150,6 +172,7 @@ class AuthService {
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(MEMBERSHIPS_KEY);
     localStorage.removeItem(SELECTED_ROLE_KEY);
+    localStorage.removeItem(PROFILE_COMPLETE_KEY);
   }
 
   /**

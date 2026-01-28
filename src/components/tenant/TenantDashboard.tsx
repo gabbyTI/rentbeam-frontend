@@ -49,8 +49,8 @@ export const TenantDashboard: React.FC = () => {
         setPayments(tenantPayments);
 
         const status = getPaymentStatus(
-          { id: membership.id } as TenantMembership, 
-          tenantPayments, 
+          { id: membership.id } as TenantMembership,
+          tenantPayments,
           { dueDay: membership.unit.dueDay, gracePeriodDays: membership.unit.gracePeriodDays } as any
         );
         setPaymentStatus(status);
@@ -93,7 +93,7 @@ export const TenantDashboard: React.FC = () => {
   const handlePaymentSuccess = async () => {
     try {
       if (!currentUser || currentUser.role !== 'tenant') return;
-      
+
       const membershipId = currentUser.id; // Use selected tenant membership ID
       const membership = await getTenantMembership(membershipId);
       setTenantData(membership);
@@ -124,7 +124,7 @@ export const TenantDashboard: React.FC = () => {
 
   const handleDisableAutopay = async () => {
     if (!tenantData) return;
-    
+
     setLoading(true);
     try {
       await api.patch(`/api/tenants/${tenantData.id}/autopay`, {
@@ -133,7 +133,7 @@ export const TenantDashboard: React.FC = () => {
 
       showToast('Autopay disabled', 'success');
       setShowDisableModal(false);
-      
+
       // Refresh data
       await handlePaymentSuccess();
     } catch (err: any) {
@@ -178,15 +178,15 @@ export const TenantDashboard: React.FC = () => {
   const dueDay = unit.dueDay;
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
-  
+
   let dueDate = new Date(currentYear, currentMonth, dueDay);
   if (today.getDate() > dueDay) {
     dueDate = new Date(currentYear, currentMonth + 1, dueDay);
   }
-  
+
   const diffTime = dueDate.getTime() - today.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
+
   const gracePeriodDays = unit.gracePeriodDays || 0;
   const lateDays = today.getDate() - dueDay;
   const graceDaysRemaining = gracePeriodDays - lateDays;
@@ -225,25 +225,25 @@ export const TenantDashboard: React.FC = () => {
   return (
     <AppShell title="Dashboard">
       <div className="space-y-4 sm:space-y-6">{acceptsOnlinePayments && !tenantData.defaultPaymentMethodId && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
-            <div className="flex items-start gap-2 sm:gap-3">
-              <span className="text-xl sm:text-2xl">💳</span>
-              <div className="flex-1">
-                <h4 className="text-sm sm:text-base font-medium text-blue-900 mb-1">Add a payment method</h4>
-                <p className="text-xs sm:text-sm text-blue-800 mb-3">
-                  Set up your card to pay rent online with ease. Processing fees apply (2.9% + $0.30).
-                </p>
-                <Button
-                  size="sm"
-                  onClick={() => navigate('/tenant/payment-method')}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Add Payment Method
-                </Button>
-              </div>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <span className="text-xl sm:text-2xl">💳</span>
+            <div className="flex-1">
+              <h4 className="text-sm sm:text-base font-medium text-blue-900 mb-1">Add a payment method</h4>
+              <p className="text-xs sm:text-sm text-blue-800 mb-3">
+                Set up your card to pay rent online with ease. Processing fees apply (2.9% + $0.30).
+              </p>
+              <Button
+                size="sm"
+                onClick={() => navigate('/tenant/payment-method')}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Add Payment Method
+              </Button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         {!acceptsOnlinePayments && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4">
@@ -341,18 +341,18 @@ export const TenantDashboard: React.FC = () => {
               disabled={!tenantData.defaultPaymentMethodId || paymentStatus === 'paid'}
             >
               <span className="hidden sm:inline">
-                {!tenantData.defaultPaymentMethodId 
+                {!tenantData.defaultPaymentMethodId
                   ? 'Add Payment Method to Pay'
                   : paymentStatus === 'paid'
-                  ? `Paid - ${formatCurrency(unit.rentAmount)}`
-                  : `Pay Now - ${formatCurrency(unit.rentAmount)}`}
+                    ? `Paid - ${formatCurrency(unit.rentAmount)}`
+                    : `Pay Now - ${formatCurrency(unit.rentAmount)}`}
               </span>
               <span className="sm:hidden">
-                {!tenantData.defaultPaymentMethodId 
+                {!tenantData.defaultPaymentMethodId
                   ? 'Add Payment Method'
                   : paymentStatus === 'paid'
-                  ? `Paid - ${formatCurrency(unit.rentAmount)}`
-                  : `Pay ${formatCurrency(unit.rentAmount)}`}
+                    ? `Paid - ${formatCurrency(unit.rentAmount)}`
+                    : `Pay ${formatCurrency(unit.rentAmount)}`}
               </span>
             </Button>
             {tenantData.defaultPaymentMethodId && (
@@ -399,7 +399,7 @@ export const TenantDashboard: React.FC = () => {
                 </div>
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-1 text-xs sm:text-sm">
                   <span className="text-gray-500">Landlord</span>
-                  <span className="font-medium text-right sm:text-left">{landlord.user.name}</span>
+                  <span className="font-medium text-right sm:text-left">{landlord.user.displayName || landlord.user.name}</span>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-1 text-xs sm:text-sm">
                   <span className="text-gray-500">Move-in Date</span>
@@ -464,8 +464,8 @@ export const TenantDashboard: React.FC = () => {
               <h3 className="text-base sm:text-lg font-semibold">Payment History</h3>
             </CardHeader>
             <CardContent>
-              <PaymentHistoryList 
-                payments={payments} 
+              <PaymentHistoryList
+                payments={payments}
                 dueDay={unit.dueDay}
                 gracePeriodDays={unit.gracePeriodDays}
               />

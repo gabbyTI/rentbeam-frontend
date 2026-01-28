@@ -191,6 +191,22 @@ export const LandlordCompleteSetup: React.FC = () => {
                 </div>
               </div>
 
+              {/* Payment Information Section */}
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-5">
+                <div className="flex items-center gap-6">
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Payment Information</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      We use Stripe to make sure you get paid on time and to keep your personal bank details secure.
+                      Click <strong>Connect Bank Account</strong> to set up your payments.
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <img src="/stripe-logo.svg" alt="Stripe" className="h-8" />
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-3">
                 <Button
                   onClick={handleConnect}
