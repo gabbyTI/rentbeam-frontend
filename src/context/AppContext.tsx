@@ -69,29 +69,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const restoreSession = () => {
       console.log('🔵 Attempting to restore session...');
       console.log('🔵 isAuthenticated:', authService.isAuthenticated());
-      
+
       if (authService.isAuthenticated()) {
         const memberships = authService.getMemberships();
         console.log('🔵 Retrieved memberships:', memberships);
-        
+
         if (memberships) {
           const hasLandlord = !!memberships.landlord;
           const hasTenants = memberships.tenants && memberships.tenants.length > 0;
-          
-          // Check if user has both roles
-          if (hasLandlord && hasTenants) {
+          const hasMultipleTenants = memberships.tenants && memberships.tenants.length > 1;
+
+          // Check if user needs to select an account (landlord + tenant OR multiple tenants)
+          if ((hasLandlord && hasTenants) || hasMultipleTenants) {
             const selectedRole = authService.getSelectedRole();
             // If user has stored preference, use it
             if (selectedRole) {
-              console.log('🔵 User has both roles, using stored preference:', selectedRole);
+              console.log('🔵 User has multiple accounts, using stored preference:', selectedRole);
               setState(prev => ({
                 ...prev,
                 currentUser: { role: selectedRole.role, id: selectedRole.id },
               }));
             } else {
-              console.log('🔵 User has both roles, no stored preference - showing role selector');
+              console.log('🔵 User has multiple accounts, no stored preference - showing role selector');
               setAvailableRoles({
-                landlord: { id: memberships.landlord!.id },
+                landlord: memberships.landlord ? { id: memberships.landlord.id } : undefined,
                 tenants: memberships.tenants.map(t => ({
                   id: t.id,
                   unitName: t.unitName,
@@ -121,7 +122,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       } else {
         console.log('🔵 User not authenticated, skipping session restore');
       }
-      
+
       // Mark session check as complete
       setSessionReady(true);
     };
@@ -145,11 +146,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           Promise<TenantMembership[]>,
           Promise<Payment[]>
         ] = [
-          fetchProperties(),
-          fetchUnits(),
-          fetchTenants(),
-          fetchPayments(),
-        ];
+            fetchProperties(),
+            fetchUnits(),
+            fetchTenants(),
+            fetchPayments(),
+          ];
 
         // Load Stripe status only for landlords (handled separately to avoid type issues)
         if (state.currentUser.role === 'landlord') {

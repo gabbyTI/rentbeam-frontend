@@ -24,9 +24,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     window.location.reload();
   };
 
-  // Check for dual roles from stored memberships instead of availableRoles
+  // Check for multiple accounts from stored memberships
   const memberships = JSON.parse(localStorage.getItem('rentbeam_memberships') || 'null');
-  const hasDualRoles = memberships && memberships.landlord && memberships.tenants && memberships.tenants.length > 0;
+  const hasMultipleAccounts = memberships && (
+    (memberships.landlord && memberships.tenants && memberships.tenants.length > 0) ||
+    (memberships.tenants && memberships.tenants.length > 1)
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -35,7 +38,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
-              <h1 
+              <h1
                 className="text-lg sm:text-xl font-bold text-primary-600 cursor-pointer"
                 onClick={() => navigate(currentUser?.role === 'landlord' ? '/landlord/dashboard' : '/tenant/dashboard')}
               >
@@ -47,19 +50,19 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 <span className="hidden sm:inline text-sm text-gray-600 capitalize">
                   {currentUser.role}
                 </span>
-                {hasDualRoles && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                {hasMultipleAccounts && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={handleSwitchRole}
                     className="text-xs sm:text-sm"
                   >
                     Switch Account
                   </Button>
                 )}
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => navigate(currentUser.role === 'landlord' ? '/landlord/settings' : '/tenant/settings')}
                   className="hidden sm:inline-flex"
                 >

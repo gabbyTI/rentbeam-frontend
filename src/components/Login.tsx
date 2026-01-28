@@ -58,11 +58,12 @@ export const Login: React.FC = () => {
       console.log('🔵 Step 3: Setting current user...');
       const hasLandlord = !!response.memberships.landlord;
       const hasTenants = response.memberships.tenants && response.memberships.tenants.length > 0;
+      const hasMultipleTenants = response.memberships.tenants && response.memberships.tenants.length > 1;
 
-      // Check if user has both roles - let AppContext handle role selection
-      if (hasLandlord && hasTenants) {
-        console.log('🔵 User has both roles - redirecting to home for AppContext to handle');
-        // Don't call login() here - let AppContext detect dual roles and show selector
+      // Check if user needs account selection - let AppContext handle role selection
+      if ((hasLandlord && hasTenants) || hasMultipleTenants) {
+        console.log('🔵 User has multiple accounts - redirecting to home for AppContext to handle');
+        // Don't call login() here - let AppContext detect multiple accounts and show selector
         window.location.href = '/';
         return;
       } else if (hasLandlord) {
