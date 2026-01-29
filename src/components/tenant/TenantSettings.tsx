@@ -63,6 +63,8 @@ export const TenantSettings: React.FC = () => {
     const loadUserData = async () => {
       try {
         const profile = await getCurrentUser();
+        console.log('[TenantSettings] Profile loaded:', profile);
+
         setFirstName(profile.user.firstName || '');
         setLastName(profile.user.lastName || '');
         setEmail(profile.user.email);
@@ -72,10 +74,19 @@ export const TenantSettings: React.FC = () => {
         // Load tenant membership data for autopay section
         if (profile.memberships.tenants && profile.memberships.tenants.length > 0) {
           const membershipId = profile.memberships.tenants[0].id;
+          console.log('[TenantSettings] Fetching membership:', membershipId);
+
           const membership = await getTenantMembership(membershipId);
+          console.log('[TenantSettings] Membership loaded:', membership);
+          console.log('[TenantSettings] defaultPaymentMethodId:', membership.defaultPaymentMethodId);
+          console.log('[TenantSettings] paymentMethodLabel:', membership.paymentMethodLabel);
+
           setTenantData(membership);
+        } else {
+          console.log('[TenantSettings] No tenant memberships found');
         }
       } catch (err: any) {
+        console.error('[TenantSettings] Error loading data:', err);
         showToast(err.message || 'Failed to load user data', 'error');
       } finally {
         setLoading(false);
@@ -692,8 +703,8 @@ export const TenantSettings: React.FC = () => {
                   <button
                     onClick={() => setTheme('light')}
                     className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg transition-colors ${theme === 'light'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
                       }`}
                   >
                     <div className="flex items-center justify-center gap-1 sm:gap-2">
@@ -704,8 +715,8 @@ export const TenantSettings: React.FC = () => {
                   <button
                     onClick={() => setTheme('dark')}
                     className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 border-2 rounded-lg transition-colors ${theme === 'dark'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
                       }`}
                   >
                     <div className="flex items-center justify-center gap-1 sm:gap-2">
