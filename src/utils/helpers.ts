@@ -26,11 +26,11 @@ export const getCurrentRentMonth = (unit?: Unit): string => {
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth(); // 0-indexed
   const currentDay = now.getDate();
-  
+
   // Determine the next due date
   let rentYear = currentYear;
   let rentMonth = currentMonth;
-  
+
   // If we're past the due day this month, next due date is next month
   if (currentDay > dueDay) {
     rentMonth = currentMonth + 1;
@@ -39,19 +39,19 @@ export const getCurrentRentMonth = (unit?: Unit): string => {
       rentYear = currentYear + 1;
     }
   }
-  
+
   // Calculate the due date and payment window open date
   const dueDate = new Date(rentYear, rentMonth, dueDay);
   const paymentWindowOpenDate = new Date(dueDate);
   paymentWindowOpenDate.setDate(dueDate.getDate() - 5);
-  
+
   // If payment window is not yet open, return previous month
   if (now < paymentWindowOpenDate) {
     const prevMonth = rentMonth === 0 ? 11 : rentMonth - 1;
     const prevYear = rentMonth === 0 ? rentYear - 1 : rentYear;
     return `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}`;
   }
-  
+
   // Payment window is open for the upcoming rent month
   return `${rentYear}-${String(rentMonth + 1).padStart(2, '0')}`;
 };
@@ -72,11 +72,11 @@ export const getPaymentStatus = (
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth(); // 0-indexed
   const currentDay = now.getDate();
-  
+
   // Determine the next due date (same logic as getCurrentRentMonth)
   let rentYear = currentYear;
   let rentMonth = currentMonth;
-  
+
   // If we're past the due day this month, next due date is next month
   if (currentDay > dueDay) {
     rentMonth = currentMonth + 1;
@@ -85,48 +85,48 @@ export const getPaymentStatus = (
       rentYear = currentYear + 1;
     }
   }
-  
+
   // Calculate the due date and payment window open date
   const dueDate = new Date(rentYear, rentMonth, dueDay);
   const paymentWindowOpenDate = new Date(dueDate);
   paymentWindowOpenDate.setDate(dueDate.getDate() - 5);
-  
+
   // Check if this is the tenant's first payment cycle
   // If move-in date is after the payment window open date, they're not expected to pay yet
   const moveInDate = new Date(tenant.moveInDate);
   if (moveInDate > paymentWindowOpenDate) {
     return 'paid'; // Not expected to pay for this cycle
   }
-  
+
   // If payment window is not yet open, show as paid (nothing due yet)
   if (now < paymentWindowOpenDate) {
     return 'paid';
   }
-  
+
   // Payment window is open - check for payment for this rent month
   const rentMonthString = `${rentYear}-${String(rentMonth + 1).padStart(2, '0')}`;
   const hasPayment = payments.some(
     (p) => p.tenantMembershipId === tenant.id && p.month === rentMonthString
   );
-  
+
   if (hasPayment) {
     return 'paid';
   }
-  
+
   // Payment window is open but not paid yet
   if (now < dueDate) {
     return 'pending';
   }
-  
+
   // Past due date, check grace period
   const gracePeriod = unit?.gracePeriodDays ?? 0;
   const lateDate = new Date(dueDate);
   lateDate.setDate(dueDate.getDate() + gracePeriod);
-  
+
   if (now <= lateDate) {
     return 'due'; // Past due but within grace period
   }
-  
+
   return 'late'; // Past grace period
 };
 
@@ -158,10 +158,19 @@ export const wasPaymentLate = (
   gracePeriodDays: number
 ): boolean => {
   const paymentDate = new Date(payment.date);
-  const paymentDay = paymentDate.getDate();
-  const lateDay = dueDay + gracePeriodDays;
-  
-  return paymentDay > lateDay;
+
+  // Parse the payment's billing month (e.g., "2026-02")
+  const [year, month] = payment.month.split('-').map(Number);
+
+  // Calculate the due date for this billing month
+  const dueDate = new Date(year, month - 1, dueDay); // month is 1-indexed
+
+  // Calculate the grace period deadline
+  const graceDeadline = new Date(dueDate);
+  graceDeadline.setDate(dueDate.getDate() + gracePeriodDays);
+
+  // Payment is late only if it was made AFTER the grace period deadline
+  return paymentDate > graceDeadline;
 };
 
 export const isPaymentWindowOpen = (unit?: Unit): boolean => {
@@ -170,11 +179,11 @@ export const isPaymentWindowOpen = (unit?: Unit): boolean => {
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth(); // 0-indexed
   const currentDay = now.getDate();
-  
+
   // Determine the next due date
   let rentYear = currentYear;
   let rentMonth = currentMonth;
-  
+
   // If we're past the due day this month, next due date is next month
   if (currentDay > dueDay) {
     rentMonth = currentMonth + 1;
@@ -183,12 +192,12 @@ export const isPaymentWindowOpen = (unit?: Unit): boolean => {
       rentYear = currentYear + 1;
     }
   }
-  
+
   // Calculate the due date and payment window open date
   const dueDate = new Date(rentYear, rentMonth, dueDay);
   const paymentWindowOpenDate = new Date(dueDate);
   paymentWindowOpenDate.setDate(dueDate.getDate() - 5);
-  
+
   // Check if payment window is open
   return now >= paymentWindowOpenDate;
 };
