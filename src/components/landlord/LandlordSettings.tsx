@@ -441,7 +441,7 @@ export const LandlordSettings: React.FC = () => {
                   <div className="p-3 sm:p-4 border border-blue-200 rounded-lg bg-blue-50">
                     <h4 className="mb-2 text-sm sm:text-base font-medium text-blue-900">Payment Information</h4>
                     <ul className="space-y-1 text-xs sm:text-sm text-blue-800">
-                      <li>• Processing Fee: 2.9% + $0.30 (passed to tenant)</li>
+                      <li>• Processing Fees: Vary by payment method (passed to tenant)</li>
                       <li>• Payout Schedule: Daily automatic</li>
                       <li>• Standard payout timing: 2 business days</li>
                     </ul>

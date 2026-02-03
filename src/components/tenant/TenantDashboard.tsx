@@ -231,7 +231,7 @@ export const TenantDashboard: React.FC = () => {
             <div className="flex-1">
               <h4 className="text-sm sm:text-base font-medium text-blue-900 mb-1">Add a payment method</h4>
               <p className="text-xs sm:text-sm text-blue-800 mb-3">
-                Set up your card to pay rent online with ease. Processing fees apply (2.9% + $0.30).
+                Set up your card or bank account to pay rent online with ease. Processing fees apply.
               </p>
               <Button
                 size="sm"

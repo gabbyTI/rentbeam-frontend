@@ -776,7 +776,7 @@ export const TenantSettings: React.FC = () => {
                         onClick={() => navigate('/tenant/payment-method')}
                         className="flex-1"
                       >
-                        <span className="hidden sm:inline">Update Card</span>
+                        <span className="hidden sm:inline">Update</span>
                         <span className="sm:hidden">Update</span>
                       </Button>
                       <Button
@@ -785,7 +785,7 @@ export const TenantSettings: React.FC = () => {
                         onClick={() => setShowRemoveCardModal(true)}
                         className="flex-1 text-red-600 border-red-300 hover:bg-red-50"
                       >
-                        <span className="hidden sm:inline">Remove Card</span>
+                        <span className="hidden sm:inline">Remove</span>
                         <span className="sm:hidden">Remove</span>
                       </Button>
                     </div>
@@ -830,7 +830,10 @@ export const TenantSettings: React.FC = () => {
                             <span className="text-xs sm:text-sm text-gray-600">Date</span>
                             <span className="text-sm sm:text-base font-medium">{getNextChargeDate()}</span>
                           </div>
-                          <FeeBreakdown rentAmount={Number(tenantData.unit.rentAmount)} />
+                          <FeeBreakdown
+                            rentAmount={Number(tenantData.unit.rentAmount)}
+                            paymentMethodType={tenantData.paymentMethodType || undefined}
+                          />
                         </div>
                       </div>
 
@@ -860,7 +863,10 @@ export const TenantSettings: React.FC = () => {
                       <div>
                         <h3 className="text-sm sm:text-base font-medium mb-2 sm:mb-3">Your Monthly Charge</h3>
                         <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
-                          <FeeBreakdown rentAmount={Number(tenantData.unit.rentAmount)} />
+                          <FeeBreakdown
+                            rentAmount={Number(tenantData.unit.rentAmount)}
+                            paymentMethodType={tenantData.paymentMethodType || undefined}
+                          />
                         </div>
                       </div>
 
@@ -874,7 +880,7 @@ export const TenantSettings: React.FC = () => {
                           />
                           <span className="text-xs sm:text-sm text-gray-700">
                             I authorize RentBeam to automatically charge my payment method for
-                            {' '}{formatCurrency(calculateProcessingFee(Number(tenantData.unit.rentAmount)).totalAmount)} on the {tenantData.unit.dueDay}
+                            {' '}{formatCurrency(calculateProcessingFee(Number(tenantData.unit.rentAmount), tenantData.paymentMethodType || 'card').totalAmount)} on the {tenantData.unit.dueDay}
                             {tenantData.unit.dueDay === 1 ? 'st' : tenantData.unit.dueDay === 2 ? 'nd' : tenantData.unit.dueDay === 3 ? 'rd' : 'th'} of each month.
                             I understand I can disable autopay at any time.
                           </span>

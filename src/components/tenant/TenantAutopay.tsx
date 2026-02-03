@@ -58,7 +58,7 @@ export const TenantAutopay: React.FC = () => {
       });
 
       showToast('Autopay enabled successfully!', 'success');
-      
+
       const membershipId = tenantData!.id;
       const membership = await getTenantMembership(membershipId);
       setTenantData(membership);
@@ -79,7 +79,7 @@ export const TenantAutopay: React.FC = () => {
 
       showToast('Autopay disabled', 'success');
       setShowDisableModal(false);
-      
+
       const membershipId = tenantData!.id;
       const membership = await getTenantMembership(membershipId);
       setTenantData(membership);
@@ -97,7 +97,7 @@ export const TenantAutopay: React.FC = () => {
 
       showToast('Payment method removed successfully', 'success');
       setShowRemoveCardModal(false);
-      
+
       const membershipId = tenantData!.id;
       const membership = await getTenantMembership(membershipId);
       setTenantData(membership);
@@ -142,21 +142,21 @@ export const TenantAutopay: React.FC = () => {
 
   const { unit } = tenantData;
   const rentAmount = Number(unit.rentAmount);
-  const { totalAmount } = calculateProcessingFee(rentAmount);
+  const { totalAmount } = calculateProcessingFee(rentAmount, tenantData.paymentMethodType || 'card');
 
   const getNextChargeDate = () => {
     const today = new Date();
     const dueDay = unit.dueDay;
     let nextCharge = new Date(today.getFullYear(), today.getMonth(), dueDay);
-    
+
     if (today.getDate() >= dueDay) {
       nextCharge = new Date(today.getFullYear(), today.getMonth() + 1, dueDay);
     }
-    
-    return nextCharge.toLocaleDateString('en-US', { 
-      month: 'long', 
-      day: 'numeric', 
-      year: 'numeric' 
+
+    return nextCharge.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
     });
   };
 
@@ -246,7 +246,10 @@ export const TenantAutopay: React.FC = () => {
                         <span className="text-sm text-gray-600">Date</span>
                         <span className="font-medium">{getNextChargeDate()}</span>
                       </div>
-                      <FeeBreakdown rentAmount={rentAmount} />
+                      <FeeBreakdown
+                        rentAmount={rentAmount}
+                        paymentMethodType={tenantData.paymentMethodType || undefined}
+                      />
                     </div>
                   </div>
 
@@ -274,7 +277,10 @@ export const TenantAutopay: React.FC = () => {
                   <div>
                     <h3 className="font-medium mb-3">Your Monthly Charge</h3>
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <FeeBreakdown rentAmount={rentAmount} />
+                      <FeeBreakdown
+                        rentAmount={rentAmount}
+                        paymentMethodType={tenantData.paymentMethodType || undefined}
+                      />
                     </div>
                   </div>
 
@@ -287,7 +293,7 @@ export const TenantAutopay: React.FC = () => {
                         className="mt-1"
                       />
                       <span className="text-sm text-gray-700">
-                        I authorize RentBeam to automatically charge my payment method for 
+                        I authorize RentBeam to automatically charge my payment method for
                         {' '}{formatCurrency(totalAmount)} on the {unit.dueDay}
                         {unit.dueDay === 1 ? 'st' : unit.dueDay === 2 ? 'nd' : unit.dueDay === 3 ? 'rd' : 'th'} of each month.
                         I understand I can disable autopay at any time.

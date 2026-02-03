@@ -4,15 +4,21 @@ interface FeeBreakdownProps {
   rentAmount: number;
   showPlatformFee?: boolean;
   platformFee?: number;
+  paymentMethodType?: string;
 }
 
 export function FeeBreakdown({
   rentAmount,
   showPlatformFee = false,
   platformFee = 0,
+  paymentMethodType = 'card',
 }: FeeBreakdownProps) {
-  const { processingFee, totalAmount } = calculateProcessingFee(rentAmount);
+  const { processingFee, totalAmount } = calculateProcessingFee(rentAmount, paymentMethodType);
   const finalTotal = totalAmount + (showPlatformFee ? platformFee : 0);
+
+  const rateText = paymentMethodType === 'acss_debit'
+    ? '(1% + $0.40)'
+    : '(2.9% + $0.30)';
 
   return (
     <div className="space-y-2 text-sm">
@@ -20,11 +26,11 @@ export function FeeBreakdown({
         <span className="text-gray-600">Rent amount</span>
         <span className="font-medium">{formatCurrency(rentAmount)}</span>
       </div>
-      
+
       <div className="flex justify-between">
         <span className="text-gray-600">
           Processing fee{' '}
-          <span className="text-xs text-gray-500">(2.9% + $0.30)</span>
+          <span className="text-xs text-gray-500">{rateText}</span>
         </span>
         <span className="font-medium">{formatCurrency(processingFee)}</span>
       </div>
@@ -44,7 +50,7 @@ export function FeeBreakdown({
       </div>
 
       <p className="text-xs text-gray-500 mt-2">
-        💡 The processing fee covers credit card transaction costs and is charged by Stripe.
+        💡 The processing fee costs are charged by Stripe.
       </p>
     </div>
   );

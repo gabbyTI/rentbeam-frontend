@@ -370,6 +370,7 @@ export interface TenantMembershipDetails {
   stripeCustomerId: string | null;
   defaultPaymentMethodId: string | null;
   paymentMethodLabel: string | null;
+  paymentMethodType: string | null;
   status: string;
   user: {
     id: string;

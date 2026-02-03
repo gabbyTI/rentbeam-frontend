@@ -64,10 +64,22 @@ const SetupForm: React.FC<{ tenantData: TenantMembershipDetails }> = ({ tenantDa
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h4 className="font-medium text-blue-900 mb-2">💳 Payment Method Setup</h4>
           <p className="text-sm text-blue-800 mb-3">
-            Add your card to pay rent online. You can enable autopay later if you'd like.
+            Add a payment method (Card or Bank Account) to pay rent online. You can enable autopay later.
           </p>
-          <div className="bg-white rounded-lg p-4">
-            <FeeBreakdown rentAmount={Number(tenantData.unit.rentAmount)} />
+          <div className="text-sm">
+            <p className="font-medium text-gray-700 mb-2">Processing Fees per Transaction:</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gray-50 p-3 rounded border border-gray-100">
+                <span className="block text-xs text-gray-500 uppercase tracking-wide">Bank Account</span>
+                <span className="block font-semibold text-green-700">1% + $0.40</span>
+                <span className="text-xs text-gray-500">Most affordable</span>
+              </div>
+              <div className="bg-gray-50 p-3 rounded border border-gray-100">
+                <span className="block text-xs text-gray-500 uppercase tracking-wide">Card</span>
+                <span className="block font-semibold text-gray-900">2.9% + $0.30</span>
+                <span className="text-xs text-gray-500">Standard rate</span>
+              </div>
+            </div>
           </div>
         </div>
 
