@@ -63,7 +63,6 @@ export const TenantSettings: React.FC = () => {
     const loadUserData = async () => {
       try {
         const profile = await getCurrentUser();
-        console.log('[TenantSettings] Profile loaded:', profile);
 
         setFirstName(profile.user.firstName || '');
         setLastName(profile.user.lastName || '');
@@ -74,19 +73,12 @@ export const TenantSettings: React.FC = () => {
         // Load tenant membership data for autopay section
         if (profile.memberships.tenants && profile.memberships.tenants.length > 0) {
           const membershipId = profile.memberships.tenants[0].id;
-          console.log('[TenantSettings] Fetching membership:', membershipId);
 
           const membership = await getTenantMembership(membershipId);
-          console.log('[TenantSettings] Membership loaded:', membership);
-          console.log('[TenantSettings] defaultPaymentMethodId:', membership.defaultPaymentMethodId);
-          console.log('[TenantSettings] paymentMethodLabel:', membership.paymentMethodLabel);
 
           setTenantData(membership);
-        } else {
-          console.log('[TenantSettings] No tenant memberships found');
         }
       } catch (err: any) {
-        console.error('[TenantSettings] Error loading data:', err);
         showToast(err.message || 'Failed to load user data', 'error');
       } finally {
         setLoading(false);
