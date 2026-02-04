@@ -1,6 +1,6 @@
 export type UserRole = 'landlord' | 'tenant';
 
-export type PaymentStatus = 'paid' | 'pending' | 'due' | 'late';
+export type PaymentStatus = 'paid' | 'processing' | 'pending' | 'due' | 'late';
 export type PaymentMethod = 'CARD' | 'MANUAL'; // Backend uses uppercase
 export type InviteStatus = 'PENDING' | 'ACCEPTED'; // Backend uses uppercase
 export type MembershipStatus = 'ACTIVE' | 'INACTIVE'; // Backend enum
@@ -81,7 +81,7 @@ export interface Payment {
   paymentMethod?: 'Cash' | 'Check' | 'Zelle' | 'Venmo' | 'Other'; // For manual payments
   date: string;
   month: string; // Format: "YYYY-MM"
-  status?: 'PENDING' | 'SUCCEEDED' | 'FAILED';
+  status?: 'PENDING' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED';
   note?: string;
   // Card payment fields
   rentAmount?: number;

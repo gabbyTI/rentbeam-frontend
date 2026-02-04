@@ -6,12 +6,14 @@ import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { FeeBreakdown } from '../ui/FeeBreakdown';
 import { useToast } from '../../context/ToastContext';
-import { getCurrentUser, getTenantMembership, TenantMembershipDetails } from '../../services/api';
+import { useApp } from '../../context/AppContext';
+import { getTenantMembership, TenantMembershipDetails } from '../../services/api';
 import { calculateProcessingFee, formatCurrency } from '../../utils/stripe';
 import api from '../../services/api';
 
 export const TenantAutopay: React.FC = () => {
   const { showToast } = useToast();
+  const { currentUser } = useApp();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -23,15 +25,13 @@ export const TenantAutopay: React.FC = () => {
   useEffect(() => {
     const loadTenantData = async () => {
       try {
-        const profile = await getCurrentUser();
-
-        if (!profile.memberships.tenants || profile.memberships.tenants.length === 0) {
+        if (!currentUser || currentUser.role !== 'tenant') {
           showToast('No tenant membership found', 'error');
           navigate('/login');
           return;
         }
 
-        const membershipId = profile.memberships.tenants[0].id;
+        const membershipId = currentUser.id;
         const membership = await getTenantMembership(membershipId);
         setTenantData(membership);
       } catch (err: any) {
@@ -43,7 +43,7 @@ export const TenantAutopay: React.FC = () => {
     };
 
     loadTenantData();
-  }, [navigate, showToast]);
+  }, [navigate, showToast, currentUser]);
 
   const handleEnableAutopay = async () => {
     if (!consentChecked) {
@@ -93,12 +93,12 @@ export const TenantAutopay: React.FC = () => {
   const handleRemoveCard = async () => {
     setActionLoading(true);
     try {
-      await api.delete('/api/stripe/payment-method');
+      const membershipId = tenantData!.id;
+      await api.delete(`/api/stripe/payment-method?membershipId=${membershipId}`);
 
       showToast('Payment method removed successfully', 'success');
       setShowRemoveCardModal(false);
 
-      const membershipId = tenantData!.id;
       const membership = await getTenantMembership(membershipId);
       setTenantData(membership);
     } catch (err: any) {

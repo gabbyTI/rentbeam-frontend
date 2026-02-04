@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AppShell } from '../ui/AppShell';
 import { Card, CardHeader, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -13,8 +13,9 @@ import { calculateProcessingFee, formatCurrency } from '../../utils/stripe';
 
 export const TenantSettings: React.FC = () => {
   const { showToast } = useToast();
-  const { logout } = useApp();
+  const { logout, currentUser } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingAccount, setSavingAccount] = useState(false);
@@ -70,13 +71,23 @@ export const TenantSettings: React.FC = () => {
         setPhone(profile.user.phone || '');
         setNotificationEmail(profile.user.notificationEmail || '');
 
-        // Load tenant membership data for autopay section
-        if (profile.memberships.tenants && profile.memberships.tenants.length > 0) {
-          const membershipId = profile.memberships.tenants[0].id;
+        // Load tenant membership data for autopay section using selected membership from context
+        if (currentUser && currentUser.role === 'tenant') {
+          const membershipId = currentUser.id;
+          console.log('[TenantSettings] Fetching membership:', membershipId);
 
           const membership = await getTenantMembership(membershipId);
+          console.log('[TenantSettings] Membership data received:', {
+            id: membership.id,
+            defaultPaymentMethodId: membership.defaultPaymentMethodId,
+            paymentMethodLabel: membership.paymentMethodLabel,
+            paymentMethodType: membership.paymentMethodType,
+            autopayEnabled: membership.autopayEnabled,
+          });
 
           setTenantData(membership);
+        } else {
+          console.log('[TenantSettings] No tenant role in currentUser');
         }
       } catch (err: any) {
         showToast(err.message || 'Failed to load user data', 'error');
@@ -86,7 +97,7 @@ export const TenantSettings: React.FC = () => {
     };
 
     loadUserData();
-  }, [showToast]);
+  }, [showToast, location.key]); // location.key triggers refetch on navigation
 
   const handleSaveAccount = async () => {
     const trimmedEmail = notificationEmail.trim();
@@ -323,12 +334,12 @@ export const TenantSettings: React.FC = () => {
   const handleRemoveCard = async () => {
     setActionLoading(true);
     try {
-      await api.delete('/api/stripe/payment-method');
+      const membershipId = tenantData!.id;
+      await api.delete(`/api/stripe/payment-method?membershipId=${membershipId}`);
 
       showToast('Payment method removed successfully', 'success');
       setShowRemoveCardModal(false);
 
-      const membershipId = tenantData!.id;
       const membership = await getTenantMembership(membershipId);
       setTenantData(membership);
     } catch (err: any) {

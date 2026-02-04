@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Elements } from '@stripe/react-stripe-js';
 import stripePromise from '../../utils/stripeLoader';
 import { useApp } from '../../context/AppContext';
 import { AppShell } from '../ui/AppShell';
 import { Card, CardHeader, CardContent } from '../ui/Card';
-import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { PaymentHistoryList } from '../ui/PaymentHistoryList';
 import { TenantMetricCard } from '../ui/TenantMetricCard';
 import { PaymentTimeline } from '../ui/PaymentTimeline';
 import { PayNowModal } from './PayNowModal';
+import { RentStatusCard } from './RentStatusCard';
+import { PaymentDueCard } from './PaymentDueCard';
 import { formatCurrency, getPaymentStatus } from '../../utils/helpers';
 import { calculateTenantPaymentSummary, calculateYearToDateSummary, generatePaymentTimeline } from '../../utils/tenantAnalytics';
 import { useToast } from '../../context/ToastContext';
@@ -23,6 +24,7 @@ export const TenantDashboard: React.FC = () => {
   const { showToast } = useToast();
   const { currentUser } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showDisableModal, setShowDisableModal] = useState(false);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -63,7 +65,7 @@ export const TenantDashboard: React.FC = () => {
     };
 
     loadTenantData();
-  }, [navigate, showToast, currentUser]);
+  }, [navigate, showToast, currentUser, location.key]); // location.key changes on each navigation
 
   // Calculate analytics using useMemo for performance
   const paymentSummary = useMemo(() => {
@@ -191,36 +193,7 @@ export const TenantDashboard: React.FC = () => {
   const lateDays = today.getDate() - dueDay;
   const graceDaysRemaining = gracePeriodDays - lateDays;
 
-  const getStatusBadge = () => {
-    switch (paymentStatus) {
-      case 'paid':
-        return (
-          <Badge variant="accepted">
-            ✓ Paid for {new Date(currentYear, currentMonth).toLocaleString('default', { month: 'long' })}
-          </Badge>
-        );
-      case 'pending':
-        return (
-          <Badge variant="current">
-            Due in {diffDays} {diffDays === 1 ? 'day' : 'days'}
-          </Badge>
-        );
-      case 'due':
-        return (
-          <Badge variant="pending">
-            Due Today ({graceDaysRemaining} {graceDaysRemaining === 1 ? 'day' : 'days'} grace remaining)
-          </Badge>
-        );
-      case 'late':
-        return (
-          <Badge variant="past">
-            Overdue by {Math.abs(graceDaysRemaining)} {Math.abs(graceDaysRemaining) === 1 ? 'day' : 'days'}
-          </Badge>
-        );
-      default:
-        return <Badge variant="current">Current</Badge>;
-    }
-  };
+
 
   return (
     <AppShell title="Dashboard">
@@ -363,53 +336,54 @@ export const TenantDashboard: React.FC = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <Card className={acceptsOnlinePayments ? "lg:col-span-2" : "lg:col-span-3"}>
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
-                <div>
-                  <h3 className="text-base sm:text-lg font-semibold">Current Rent</h3>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                    {property.name} - Unit {unit.name}
-                  </p>
-                </div>
-                <div>
-                  {getStatusBadge()}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-                <div>
-                  <label className="text-xs sm:text-sm text-gray-500">Monthly Rent</label>
-                  <p className="text-xl sm:text-2xl font-semibold">
-                    {formatCurrency(unit.rentAmount)}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-xs sm:text-sm text-gray-500">Due Date</label>
-                  <p className="text-xl sm:text-2xl font-semibold">Day {unit.dueDay}</p>
-                </div>
-              </div>
+        {/* Payment Due Card - Only shows when payment is due */}
+        {acceptsOnlinePayments && paymentStatus !== 'paid' && (
+          <PaymentDueCard
+            paymentStatus={paymentStatus}
+            rentAmount={Number(unit.rentAmount)}
+            dueDay={unit.dueDay}
+            gracePeriodDays={gracePeriodDays}
+            propertyName={property.name}
+            unitName={unit.name}
+            daysUntilDue={diffDays}
+            daysGraceRemaining={graceDaysRemaining}
+            daysOverdue={Math.abs(graceDaysRemaining)}
+            hasPaymentMethod={!!tenantData.defaultPaymentMethodId}
+            paymentMethodLabel={tenantData.paymentMethodLabel}
+            paymentMethodType={tenantData.paymentMethodType}
+            autopayEnabled={tenantData.autopayEnabled}
+            onPayNow={handlePayNowClick}
+            onSetupPayment={() => navigate('/tenant/payment-method')}
+            onEnableAutopay={() => navigate('/tenant/settings')}
+          />
+        )}
 
-              <div className="space-y-2 sm:space-y-3 pt-3 sm:pt-4 border-t">
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-1 text-xs sm:text-sm">
-                  <span className="text-gray-500">Property Address</span>
-                  <span className="font-medium text-right sm:text-left">{property.address}</span>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-1 text-xs sm:text-sm">
-                  <span className="text-gray-500">Landlord</span>
-                  <span className="font-medium text-right sm:text-left">{landlord.user.displayName || landlord.user.name}</span>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-1 text-xs sm:text-sm">
-                  <span className="text-gray-500">Move-in Date</span>
-                  <span className="font-medium text-right sm:text-left">
-                    {new Date(tenantData.moveInDate).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className={acceptsOnlinePayments ? "lg:col-span-2" : "lg:col-span-3"}>
+            <RentStatusCard
+              paymentStatus={paymentStatus}
+              rentAmount={Number(unit.rentAmount)}
+              dueDay={unit.dueDay}
+              gracePeriodDays={gracePeriodDays}
+              propertyName={property.name}
+              unitName={unit.name}
+              propertyAddress={property.address}
+              landlordName={landlord.user.displayName || landlord.user.name}
+              moveInDate={tenantData.moveInDate}
+              paidMonthName={
+                payments.find(p => p.status === 'SUCCEEDED')
+                  ? new Date(
+                    Number(payments.find(p => p.status === 'SUCCEEDED')!.month.split('-')[0]),
+                    Number(payments.find(p => p.status === 'SUCCEEDED')!.month.split('-')[1]) - 1
+                  ).toLocaleString('default', { month: 'long' })
+                  : undefined
+              }
+              daysUntilDue={diffDays}
+              daysGraceRemaining={graceDaysRemaining}
+              daysOverdue={Math.abs(graceDaysRemaining)}
+              autopayEnabled={tenantData.autopayEnabled}
+            />
+          </div>
 
           {acceptsOnlinePayments && (
             <Card>
@@ -483,6 +457,7 @@ export const TenantDashboard: React.FC = () => {
             rentAmount={Number(unit.rentAmount)}
             paymentMethodLabel={tenantData.paymentMethodLabel || 'Card'}
             month={getCurrentMonth()}
+            membershipId={tenantData.id}
           />
         </Elements>
       )}

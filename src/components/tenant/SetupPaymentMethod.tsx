@@ -5,9 +5,9 @@ import stripePromise from '../../utils/stripeLoader';
 import { AppShell } from '../ui/AppShell';
 import { Card, CardHeader, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { FeeBreakdown } from '../ui/FeeBreakdown';
 import { useToast } from '../../context/ToastContext';
-import { getCurrentUser, getTenantMembership, TenantMembershipDetails } from '../../services/api';
+import { useApp } from '../../context/AppContext';
+import { getTenantMembership, TenantMembershipDetails } from '../../services/api';
 import api from '../../services/api';
 
 const SetupForm: React.FC<{ tenantData: TenantMembershipDetails }> = ({ tenantData }) => {
@@ -48,7 +48,7 @@ const SetupForm: React.FC<{ tenantData: TenantMembershipDetails }> = ({ tenantDa
         showToast(error.message || 'Failed to save payment method', 'error');
       } else {
         showToast('Payment method saved successfully!', 'success');
-        navigate('/tenant/dashboard');
+        navigate('/tenant/dashboard', { state: { refresh: true } });
       }
     } catch (err: any) {
       showToast(err.message || 'Failed to save payment method', 'error');
@@ -58,56 +58,51 @@ const SetupForm: React.FC<{ tenantData: TenantMembershipDetails }> = ({ tenantDa
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="space-y-6">
-        {/* Fee Disclosure */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-medium text-blue-900 mb-2">💳 Payment Method Setup</h4>
-          <p className="text-sm text-blue-800 mb-3">
-            Add a payment method (Card or Bank Account) to pay rent online. You can enable autopay later.
-          </p>
-          <div className="text-sm">
-            <p className="font-medium text-gray-700 mb-2">Processing Fees per Transaction:</p>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 p-3 rounded border border-gray-100">
-                <span className="block text-xs text-gray-500 uppercase tracking-wide">Bank Account</span>
-                <span className="block font-semibold text-green-700">1% + $0.40</span>
-                <span className="text-xs text-gray-500">Most affordable</span>
-              </div>
-              <div className="bg-gray-50 p-3 rounded border border-gray-100">
-                <span className="block text-xs text-gray-500 uppercase tracking-wide">Card</span>
-                <span className="block font-semibold text-gray-900">2.9% + $0.30</span>
-                <span className="text-xs text-gray-500">Standard rate</span>
-              </div>
-            </div>
-          </div>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <PaymentElement
+          options={{
+            terms: {
+              card: 'never',
+              auBecsDebit: 'never',
+              bancontact: 'never',
+              ideal: 'never',
+              sepaDebit: 'never',
+              sofort: 'never',
+              usBankAccount: 'never',
+            },
+          }}
+        />
+      </div>
+
+      {/* PAD Authorization Notice */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+        <p className="font-medium mb-2">Pre-Authorized Debit Authorization</p>
+        <p>
+          By saving your bank account, you authorize {tenantData.unit.property.name} to debit
+          your account for rent payments. You can cancel this authorization at any time.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="bg-gray-50 rounded-lg p-4">
+          <p className="text-sm text-gray-600 mb-2">Property</p>
+          <p className="font-medium">{tenantData.unit.property.name}</p>
+          <p className="text-sm text-gray-500">{tenantData.unit.name}</p>
         </div>
 
-        {/* Stripe Payment Element */}
-        <div className="bg-white border rounded-lg p-4">
-          <PaymentElement />
-        </div>
-
-        {/* Terms and Submit */}
-        <div className="space-y-4">
-          <p className="text-xs text-gray-600">
-            By saving your payment method, you authorize RentBeam to securely store your card
-            details for future rent payments. Processing fees apply to each transaction.
-          </p>
-
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => navigate('/tenant/dashboard')}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!stripe || loading} className="flex-1">
-              {loading ? 'Saving...' : 'Save Payment Method'}
-            </Button>
-          </div>
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => navigate('/tenant/dashboard')}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={!stripe || loading} className="flex-1">
+            {loading ? 'Saving...' : 'Save Payment Method'}
+          </Button>
         </div>
       </div>
     </form>
@@ -116,6 +111,7 @@ const SetupForm: React.FC<{ tenantData: TenantMembershipDetails }> = ({ tenantDa
 
 export const SetupPaymentMethod: React.FC = () => {
   const { showToast } = useToast();
+  const { currentUser } = useApp();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [tenantData, setTenantData] = useState<TenantMembershipDetails | null>(null);
@@ -130,15 +126,13 @@ export const SetupPaymentMethod: React.FC = () => {
       initialized.current = true;
 
       try {
-        const profile = await getCurrentUser();
-
-        if (!profile.memberships.tenants || profile.memberships.tenants.length === 0) {
+        if (!currentUser || currentUser.role !== 'tenant') {
           showToast('No tenant membership found', 'error');
           navigate('/login');
           return;
         }
 
-        const membershipId = profile.memberships.tenants[0].id;
+        const membershipId = currentUser.id;
         const membership = await getTenantMembership(membershipId);
         setTenantData(membership);
 
@@ -149,8 +143,8 @@ export const SetupPaymentMethod: React.FC = () => {
           return;
         }
 
-        // Get setup intent client secret
-        const response = await api.post('/api/stripe/setup-intent');
+        // Get setup intent client secret - pass membershipId to ensure correct membership
+        const response = await api.post('/api/stripe/setup-intent', { membershipId });
         setClientSecret(response.data.clientSecret);
       } catch (err: any) {
         showToast(err.message || 'Failed to initialize payment setup', 'error');
@@ -161,7 +155,7 @@ export const SetupPaymentMethod: React.FC = () => {
     };
 
     initializeSetup();
-  }, [navigate, showToast]);
+  }, [navigate, showToast, currentUser]);
 
   if (loading || !tenantData || !clientSecret) {
     return (

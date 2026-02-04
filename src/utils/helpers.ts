@@ -15,6 +15,21 @@ export const formatDate = (date: string): string => {
   });
 };
 
+/**
+ * Format a date string without timezone shift (UTC-safe)
+ * Use this for dates that were stored as date-only (e.g., move-in dates)
+ */
+export const formatDateUTC = (dateString: string): string => {
+  // Extract date portion and parse as local time
+  const [datePart] = dateString.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('en-CA', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
 export const getCurrentMonth = (): string => {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -68,58 +83,112 @@ export const getPaymentStatus = (
   unit?: Unit
 ): PaymentStatus => {
   const dueDay = unit?.dueDay ?? 1;
+  const gracePeriod = unit?.gracePeriodDays ?? 0;
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth(); // 0-indexed
-  const currentDay = now.getDate();
 
-  // Determine the next due date (same logic as getCurrentRentMonth)
-  let rentYear = currentYear;
-  let rentMonth = currentMonth;
+  // The current billing month is the month we're in
+  // (rent for February is due on Feb 1st, not March 1st)
+  const currentRentMonthString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
 
-  // If we're past the due day this month, next due date is next month
-  if (currentDay > dueDay) {
-    rentMonth = currentMonth + 1;
-    if (rentMonth > 11) {
-      rentMonth = 0;
-      rentYear = currentYear + 1;
-    }
+  // Check if tenant's first payment cycle
+  const moveInDate = new Date(tenant.moveInDate);
+  const moveInYear = moveInDate.getFullYear();
+  const moveInMonth = moveInDate.getMonth();
+
+  // If tenant moved in this month, they already paid initial rent
+  // Check if current month has a PROCESSING payment
+  const hasProcessingPayment = payments.some(
+    (p) => p.tenantMembershipId === tenant.id &&
+      p.month === currentRentMonthString &&
+      p.status === 'PROCESSING'
+  );
+
+  if (hasProcessingPayment) {
+    return 'processing';
   }
 
-  // Calculate the due date and payment window open date
-  const dueDate = new Date(rentYear, rentMonth, dueDay);
+  // Check if current month has a payment
+  const hasCurrentMonthPayment = payments.some(
+    (p) => p.tenantMembershipId === tenant.id &&
+      p.month === currentRentMonthString &&
+      (p.status === 'SUCCEEDED' || p.status === 'PENDING')
+  );
+
+  // If current month is paid, check if we're in the window for NEXT month
+  if (hasCurrentMonthPayment) {
+    // Calculate next month
+    let nextMonth = currentMonth + 1;
+    let nextYear = currentYear;
+    if (nextMonth > 11) {
+      nextMonth = 0;
+      nextYear = currentYear + 1;
+    }
+
+    const nextDueDate = new Date(nextYear, nextMonth, dueDay);
+    const nextWindowOpenDate = new Date(nextDueDate);
+    nextWindowOpenDate.setDate(nextDueDate.getDate() - 5);
+
+    // If next month's payment window is open, check for that payment
+    if (now >= nextWindowOpenDate) {
+      const nextRentMonthString = `${nextYear}-${String(nextMonth + 1).padStart(2, '0')}`;
+
+      // Check for PROCESSING payment for next month
+      const hasNextMonthProcessing = payments.some(
+        (p) => p.tenantMembershipId === tenant.id &&
+          p.month === nextRentMonthString &&
+          p.status === 'PROCESSING'
+      );
+
+      if (hasNextMonthProcessing) {
+        return 'processing';
+      }
+
+      const hasNextMonthPayment = payments.some(
+        (p) => p.tenantMembershipId === tenant.id &&
+          p.month === nextRentMonthString &&
+          (p.status === 'SUCCEEDED' || p.status === 'PENDING')
+      );
+
+      if (!hasNextMonthPayment) {
+        if (now < nextDueDate) return 'pending';
+        const lateDate = new Date(nextDueDate);
+        lateDate.setDate(nextDueDate.getDate() + gracePeriod);
+        if (now <= lateDate) return 'due';
+        return 'late';
+      }
+    }
+
+    return 'paid';
+  }
+
+  // Current month is NOT paid
+  // Check if tenant just moved in this month (initial payment already created)
+  if (moveInYear === currentYear && moveInMonth === currentMonth) {
+    // They should have an initial payment - if not, that's a bug but show as paid
+    // because initial payment is created on tenant creation
+    return 'paid';
+  }
+
+  // Current month is not paid and tenant didn't just move in
+  // Determine status based on where we are in the billing cycle
+  const dueDate = new Date(currentYear, currentMonth, dueDay);
   const paymentWindowOpenDate = new Date(dueDate);
   paymentWindowOpenDate.setDate(dueDate.getDate() - 5);
 
-  // Check if this is the tenant's first payment cycle
-  // If move-in date is after the payment window open date, they're not expected to pay yet
-  const moveInDate = new Date(tenant.moveInDate);
-  if (moveInDate > paymentWindowOpenDate) {
-    return 'paid'; // Not expected to pay for this cycle
-  }
-
-  // If payment window is not yet open, show as paid (nothing due yet)
+  // If payment window hasn't opened yet (we're very early in previous month)
+  // This shouldn't normally happen but handle it
   if (now < paymentWindowOpenDate) {
-    return 'paid';
+    return 'paid'; // Too early, no payment expected yet
   }
 
-  // Payment window is open - check for payment for this rent month
-  const rentMonthString = `${rentYear}-${String(rentMonth + 1).padStart(2, '0')}`;
-  const hasPayment = payments.some(
-    (p) => p.tenantMembershipId === tenant.id && p.month === rentMonthString
-  );
-
-  if (hasPayment) {
-    return 'paid';
-  }
-
-  // Payment window is open but not paid yet
+  // Payment window is open
   if (now < dueDate) {
-    return 'pending';
+    return 'pending'; // Window open, before due date
   }
 
   // Past due date, check grace period
-  const gracePeriod = unit?.gracePeriodDays ?? 0;
   const lateDate = new Date(dueDate);
   lateDate.setDate(dueDate.getDate() + gracePeriod);
 

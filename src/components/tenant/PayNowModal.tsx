@@ -13,6 +13,7 @@ interface PayNowModalProps {
   rentAmount: number;
   paymentMethodLabel: string;
   month: string; // Format: "2026-01"
+  membershipId: string;
 }
 
 export const PayNowModal: React.FC<PayNowModalProps> = ({
@@ -22,6 +23,7 @@ export const PayNowModal: React.FC<PayNowModalProps> = ({
   rentAmount,
   paymentMethodLabel,
   month,
+  membershipId,
 }) => {
   const stripe = useStripe();
   const { showToast } = useToast();
@@ -36,15 +38,16 @@ export const PayNowModal: React.FC<PayNowModalProps> = ({
     setLoading(true);
 
     try {
-      // Create payment intent
+      // Create payment intent - backend confirms immediately with `confirm: true`
       const response = await api.post('/api/stripe/payment-intent', {
         month,
+        membershipId,
       });
 
       const { clientSecret } = response.data;
 
-      // Confirm the payment
-      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret);
+      // Retrieve the payment intent status (already confirmed by backend)
+      const { paymentIntent, error } = await stripe.retrievePaymentIntent(clientSecret);
 
       if (error) {
         showToast(error.message || 'Payment failed', 'error');
@@ -52,6 +55,13 @@ export const PayNowModal: React.FC<PayNowModalProps> = ({
         showToast('Payment successful!', 'success');
         onSuccess();
         onClose();
+      } else if (paymentIntent?.status === 'processing') {
+        // Bank transfers (ACSS Debit) may take time to process
+        showToast('Payment is being processed. You will receive a confirmation soon.', 'success');
+        onSuccess();
+        onClose();
+      } else {
+        showToast(`Payment status: ${paymentIntent?.status}`, 'error');
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Payment failed';
