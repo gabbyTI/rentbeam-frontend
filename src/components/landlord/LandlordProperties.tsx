@@ -87,8 +87,8 @@ export const LandlordProperties: React.FC = () => {
   const handleEditProperty = (propertyId: string) => {
     const property = properties.find((p) => p.id === propertyId);
     if (property) {
-      setPropertyForm({ 
-        name: property.name, 
+      setPropertyForm({
+        name: property.name,
         address: property.address,
         acceptOnlinePayments: property.acceptOnlinePayments ?? true,
       });
@@ -198,7 +198,7 @@ export const LandlordProperties: React.FC = () => {
     <AppShell title="Properties">
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <h2 className="text-xl sm:text-2xl font-bold">Properties</h2>
-        <Button 
+        <Button
           onClick={() => setIsAddingProperty(true)}
           size="sm"
         >
@@ -212,7 +212,7 @@ export const LandlordProperties: React.FC = () => {
           title="No properties yet"
           description="Add your first property to get started"
           action={
-            <Button 
+            <Button
               onClick={() => setIsAddingProperty(true)}
             >
               Add Property
@@ -321,6 +321,30 @@ export const LandlordProperties: React.FC = () => {
               }
               placeholder="123 Main St, Vancouver, BC"
             />
+            <div className="border-t pt-4">
+              <label className={`flex items-center justify-between ${!stripeOnboarded ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
+                <div>
+                  <span className="text-sm font-medium text-gray-700">Accept Online Payments</span>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {!stripeOnboarded
+                      ? 'Complete bank account setup to enable online payments'
+                      : 'Allows tenants to pay rent through the app with cards. Disable if you prefer manual tracking.'
+                    }
+                  </p>
+                </div>
+                <div className="ml-4">
+                  <input
+                    type="checkbox"
+                    checked={propertyForm.acceptOnlinePayments}
+                    onChange={(e) =>
+                      setPropertyForm({ ...propertyForm, acceptOnlinePayments: e.target.checked })
+                    }
+                    disabled={!stripeOnboarded && !propertyForm.acceptOnlinePayments}
+                    className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+              </label>
+            </div>
             <div className="flex space-x-3">
               <Button
                 variant="secondary"
@@ -369,7 +393,7 @@ export const LandlordProperties: React.FC = () => {
                 <div>
                   <span className="text-sm font-medium text-gray-700">Accept Online Payments</span>
                   <p className="text-xs text-gray-500 mt-1">
-                    {!stripeOnboarded 
+                    {!stripeOnboarded
                       ? 'Complete bank account setup to enable online payments'
                       : 'Allows tenants to pay rent through the app with cards. Disable if you prefer manual tracking.'
                     }
