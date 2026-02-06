@@ -180,36 +180,6 @@ export const LandlordDashboard: React.FC = () => {
             />
           </div>
 
-          {/* Payment Status Bar */}
-          <div className="p-4 mb-6 bg-white border border-gray-200 rounded-lg shadow-sm sm:p-6">
-            <h3 className="mb-4 text-base font-semibold sm:text-lg">Payment Status</h3>
-            <div className="grid grid-cols-2 gap-3 mb-4 sm:gap-4 md:grid-cols-4">
-              <div className="p-2 text-center">
-                <div className="text-2xl font-bold text-green-600 sm:text-3xl">
-                  {analytics.paymentStatus.paid}
-                </div>
-                <div className="mt-1 text-xs text-gray-600 sm:text-sm">Paid</div>
-              </div>
-              <div className="p-2 text-center">
-                <div className="text-2xl font-bold text-blue-600 sm:text-3xl">
-                  {analytics.paymentStatus.pending}
-                </div>
-                <div className="mt-1 text-xs text-gray-600 sm:text-sm">Pending</div>
-              </div>
-              <div className="p-2 text-center">
-                <div className="text-2xl font-bold text-yellow-600 sm:text-3xl">
-                  {analytics.paymentStatus.late}
-                </div>
-                <div className="mt-1 text-xs text-gray-600 sm:text-sm">Late</div>
-              </div>
-              <div className="p-2 text-center">
-                <div className="text-2xl font-bold text-red-600 sm:text-3xl">
-                  {analytics.paymentStatus.unpaid}
-                </div>
-                <div className="mt-1 text-xs text-gray-600 sm:text-sm">Unpaid</div>
-              </div>
-            </div>
-          </div>
 
           {/* Bottom Row - Tenants & Recent Activity */}
           <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2">
@@ -252,7 +222,7 @@ export const LandlordDashboard: React.FC = () => {
       {Object.entries(groupedByProperty).map(([propertyName, propertyTenants]) => (
         <div key={propertyName} className="mb-8">
           <h2 className="mb-4 text-base font-semibold sm:text-lg">{propertyName}</h2>
-          
+
           {/* Mobile Card View */}
           <div className="block space-y-3 lg:hidden">
             {propertyTenants.map((tenant) => {
@@ -269,7 +239,7 @@ export const LandlordDashboard: React.FC = () => {
                       {tenant.status.charAt(0).toUpperCase() + tenant.status.slice(1)}
                     </Badge>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
                     <div>
                       <span className="text-gray-500">Rent Month</span>
@@ -292,7 +262,7 @@ export const LandlordDashboard: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   {!tenant.autopayEnabled && tenant.status !== 'paid' && (
                     <Button
                       size="sm"
@@ -347,49 +317,49 @@ export const LandlordDashboard: React.FC = () => {
                 {propertyTenants.map((tenant) => {
                   const rentMonth = formatRentMonth(getCurrentRentMonth(tenant.unit));
                   return (
-                  <tr key={tenant.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {tenant.name}
-                      </div>
-                      <div className="text-sm text-gray-500">{tenant.email}</div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
-                      {tenant.unit?.name}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
-                      {rentMonth}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
-                      {formatCurrency(tenant.unit!.rentAmount)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
-                      Day {tenant.unit?.dueDay ?? 1}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge variant={tenant.status}>
-                        {tenant.status.charAt(0).toUpperCase() + tenant.status.slice(1)}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge variant={tenant.autopayEnabled ? 'autopay' : 'manual'}>
-                        {tenant.autopayEnabled ? 'Autopay' : 'Manual'}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
-                      {!tenant.autopayEnabled && tenant.status !== 'paid' && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleMarkAsPaid(tenant.id)}
-                        >
-                          Mark Paid
-                        </Button>
-                      )}
-                      {tenant.status === 'paid' && (
-                        <span className="text-green-600">✓ Received</span>
-                      )}
-                    </td>
-                  </tr>
+                    <tr key={tenant.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {tenant.name}
+                        </div>
+                        <div className="text-sm text-gray-500">{tenant.email}</div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
+                        {tenant.unit?.name}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
+                        {rentMonth}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
+                        {formatCurrency(tenant.unit!.rentAmount)}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
+                        Day {tenant.unit?.dueDay ?? 1}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge variant={tenant.status}>
+                          {tenant.status.charAt(0).toUpperCase() + tenant.status.slice(1)}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge variant={tenant.autopayEnabled ? 'autopay' : 'manual'}>
+                          {tenant.autopayEnabled ? 'Autopay' : 'Manual'}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
+                        {!tenant.autopayEnabled && tenant.status !== 'paid' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleMarkAsPaid(tenant.id)}
+                          >
+                            Mark Paid
+                          </Button>
+                        )}
+                        {tenant.status === 'paid' && (
+                          <span className="text-green-600">✓ Received</span>
+                        )}
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
