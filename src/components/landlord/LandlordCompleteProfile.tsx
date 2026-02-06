@@ -131,12 +131,13 @@ export const LandlordCompleteProfile: React.FC = () => {
                                     onChange={(e) =>
                                         setFormData({ ...formData, country: e.target.value })
                                     }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-gray-50"
                                     required
+                                    disabled
                                 >
                                     <option value="CA">Canada</option>
-                                    <option value="US">United States</option>
                                 </select>
+                                <p className="mt-1 text-xs text-gray-500">Currently available in Canada only</p>
                             </div>
 
                             <Input
