@@ -685,7 +685,15 @@ export const fetchTenants = async (): Promise<Tenant[]> => {
 };
 
 export const createTenant = async (
-  tenant: { email: string; firstName: string; lastName: string; phone?: string; unitId: string; moveInDate?: string }
+  tenant: {
+    email: string; firstName: string; lastName: string; phone?: string;
+    unitId: string; moveInDate?: string;
+    // Optional profile fields
+    leaseStartDate?: string; leaseEndDate?: string; leaseType?: string;
+    rentDeposit?: number; dateOfBirth?: string;
+    emergencyContactName?: string; emergencyContactPhone?: string;
+    notes?: string;
+  }
 ): Promise<any> => {
   const token = authService.getAccessToken();
   const response = await fetch(`${API_BASE_URL}/api/tenants`, {
@@ -712,6 +720,107 @@ export const createTenant = async (
   });
 
   return created;
+};
+
+export const updateTenantMembership = async (
+  tenantId: string,
+  updates: {
+    leaseStartDate?: string | null; leaseEndDate?: string | null; leaseType?: string;
+    rentDeposit?: number | null; dateOfBirth?: string | null;
+    emergencyContactName?: string; emergencyContactPhone?: string; notes?: string;
+  }
+): Promise<any> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(updates),
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  const updated = result.data || result;
+
+  // Update local state
+  const updatedTenants = await fetchTenants();
+  getUpdateState()({ tenants: updatedTenants });
+
+  return updated;
+};
+
+// ==================== Documents ====================
+
+export const getDocumentUploadUrl = async (
+  tenantMembershipId: string,
+  fileName: string,
+  mimeType: string,
+  fileSize: number
+): Promise<{ uploadUrl: string; fileKey: string }> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/tenants/${tenantMembershipId}/documents/upload-url`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ fileName, mimeType, fileSize }),
+  });
+  if (!response.ok) await handleApiError(response);
+  const result = await response.json();
+  return result.data;
+};
+
+export const confirmDocumentUpload = async (
+  tenantMembershipId: string,
+  doc: { fileKey: string; fileName: string; type: string; fileSize: number; mimeType: string; notes?: string }
+): Promise<any> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/tenants/${tenantMembershipId}/documents/confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify(doc),
+  });
+  if (!response.ok) await handleApiError(response);
+  const result = await response.json();
+  return result.data;
+};
+
+export const getTenantDocuments = async (tenantMembershipId: string): Promise<any[]> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/tenants/${tenantMembershipId}/documents`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!response.ok) await handleApiError(response);
+  const result = await response.json();
+  return result.data || [];
+};
+
+export const getDocumentDownloadUrl = async (
+  tenantMembershipId: string,
+  documentId: string
+): Promise<{ url: string; fileName: string }> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/tenants/${tenantMembershipId}/documents/${documentId}/url`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!response.ok) await handleApiError(response);
+  const result = await response.json();
+  return result.data;
+};
+
+export const deleteTenantDocument = async (
+  tenantMembershipId: string,
+  documentId: string
+): Promise<void> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/tenants/${tenantMembershipId}/documents/${documentId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` },
+  });
+  if (!response.ok) await handleApiError(response);
 };
 
 export const resendTenantInvite = async (tenantId: string): Promise<void> => {

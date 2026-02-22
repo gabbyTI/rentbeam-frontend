@@ -12,6 +12,7 @@ import { formatCurrency } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
 import { resendTenantInvite, moveOutTenant, updateTenantInfo, transferTenant } from '../../services/api';
 import api from '../../services/api';
+import { TenantDocuments } from './TenantDocuments';
 
 export const TenantDetails: React.FC = () => {
   const { tenantId } = useParams<{ tenantId: string }>();
@@ -64,7 +65,7 @@ export const TenantDetails: React.FC = () => {
     try {
       const moveOutDate = new Date().toISOString().split('T')[0];
       const result = await moveOutTenant(tenant.id, moveOutDate, tenants);
-      
+
       if (result.outstandingBalance) {
         showToast(
           `Tenant moved out successfully. Warning: Unpaid rent for ${result.unpaidPeriods.join(', ')}`,
@@ -73,7 +74,7 @@ export const TenantDetails: React.FC = () => {
       } else {
         showToast('Tenant moved out successfully');
       }
-      
+
       setShowMoveOutModal(false);
       window.location.reload();
     } catch (error: any) {
@@ -154,13 +155,13 @@ export const TenantDetails: React.FC = () => {
       const updatedTenants = tenants.map((t) =>
         t.id === tenant.id
           ? {
-              ...t,
-              user: {
-                ...t.user!,
-                name: editName,
-                phone: editPhone || undefined,
-              },
-            }
+            ...t,
+            user: {
+              ...t.user!,
+              name: editName,
+              phone: editPhone || undefined,
+            },
+          }
           : t
       );
       updateState({ tenantMemberships: updatedTenants });
@@ -199,7 +200,7 @@ export const TenantDetails: React.FC = () => {
 
       showToast(`Payment recorded: ${formatCurrency(amount)} via ${paymentMethod}`, 'success');
       setShowMarkAsPaidModal(false);
-      
+
       // Reset form
       setPaymentDate(new Date().toISOString().split('T')[0]);
       setPaymentAmount('');
@@ -417,14 +418,82 @@ export const TenantDetails: React.FC = () => {
           </CardContent>
         </Card>
 
+        {/* Lease & Profile Info */}
+        <Card>
+          <CardHeader>
+            <h3 className="text-base sm:text-lg font-semibold">Lease & Profile</h3>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {tenant.leaseType && (
+                <div>
+                  <label className="text-xs sm:text-sm text-gray-500">Lease Type</label>
+                  <p className="font-medium text-sm sm:text-base">
+                    {tenant.leaseType === 'FIXED_TERM' ? 'Fixed Term' : 'Month-to-Month'}
+                  </p>
+                </div>
+              )}
+              {tenant.leaseStartDate && (
+                <div>
+                  <label className="text-xs sm:text-sm text-gray-500">Lease Start</label>
+                  <p className="font-medium text-sm sm:text-base">{new Date(tenant.leaseStartDate).toLocaleDateString()}</p>
+                </div>
+              )}
+              {tenant.leaseEndDate && (
+                <div>
+                  <label className="text-xs sm:text-sm text-gray-500">Lease End</label>
+                  <p className="font-medium text-sm sm:text-base">{new Date(tenant.leaseEndDate).toLocaleDateString()}</p>
+                </div>
+              )}
+              {tenant.rentDeposit != null && (
+                <div>
+                  <label className="text-xs sm:text-sm text-gray-500">Security Deposit</label>
+                  <p className="font-medium text-sm sm:text-base">{formatCurrency(tenant.rentDeposit)}</p>
+                </div>
+              )}
+              {tenant.emergencyContactName && (
+                <div>
+                  <label className="text-xs sm:text-sm text-gray-500">Emergency Contact</label>
+                  <p className="font-medium text-sm sm:text-base">{tenant.emergencyContactName}</p>
+                  {tenant.emergencyContactPhone && (
+                    <p className="text-xs sm:text-sm text-gray-600">{tenant.emergencyContactPhone}</p>
+                  )}
+                </div>
+              )}
+              {tenant.notes && (
+                <div>
+                  <label className="text-xs sm:text-sm text-gray-500">Notes</label>
+                  <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap">{tenant.notes}</p>
+                </div>
+              )}
+              {!tenant.leaseType && !tenant.leaseStartDate && !tenant.emergencyContactName && !tenant.notes && (
+                <p className="text-sm text-gray-400">No additional details recorded.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Documents */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <h3 className="text-base sm:text-lg font-semibold">Documents</h3>
+          </CardHeader>
+          <CardContent>
+            <TenantDocuments
+              tenantMembershipId={tenant.id}
+              isLandlord={true}
+            />
+          </CardContent>
+        </Card>
+
         {/* Payment History */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <h3 className="text-base sm:text-lg font-semibold">Payment History</h3>
           </CardHeader>
           <CardContent>
-            <PaymentHistoryList 
-              payments={tenant.payments} 
+            <PaymentHistoryList
+              payments={tenant.payments}
               dueDay={tenant.unit?.dueDay ?? 1}
               gracePeriodDays={tenant.unit?.gracePeriodDays ?? 0}
             />
@@ -610,8 +679,8 @@ export const TenantDetails: React.FC = () => {
               >
                 Cancel
               </Button>
-              <Button 
-                onClick={handleSaveEdit} 
+              <Button
+                onClick={handleSaveEdit}
                 disabled={saving}
                 className="flex-1"
               >
@@ -692,8 +761,8 @@ export const TenantDetails: React.FC = () => {
               >
                 Cancel
               </Button>
-              <Button 
-                onClick={handleMarkAsPaid} 
+              <Button
+                onClick={handleMarkAsPaid}
                 disabled={saving}
                 className="flex-1"
               >

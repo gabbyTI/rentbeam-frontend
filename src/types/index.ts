@@ -32,7 +32,12 @@ export interface Property {
   id: string;
   landlordId: string;
   name: string;
-  address: string;
+  address?: string; // Computed display string (assembled server-side)
+  streetAddress: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  country: string;
   acceptOnlinePayments: boolean;
   createdAt: string;
   updatedAt: string;
@@ -67,9 +72,35 @@ export interface TenantMembership {
   stripeCustomerId?: string;
   defaultPaymentMethodId?: string;
   paymentMethodLabel?: string;
+  paymentMethodType?: string;
   status: MembershipStatus;
   createdAt: string;
   updatedAt: string;
+  // Lease details
+  leaseStartDate?: string;
+  leaseEndDate?: string;
+  leaseType?: 'FIXED_TERM' | 'MONTH_TO_MONTH';
+  rentDeposit?: number;
+  // Tenant profile
+  dateOfBirth?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  notes?: string;
+}
+
+export type DocumentType = 'LEASE' | 'MOVE_IN_INSPECTION' | 'MOVE_OUT_INSPECTION' | 'NOTICE' | 'ID_VERIFICATION' | 'OTHER';
+
+export interface TenantDocument {
+  id: string;
+  tenantMembershipId: string;
+  type: DocumentType;
+  fileName: string;
+  fileKey: string;
+  fileSize: number;
+  mimeType: string;
+  uploadedByUserId: string;
+  notes?: string;
+  createdAt: string;
 }
 
 export interface Payment {

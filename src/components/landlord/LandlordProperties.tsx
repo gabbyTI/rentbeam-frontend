@@ -20,7 +20,11 @@ export const LandlordProperties: React.FC = () => {
 
   const [propertyForm, setPropertyForm] = useState({
     name: '',
-    address: '',
+    streetAddress: '',
+    city: '',
+    province: 'ON',
+    postalCode: '',
+    country: 'CA',
     acceptOnlinePayments: false,
   });
 
@@ -41,21 +45,25 @@ export const LandlordProperties: React.FC = () => {
   }, [properties, units, currentUser]);
 
   const handleAddProperty = async () => {
-    if (!propertyForm.name || !propertyForm.address) {
-      showToast('Please fill in all fields', 'error');
+    if (!propertyForm.name || !propertyForm.streetAddress || !propertyForm.city || !propertyForm.postalCode) {
+      showToast('Please fill in all address fields', 'error');
       return;
     }
 
     try {
       await api.createProperty({
         name: propertyForm.name,
-        address: propertyForm.address,
+        streetAddress: propertyForm.streetAddress,
+        city: propertyForm.city,
+        province: propertyForm.province,
+        postalCode: propertyForm.postalCode,
+        country: propertyForm.country,
         acceptOnlinePayments: propertyForm.acceptOnlinePayments,
       });
 
       showToast('Property added successfully');
       setIsAddingProperty(false);
-      setPropertyForm({ name: '', address: '', acceptOnlinePayments: false });
+      setPropertyForm({ name: '', streetAddress: '', city: '', province: 'ON', postalCode: '', country: 'CA', acceptOnlinePayments: false });
     } catch (error: any) {
       showToast(error.message || 'Failed to add property', 'error');
     }
@@ -89,7 +97,11 @@ export const LandlordProperties: React.FC = () => {
     if (property) {
       setPropertyForm({
         name: property.name,
-        address: property.address,
+        streetAddress: property.streetAddress ?? '',
+        city: property.city ?? '',
+        province: property.province ?? 'ON',
+        postalCode: property.postalCode ?? '',
+        country: property.country ?? 'CA',
         acceptOnlinePayments: property.acceptOnlinePayments ?? true,
       });
       setIsEditingProperty(propertyId);
@@ -97,21 +109,25 @@ export const LandlordProperties: React.FC = () => {
   };
 
   const handleUpdateProperty = async () => {
-    if (!propertyForm.name || !propertyForm.address) {
-      showToast('Please fill in all fields', 'error');
+    if (!propertyForm.name || !propertyForm.streetAddress || !propertyForm.city || !propertyForm.postalCode) {
+      showToast('Please fill in all address fields', 'error');
       return;
     }
 
     try {
       await api.updateProperty(isEditingProperty!, {
         name: propertyForm.name,
-        address: propertyForm.address,
+        streetAddress: propertyForm.streetAddress,
+        city: propertyForm.city,
+        province: propertyForm.province,
+        postalCode: propertyForm.postalCode,
+        country: propertyForm.country,
         acceptOnlinePayments: propertyForm.acceptOnlinePayments,
       });
 
       showToast('Property updated successfully');
       setIsEditingProperty(null);
-      setPropertyForm({ name: '', address: '', acceptOnlinePayments: false });
+      setPropertyForm({ name: '', streetAddress: '', city: '', province: 'ON', postalCode: '', country: 'CA', acceptOnlinePayments: false });
     } catch (error: any) {
       showToast(error.message || 'Failed to update property', 'error');
     }
@@ -227,7 +243,7 @@ export const LandlordProperties: React.FC = () => {
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <h3 className="text-base sm:text-lg font-semibold truncate">{property.name}</h3>
-                    <p className="text-xs sm:text-sm text-gray-500 truncate">{property.address}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 truncate">{property.address ?? `${property.streetAddress}, ${property.city}, ${property.province}`}</p>
                   </div>
                   <div className="flex space-x-1 sm:space-x-2 flex-shrink-0">
                     <Button
@@ -313,14 +329,61 @@ export const LandlordProperties: React.FC = () => {
               }
               placeholder="Sunset Apartments"
             />
+
             <Input
-              label="Address"
-              value={propertyForm.address}
+              label="Street Address"
+              value={propertyForm.streetAddress}
               onChange={(e) =>
-                setPropertyForm({ ...propertyForm, address: e.target.value })
+                setPropertyForm({ ...propertyForm, streetAddress: e.target.value })
               }
-              placeholder="123 Main St, Vancouver, BC"
+              placeholder="123 Main St"
+              required
             />
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="City"
+                value={propertyForm.city}
+                onChange={(e) =>
+                  setPropertyForm({ ...propertyForm, city: e.target.value })
+                }
+                placeholder="Toronto"
+                required
+              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Province <span className="text-red-500">*</span></label>
+                <select
+                  value={propertyForm.province}
+                  onChange={(e) => setPropertyForm({ ...propertyForm, province: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                >
+                  {['AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT'].map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Postal Code"
+                value={propertyForm.postalCode}
+                onChange={(e) =>
+                  setPropertyForm({ ...propertyForm, postalCode: e.target.value.toUpperCase() })
+                }
+                placeholder="M5V 1A1"
+                required
+              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                <input
+                  value="Canada"
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                />
+              </div>
+            </div>
+
             <div className="border-t pt-4">
               <label className={`flex items-center justify-between ${!stripeOnboarded ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
                 <div>
@@ -367,7 +430,7 @@ export const LandlordProperties: React.FC = () => {
           isOpen={true}
           onClose={() => {
             setIsEditingProperty(null);
-            setPropertyForm({ name: '', address: '', acceptOnlinePayments: true });
+            setPropertyForm({ name: '', streetAddress: '', city: '', province: 'ON', postalCode: '', country: 'CA', acceptOnlinePayments: true });
           }}
           title="Edit Property"
         >
@@ -380,14 +443,61 @@ export const LandlordProperties: React.FC = () => {
               }
               placeholder="Sunset Apartments"
             />
+
             <Input
-              label="Address"
-              value={propertyForm.address}
+              label="Street Address"
+              value={propertyForm.streetAddress}
               onChange={(e) =>
-                setPropertyForm({ ...propertyForm, address: e.target.value })
+                setPropertyForm({ ...propertyForm, streetAddress: e.target.value })
               }
-              placeholder="123 Main St, Vancouver, BC"
+              placeholder="123 Main St"
+              required
             />
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="City"
+                value={propertyForm.city}
+                onChange={(e) =>
+                  setPropertyForm({ ...propertyForm, city: e.target.value })
+                }
+                placeholder="Toronto"
+                required
+              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Province <span className="text-red-500">*</span></label>
+                <select
+                  value={propertyForm.province}
+                  onChange={(e) => setPropertyForm({ ...propertyForm, province: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                >
+                  {['AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT'].map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Postal Code"
+                value={propertyForm.postalCode}
+                onChange={(e) =>
+                  setPropertyForm({ ...propertyForm, postalCode: e.target.value.toUpperCase() })
+                }
+                placeholder="M5V 1A1"
+                required
+              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                <input
+                  value="Canada"
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm"
+                />
+              </div>
+            </div>
+
             <div className="border-t pt-4">
               <label className={`flex items-center justify-between ${!stripeOnboarded ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
                 <div>
@@ -417,7 +527,7 @@ export const LandlordProperties: React.FC = () => {
                 variant="secondary"
                 onClick={() => {
                   setIsEditingProperty(null);
-                  setPropertyForm({ name: '', address: '', acceptOnlinePayments: true });
+                  setPropertyForm({ name: '', streetAddress: '', city: '', province: 'ON', postalCode: '', country: 'CA', acceptOnlinePayments: true });
                 }}
                 className="flex-1"
               >

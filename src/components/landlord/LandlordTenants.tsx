@@ -19,6 +19,7 @@ export const LandlordTenants: React.FC = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [addingTenant, setAddingTenant] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
+  const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
 
   const [tenantForm, setTenantForm] = useState({
     firstName: '',
@@ -28,6 +29,15 @@ export const LandlordTenants: React.FC = () => {
     propertyId: '',
     unitId: '',
     moveInDate: new Date().toISOString().split('T')[0],
+    // Additional details
+    leaseStartDate: '',
+    leaseEndDate: '',
+    leaseType: 'FIXED_TERM',
+    rentDeposit: '',
+    dateOfBirth: '',
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+    notes: '',
   });
 
   const landlordProperties = useMemo(() => {
@@ -90,6 +100,14 @@ export const LandlordTenants: React.FC = () => {
         phone: tenantForm.phone || undefined,
         unitId: tenantForm.unitId,
         moveInDate: tenantForm.moveInDate,
+        leaseStartDate: tenantForm.leaseStartDate || undefined,
+        leaseEndDate: tenantForm.leaseEndDate || undefined,
+        leaseType: tenantForm.leaseType || undefined,
+        rentDeposit: tenantForm.rentDeposit ? parseFloat(tenantForm.rentDeposit) : undefined,
+        dateOfBirth: tenantForm.dateOfBirth || undefined,
+        emergencyContactName: tenantForm.emergencyContactName || undefined,
+        emergencyContactPhone: tenantForm.emergencyContactPhone || undefined,
+        notes: tenantForm.notes || undefined,
       });
 
       showToast(`Tenant added successfully. Invite sent to ${tenantForm.email}`);
@@ -102,6 +120,14 @@ export const LandlordTenants: React.FC = () => {
         propertyId: '',
         unitId: '',
         moveInDate: new Date().toISOString().split('T')[0],
+        leaseStartDate: '',
+        leaseEndDate: '',
+        leaseType: 'FIXED_TERM',
+        rentDeposit: '',
+        dateOfBirth: '',
+        emergencyContactName: '',
+        emergencyContactPhone: '',
+        notes: '',
       });
       window.location.reload();
     } catch (error: any) {
@@ -399,6 +425,93 @@ export const LandlordTenants: React.FC = () => {
                 setTenantForm({ ...tenantForm, moveInDate: e.target.value })
               }
             />
+
+            {/* Additional Details — collapsible */}
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowAdditionalDetails(!showAdditionalDetails)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <span>Additional Details (optional)</span>
+                <span className="text-gray-400 text-xs">{showAdditionalDetails ? '▲ Hide' : '▼ Show'}</span>
+              </button>
+
+              {showAdditionalDetails && (
+                <div className="p-4 space-y-3 border-t border-gray-200">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label="Lease Start Date"
+                      type="date"
+                      value={tenantForm.leaseStartDate}
+                      onChange={(e) => setTenantForm({ ...tenantForm, leaseStartDate: e.target.value })}
+                    />
+                    <Input
+                      label="Lease End Date"
+                      type="date"
+                      value={tenantForm.leaseEndDate}
+                      onChange={(e) => setTenantForm({ ...tenantForm, leaseEndDate: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Lease Type</label>
+                      <select
+                        value={tenantForm.leaseType}
+                        onChange={(e) => setTenantForm({ ...tenantForm, leaseType: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                      >
+                        <option value="FIXED_TERM">Fixed Term</option>
+                        <option value="MONTH_TO_MONTH">Month-to-Month</option>
+                      </select>
+                    </div>
+                    <Input
+                      label="Security Deposit ($)"
+                      type="number"
+                      value={tenantForm.rentDeposit}
+                      onChange={(e) => setTenantForm({ ...tenantForm, rentDeposit: e.target.value })}
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <Input
+                    label="Date of Birth"
+                    type="date"
+                    value={tenantForm.dateOfBirth}
+                    onChange={(e) => setTenantForm({ ...tenantForm, dateOfBirth: e.target.value })}
+                  />
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label="Emergency Contact Name"
+                      type="text"
+                      value={tenantForm.emergencyContactName}
+                      onChange={(e) => setTenantForm({ ...tenantForm, emergencyContactName: e.target.value })}
+                      placeholder="Jane Doe"
+                    />
+                    <Input
+                      label="Emergency Contact Phone"
+                      type="tel"
+                      value={tenantForm.emergencyContactPhone}
+                      onChange={(e) => setTenantForm({ ...tenantForm, emergencyContactPhone: e.target.value })}
+                      placeholder="(555) 123-4567"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <textarea
+                      value={tenantForm.notes}
+                      onChange={(e) => setTenantForm({ ...tenantForm, notes: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm resize-none"
+                      placeholder="Has a dog, prefers email contact, etc."
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="flex space-x-3 pt-4">
               <Button
