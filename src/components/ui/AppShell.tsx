@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { Button } from './Button';
 import { StripeOnboardingBanner } from './StripeOnboardingBanner';
@@ -12,6 +12,14 @@ interface AppShellProps {
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const { currentUser, logout } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isActive = (path: string) => location.pathname === path;
+  const navClass = (path: string) =>
+    `py-4 px-1 text-xs sm:text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${isActive(path)
+      ? 'text-primary-600 border-primary-600'
+      : 'text-gray-700 hover:text-primary-600 border-transparent hover:border-primary-600'
+    }`;
 
   const handleLogout = () => {
     logout();
@@ -82,30 +90,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         <nav className="bg-white border-b border-gray-200 overflow-x-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex space-x-4 sm:space-x-8">
-              <button
-                onClick={() => navigate('/landlord/dashboard')}
-                className="py-4 px-1 text-xs sm:text-sm font-medium text-gray-700 hover:text-primary-600 border-b-2 border-transparent hover:border-primary-600 whitespace-nowrap"
-              >
-                Dashboard
-              </button>
-              <button
-                onClick={() => navigate('/landlord/properties')}
-                className="py-4 px-1 text-xs sm:text-sm font-medium text-gray-700 hover:text-primary-600 border-b-2 border-transparent hover:border-primary-600 whitespace-nowrap"
-              >
-                Properties
-              </button>
-              <button
-                onClick={() => navigate('/landlord/tenants')}
-                className="py-4 px-1 text-xs sm:text-sm font-medium text-gray-700 hover:text-primary-600 border-b-2 border-transparent hover:border-primary-600 whitespace-nowrap"
-              >
-                Tenants
-              </button>
-              <button
-                onClick={() => navigate('/landlord/settings')}
-                className="py-4 px-1 text-xs sm:text-sm font-medium text-gray-700 hover:text-primary-600 border-b-2 border-transparent hover:border-primary-600 whitespace-nowrap"
-              >
-                Settings
-              </button>
+              <button onClick={() => navigate('/landlord/dashboard')} className={navClass('/landlord/dashboard')}>Dashboard</button>
+              <button onClick={() => navigate('/landlord/properties')} className={navClass('/landlord/properties')}>Properties</button>
+              <button onClick={() => navigate('/landlord/tenants')} className={navClass('/landlord/tenants')}>Tenants</button>
+              <button onClick={() => navigate('/landlord/settings')} className={navClass('/landlord/settings')}>Settings</button>
             </div>
           </div>
         </nav>
@@ -116,18 +104,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         <nav className="bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex space-x-8">
-              <button
-                onClick={() => navigate('/tenant/dashboard')}
-                className="py-4 text-sm font-medium text-gray-700 hover:text-primary-600 border-b-2 border-transparent hover:border-primary-600"
-              >
-                Dashboard
-              </button>
-              <button
-                onClick={() => navigate('/tenant/settings')}
-                className="py-4 text-sm font-medium text-gray-700 hover:text-primary-600 border-b-2 border-transparent hover:border-primary-600"
-              >
-                Settings
-              </button>
+              <button onClick={() => navigate('/tenant/dashboard')} className={navClass('/tenant/dashboard')}>Dashboard</button>
+              <button onClick={() => navigate('/tenant/tenancy')} className={navClass('/tenant/tenancy')}>My Tenancy</button>
+              <button onClick={() => navigate('/tenant/settings')} className={navClass('/tenant/settings')}>Settings</button>
             </div>
           </div>
         </nav>

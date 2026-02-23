@@ -100,9 +100,9 @@ export const LandlordOnboarding: React.FC = () => {
     }));
 
     updateState({
-      landlordAccounts: [...landlords, newLandlord],
-      properties: [...properties, newProperty],
-      units: [...units, ...newUnits],
+      landlordAccounts: [...landlords, newLandlord as any],
+      properties: [...properties, newProperty as any],
+      units: [...units, ...(newUnits as any[])],
       currentUser: { role: 'landlord', id: landlordId },
     });
 
@@ -124,19 +124,17 @@ export const LandlordOnboarding: React.FC = () => {
             {[1, 2, 3].map((s) => (
               <div key={s} className="flex-1 flex items-center">
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-medium ${
-                    s <= step
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-medium ${s <= step
                       ? 'bg-primary-600 text-white'
                       : 'bg-gray-200 text-gray-500'
-                  }`}
+                    }`}
                 >
                   {s}
                 </div>
                 {s < 3 && (
                   <div
-                    className={`flex-1 h-1 mx-2 ${
-                      s < step ? 'bg-primary-600' : 'bg-gray-200'
-                    }`}
+                    className={`flex-1 h-1 mx-2 ${s < step ? 'bg-primary-600' : 'bg-gray-200'
+                      }`}
                   />
                 )}
               </div>
