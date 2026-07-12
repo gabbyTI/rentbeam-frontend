@@ -8,6 +8,7 @@ import { Card, CardHeader, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { PaymentHistoryList } from '../ui/PaymentHistoryList';
+import { LedgerStatement } from '../ui/LedgerStatement';
 import { TenantMetricCard } from '../ui/TenantMetricCard';
 import { PaymentTimeline } from '../ui/PaymentTimeline';
 import { PayNowModal } from './PayNowModal';
@@ -432,6 +433,14 @@ export const TenantDashboard: React.FC = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Resident Ledger — tenant view */}
+          <div className="lg:col-span-3">
+            <LedgerStatement
+              tenantMembershipId={tenantData.id}
+              isLandlord={false}
+            />
+          </div>
 
           <Card className="lg:col-span-3">
             <CardHeader>

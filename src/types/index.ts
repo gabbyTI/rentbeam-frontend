@@ -137,6 +137,34 @@ export interface AppState {
 // Legacy type aliases for backward compatibility during migration
 export type Landlord = LandlordAccount;
 export type Tenant = TenantMembership;
+
+// ─── Ledger ───────────────────────────────────────────────────────────────────
+
+export type LedgerEntryType = 'CHARGE' | 'PAYMENT' | 'CREDIT';
+export type LedgerEntryStatus = 'POSTED' | 'PENDING' | 'REVERSED';
+export type LedgerEntrySource = 'SYSTEM' | 'STRIPE' | 'MANUAL';
+
+export interface LedgerEntry {
+  id: string;
+  effectiveDate: string;
+  type: LedgerEntryType;
+  status: LedgerEntryStatus;
+  source: LedgerEntrySource;
+  code: string | null;          // Only on CHARGE rows (RNTA, FEE, CONC, etc.)
+  description: string;
+  chargeAmount: number | null;  // Populated for CHARGE rows
+  paymentAmount: number | null; // Populated for PAYMENT / CREDIT rows
+  balanceAfter: number;         // Running balance after this row
+  referenceId: string | null;
+  createdAt: string;
+}
+
+export interface LedgerSummary {
+  currentBalance: number;       // Positive = owes money. Negative = has credit.
+  lastPostedDate: string | null;
+  totalCharged: number;
+  totalPaid: number;
+}
 // Dashboard Analytics Types
 export interface OccupancyMetrics {
   rate: number;

@@ -8,6 +8,7 @@ import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { Select, Input } from '../ui/Input';
 import { PaymentHistoryList } from '../ui/PaymentHistoryList';
+import { LedgerStatement } from '../ui/LedgerStatement';
 import { formatCurrency } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
 import { resendTenantInvite, moveOutTenant, updateTenantInfo, transferTenant } from '../../services/api';
@@ -485,6 +486,15 @@ export const TenantDetails: React.FC = () => {
             />
           </CardContent>
         </Card>
+
+        {/* Resident Ledger */}
+        <div className="lg:col-span-2">
+          <LedgerStatement
+            tenantMembershipId={tenant.id}
+            isLandlord={true}
+            tenantName={tenant.user?.name}
+          />
+        </div>
 
         {/* Payment History */}
         <Card className="lg:col-span-2">

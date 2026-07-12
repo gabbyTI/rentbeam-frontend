@@ -6,7 +6,7 @@
  * Components won't need to change - they'll keep calling these same functions.
  */
 
-import { Property, Unit, Tenant, Payment, Landlord } from '../types';
+import { Property, Unit, Tenant, Payment, Landlord, LedgerEntry, LedgerSummary } from '../types';
 import { authService, LoginResponse } from './auth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -1108,4 +1108,82 @@ export const updateLandlord = async (
   );
   getUpdateState()({ landlords: updatedLandlords });
   return updatedLandlords.find(l => l.id === landlordId)!;
+};
+
+// ==================== Ledger ====================
+
+export const fetchLedgerStatement = async (
+  tenantMembershipId: string,
+  options?: { fromDate?: string; toDate?: string; includePending?: boolean }
+): Promise<LedgerEntry[]> => {
+  const token = authService.getAccessToken();
+  const params = new URLSearchParams();
+  if (options?.fromDate) params.set('fromDate', options.fromDate);
+  if (options?.toDate) params.set('toDate', options.toDate);
+  if (options?.includePending) params.set('includePending', 'true');
+
+  const qs = params.toString();
+  const response = await fetch(
+    `${API_BASE_URL}/api/ledger/${tenantMembershipId}${qs ? '?' + qs : ''}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!response.ok) await handleApiError(response);
+  const result = await response.json();
+  return result.data || result;
+};
+
+export const fetchLedgerBalance = async (tenantMembershipId: string): Promise<LedgerSummary> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(
+    `${API_BASE_URL}/api/ledger/${tenantMembershipId}/balance`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!response.ok) await handleApiError(response);
+  const result = await response.json();
+  return result.data || result;
+};
+
+export const postLedgerCharge = async (
+  tenantMembershipId: string,
+  payload: { code: string; description: string; amount: number; effectiveDate?: string }
+): Promise<LedgerEntry> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/ledger/${tenantMembershipId}/charge`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) await handleApiError(response);
+  const result = await response.json();
+  return result.data || result;
+};
+
+export const postLedgerPayment = async (
+  tenantMembershipId: string,
+  payload: { description: string; amount: number; effectiveDate?: string; referenceId?: string }
+): Promise<LedgerEntry> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/ledger/${tenantMembershipId}/payment`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) await handleApiError(response);
+  const result = await response.json();
+  return result.data || result;
+};
+
+export const postLedgerCredit = async (
+  tenantMembershipId: string,
+  payload: { code?: string; description: string; amount: number; effectiveDate?: string }
+): Promise<LedgerEntry> => {
+  const token = authService.getAccessToken();
+  const response = await fetch(`${API_BASE_URL}/api/ledger/${tenantMembershipId}/credit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) await handleApiError(response);
+  const result = await response.json();
+  return result.data || result;
 };
