@@ -14,12 +14,75 @@ import { PaymentTimeline } from '../ui/PaymentTimeline';
 import { PayNowModal } from './PayNowModal';
 import { RentStatusCard } from './RentStatusCard';
 import { PaymentDueCard } from './PaymentDueCard';
-import { formatCurrency, getPaymentStatus } from '../../utils/helpers';
+import { formatCurrency } from '../../utils/helpers';
 import { calculateTenantPaymentSummary, calculateYearToDateSummary, generatePaymentTimeline } from '../../utils/tenantAnalytics';
 import { useToast } from '../../context/ToastContext';
-import { getTenantMembership, TenantMembershipDetails, fetchPayments } from '../../services/api';
+import { getTenantMembership, TenantMembershipDetails, fetchLedgerBalance, fetchLedgerStatement } from '../../services/api';
 import api from '../../services/api';
-import { Payment, PaymentStatus, TenantMembership } from '../../types';
+import { LedgerEntry, Payment, PaymentStatus } from '../../types';
+
+const toMonthString = (isoDate: string) => {
+  const date = new Date(isoDate);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const toPaymentHistoryRows = (membershipId: string, entries: LedgerEntry[]): Payment[] => {
+  return entries
+    .filter((e) => e.type === 'PAYMENT' && e.status === 'POSTED' && (e.paymentAmount ?? 0) > 0)
+    .map((e) => {
+      const amount = Number(e.paymentAmount || 0);
+      const method: 'CARD' | 'MANUAL' = e.source === 'STRIPE' ? 'CARD' : 'MANUAL';
+      const status: 'SUCCEEDED' = 'SUCCEEDED';
+      return {
+        id: e.id,
+        tenantMembershipId: membershipId,
+        amount,
+        method,
+        date: e.effectiveDate,
+        month: toMonthString(e.effectiveDate),
+        status,
+        note: e.description,
+        rentAmount: amount,
+        processingFee: 0,
+        totalAmount: amount,
+        createdAt: e.createdAt,
+      };
+    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+};
+
+const getPaymentStatusFromLedger = (
+  entries: LedgerEntry[],
+  currentBalance: number,
+  dueDay: number,
+  gracePeriodDays: number,
+  moveInDate: string
+): PaymentStatus => {
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const dueDate = new Date(now.getFullYear(), now.getMonth(), dueDay);
+  const graceDueDate = new Date(dueDate);
+  graceDueDate.setDate(graceDueDate.getDate() + gracePeriodDays);
+
+  const paymentWindowOpenDate = new Date(dueDate);
+  paymentWindowOpenDate.setDate(dueDate.getDate() - 5);
+  const moveIn = new Date(moveInDate);
+
+  const monthEntries = entries.filter((e) => e.status === 'POSTED' && toMonthString(e.effectiveDate) === currentMonth);
+  const monthCharges = monthEntries
+    .filter((e) => e.type === 'CHARGE')
+    .reduce((sum, e) => sum + Number(e.chargeAmount || 0), 0);
+  const monthReductions = monthEntries
+    .filter((e) => e.type === 'PAYMENT' || e.type === 'CREDIT')
+    .reduce((sum, e) => sum + Number(e.paymentAmount || 0), 0);
+
+  if (monthCharges > 0 && monthReductions >= monthCharges) return 'paid';
+  if (currentBalance <= 0.005) return 'paid';
+  if (moveIn > paymentWindowOpenDate) return 'pending';
+  if (now < dueDate) return 'pending';
+  if (now <= graceDueDate) return 'due';
+  return 'late';
+};
 
 export const TenantDashboard: React.FC = () => {
   const { showToast } = useToast();
@@ -30,8 +93,10 @@ export const TenantDashboard: React.FC = () => {
   const [showPayNowModal, setShowPayNowModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tenantData, setTenantData] = useState<TenantMembershipDetails | null>(null);
+  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('paid');
+  const [currentBalance, setCurrentBalance] = useState(0);
 
   useEffect(() => {
     const loadTenantData = async () => {
@@ -47,14 +112,23 @@ export const TenantDashboard: React.FC = () => {
         const membership = await getTenantMembership(membershipId);
         setTenantData(membership);
 
-        const allPayments = await fetchPayments();
-        const tenantPayments = allPayments.filter(p => p.tenantMembershipId === membershipId);
-        setPayments(tenantPayments);
+        const [ledgerEntries, ledgerSummary] = await Promise.all([
+          fetchLedgerStatement(membershipId),
+          fetchLedgerBalance(membershipId),
+        ]);
 
-        const status = getPaymentStatus(
-          { id: membership.id } as TenantMembership,
-          tenantPayments,
-          { dueDay: membership.unit.dueDay, gracePeriodDays: membership.unit.gracePeriodDays } as any
+        setLedgerEntries(ledgerEntries);
+
+        const tenantPayments = toPaymentHistoryRows(membershipId, ledgerEntries);
+        setPayments(tenantPayments);
+        setCurrentBalance(ledgerSummary.currentBalance);
+
+        const status = getPaymentStatusFromLedger(
+          ledgerEntries,
+          ledgerSummary.currentBalance,
+          membership.unit.dueDay,
+          membership.unit.gracePeriodDays,
+          membership.moveInDate
         );
         setPaymentStatus(status);
       } catch (err: any) {
@@ -70,28 +144,28 @@ export const TenantDashboard: React.FC = () => {
 
   // Calculate analytics using useMemo for performance
   const paymentSummary = useMemo(() => {
-    if (!tenantData || payments.length === 0) return null;
+    if (!tenantData || ledgerEntries.length === 0) return null;
     return calculateTenantPaymentSummary(
-      payments,
+      ledgerEntries,
       tenantData.unit.dueDay,
       tenantData.unit.gracePeriodDays
     );
-  }, [payments, tenantData]);
+  }, [ledgerEntries, tenantData]);
 
   const ytdSummary = useMemo(() => {
-    if (payments.length === 0) return null;
-    return calculateYearToDateSummary(payments);
-  }, [payments]);
+    if (ledgerEntries.length === 0) return null;
+    return calculateYearToDateSummary(ledgerEntries);
+  }, [ledgerEntries]);
 
   const paymentTimeline = useMemo(() => {
-    if (!tenantData || payments.length === 0) return [];
+    if (!tenantData || ledgerEntries.length === 0) return [];
     return generatePaymentTimeline(
-      payments,
+      ledgerEntries,
       tenantData.unit.dueDay,
       tenantData.unit.gracePeriodDays,
       tenantData.moveInDate
     );
-  }, [payments, tenantData]);
+  }, [ledgerEntries, tenantData]);
 
   const handlePaymentSuccess = async () => {
     try {
@@ -101,14 +175,23 @@ export const TenantDashboard: React.FC = () => {
       const membership = await getTenantMembership(membershipId);
       setTenantData(membership);
 
-      const allPayments = await fetchPayments();
-      const tenantPayments = allPayments.filter(p => p.tenantMembershipId === membershipId);
-      setPayments(tenantPayments);
+      const [ledgerEntries, ledgerSummary] = await Promise.all([
+        fetchLedgerStatement(membershipId),
+        fetchLedgerBalance(membershipId),
+      ]);
 
-      const status = getPaymentStatus(
-        { id: membership.id } as TenantMembership,
-        tenantPayments,
-        { dueDay: membership.unit.dueDay, gracePeriodDays: membership.unit.gracePeriodDays } as any
+      setLedgerEntries(ledgerEntries);
+
+      const tenantPayments = toPaymentHistoryRows(membershipId, ledgerEntries);
+      setPayments(tenantPayments);
+      setCurrentBalance(ledgerSummary.currentBalance);
+
+      const status = getPaymentStatusFromLedger(
+        ledgerEntries,
+        ledgerSummary.currentBalance,
+        membership.unit.dueDay,
+        membership.unit.gracePeriodDays,
+        membership.moveInDate
       );
       setPaymentStatus(status);
     } catch (err: any) {
@@ -318,14 +401,18 @@ export const TenantDashboard: React.FC = () => {
                 {!tenantData.defaultPaymentMethodId
                   ? 'Add Payment Method to Pay'
                   : paymentStatus === 'paid'
-                    ? `Paid - ${formatCurrency(unit.rentAmount)}`
+                    ? currentBalance < 0
+                      ? `Credit ${formatCurrency(Math.abs(currentBalance))}`
+                      : `Paid - ${formatCurrency(unit.rentAmount)}`
                     : `Pay Now - ${formatCurrency(unit.rentAmount)}`}
               </span>
               <span className="sm:hidden">
                 {!tenantData.defaultPaymentMethodId
                   ? 'Add Payment Method'
                   : paymentStatus === 'paid'
-                    ? `Paid - ${formatCurrency(unit.rentAmount)}`
+                    ? currentBalance < 0
+                      ? `Credit ${formatCurrency(Math.abs(currentBalance))}`
+                      : `Paid - ${formatCurrency(unit.rentAmount)}`
                     : `Pay ${formatCurrency(unit.rentAmount)}`}
               </span>
             </Button>
@@ -448,7 +535,7 @@ export const TenantDashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <PaymentHistoryList
-                payments={payments}
+                  entries={ledgerEntries}
                 dueDay={unit.dueDay}
                 gracePeriodDays={unit.gracePeriodDays}
               />

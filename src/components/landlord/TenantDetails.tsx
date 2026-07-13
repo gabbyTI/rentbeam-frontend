@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { AppShell } from '../ui/AppShell';
@@ -11,13 +11,14 @@ import { PaymentHistoryList } from '../ui/PaymentHistoryList';
 import { LedgerStatement } from '../ui/LedgerStatement';
 import { formatCurrency } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
-import { resendTenantInvite, moveOutTenant, updateTenantInfo, transferTenant } from '../../services/api';
+import { resendTenantInvite, moveOutTenant, updateTenantInfo, transferTenant, fetchLedgerStatement } from '../../services/api';
 import api from '../../services/api';
 import { TenantDocuments } from './TenantDocuments';
+import { LedgerEntry } from '../../types';
 
 export const TenantDetails: React.FC = () => {
   const { tenantId } = useParams<{ tenantId: string }>();
-  const { tenants, units, properties, payments, updateState } = useApp();
+  const { tenants, units, properties, updateState } = useApp();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [showMoveOutModal, setShowMoveOutModal] = useState(false);
@@ -33,6 +34,7 @@ export const TenantDetails: React.FC = () => {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Check' | 'Zelle' | 'Venmo' | 'Other'>('Cash');
   const [paymentNote, setPaymentNote] = useState('');
+  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
 
   const tenant = useMemo(() => {
     const t = tenants.find((t) => t.id === tenantId);
@@ -40,10 +42,28 @@ export const TenantDetails: React.FC = () => {
 
     const unit = units.find((u) => u.id === t.unitId);
     const property = properties.find((p) => p.id === unit?.propertyId);
-    const tenantPayments = payments.filter((p) => p.tenantMembershipId === t.id);
 
-    return { ...t, unit, property, payments: tenantPayments };
-  }, [tenantId, tenants, units, properties, payments]);
+    return { ...t, unit, property };
+  }, [tenantId, tenants, units, properties]);
+
+  useEffect(() => {
+    const loadLedger = async () => {
+      if (!tenant) {
+        setLedgerEntries([]);
+        return;
+      }
+
+      try {
+        const statement = await fetchLedgerStatement(tenant.id);
+        setLedgerEntries(statement);
+      } catch (error) {
+        console.error('Failed to load tenant ledger history:', error);
+        setLedgerEntries([]);
+      }
+    };
+
+    loadLedger();
+  }, [tenant]);
 
   const landlordProperties = useMemo(() => {
     if (!tenant) return [];
@@ -187,7 +207,7 @@ export const TenantDetails: React.FC = () => {
 
     setSaving(true);
     try {
-      const response = await api.post('/api/payments', {
+      await api.post('/api/payments', {
         tenantMembershipId: tenant.id,
         amount: amount,
         paidAt: paymentDate,
@@ -196,8 +216,8 @@ export const TenantDetails: React.FC = () => {
       });
 
       // Refresh payments
-      const updatedPayments = [...payments, response.data];
-      updateState({ payments: updatedPayments });
+      const statement = await fetchLedgerStatement(tenant.id);
+      setLedgerEntries(statement);
 
       showToast(`Payment recorded: ${formatCurrency(amount)} via ${paymentMethod}`, 'success');
       setShowMarkAsPaidModal(false);
@@ -503,7 +523,7 @@ export const TenantDetails: React.FC = () => {
           </CardHeader>
           <CardContent>
             <PaymentHistoryList
-              payments={tenant.payments}
+              entries={ledgerEntries}
               dueDay={tenant.unit?.dueDay ?? 1}
               gracePeriodDays={tenant.unit?.gracePeriodDays ?? 0}
             />

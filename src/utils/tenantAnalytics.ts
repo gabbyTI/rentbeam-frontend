@@ -1,4 +1,4 @@
-import { Payment } from '../types';
+import { LedgerEntry } from '../types';
 
 export interface TenantPaymentSummary {
   onTimeRate: number;
@@ -64,14 +64,15 @@ export function calculateDaysLate(
  * Calculate tenant payment summary metrics
  */
 export function calculateTenantPaymentSummary(
-  payments: Payment[],
+  entries: LedgerEntry[],
   dueDay: number,
   gracePeriodDays: number
 ): TenantPaymentSummary {
   const currentYear = new Date().getFullYear();
   
-  // Filter succeeded payments only
-  const successfulPayments = payments.filter(p => p.status === 'SUCCEEDED');
+  const postedPayments = entries.filter(
+    (entry) => entry.type === 'PAYMENT' && entry.status === 'POSTED' && Number(entry.paymentAmount || 0) > 0
+  );
   
   // Calculate on-time vs late
   let onTimeCount = 0;
@@ -80,13 +81,14 @@ export function calculateTenantPaymentSummary(
   let streakBroken = false;
   
   // Sort by date descending (newest first) for streak calculation
-  const sortedPayments = [...successfulPayments].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  const sortedPayments = [...postedPayments].sort(
+    (a, b) => new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime()
   );
   
-  successfulPayments.forEach(payment => {
-    const paymentDate = new Date(payment.date);
-    const onTime = isPaymentOnTime(paymentDate, payment.month, dueDay, gracePeriodDays);
+  postedPayments.forEach((payment) => {
+    const paymentDate = new Date(payment.effectiveDate);
+    const monthString = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
+    const onTime = isPaymentOnTime(paymentDate, monthString, dueDay, gracePeriodDays);
     
     if (onTime) {
       onTimeCount++;
@@ -97,8 +99,9 @@ export function calculateTenantPaymentSummary(
   
   // Calculate current streak (consecutive on-time payments from most recent)
   for (const payment of sortedPayments) {
-    const paymentDate = new Date(payment.date);
-    const onTime = isPaymentOnTime(paymentDate, payment.month, dueDay, gracePeriodDays);
+    const paymentDate = new Date(payment.effectiveDate);
+    const monthString = `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`;
+    const onTime = isPaymentOnTime(paymentDate, monthString, dueDay, gracePeriodDays);
     
     if (onTime && !streakBroken) {
       currentStreakCount++;
@@ -109,22 +112,19 @@ export function calculateTenantPaymentSummary(
   }
   
   // Calculate year-to-date totals
-  const thisYearPayments = successfulPayments.filter(p => 
-    p.month.startsWith(currentYear.toString())
+  const thisYearPayments = postedPayments.filter((payment) => 
+    new Date(payment.effectiveDate).getFullYear() === currentYear
   );
   
   const totalPaidThisYear = thisYearPayments.reduce(
-    (sum, p) => sum + Number(p.rentAmount || 0),
+    (sum, p) => sum + Number(p.paymentAmount || 0),
     0
   );
   
-  const totalFeesThisYear = thisYearPayments.reduce(
-    (sum, p) => sum + Number(p.processingFee || 0),
-    0
-  );
+  const totalFeesThisYear = 0;
   
-  const onTimeRate = successfulPayments.length > 0 
-    ? (onTimeCount / successfulPayments.length) * 100 
+  const onTimeRate = postedPayments.length > 0 
+    ? (onTimeCount / postedPayments.length) * 100 
     : 0;
   
   return {
@@ -132,7 +132,7 @@ export function calculateTenantPaymentSummary(
     currentStreak: currentStreakCount,
     totalPaidThisYear,
     totalFeesThisYear,
-    totalPayments: successfulPayments.length,
+    totalPayments: postedPayments.length,
     latePayments: lateCount,
     onTimePayments: onTimeCount,
   };
@@ -141,27 +141,21 @@ export function calculateTenantPaymentSummary(
 /**
  * Calculate year-to-date financial summary
  */
-export function calculateYearToDateSummary(payments: Payment[]): YearToDateSummary {
+export function calculateYearToDateSummary(entries: LedgerEntry[]): YearToDateSummary {
   const currentYear = new Date().getFullYear();
   
-  const thisYearPayments = payments.filter(
-    p => p.status === 'SUCCEEDED' && p.month.startsWith(currentYear.toString())
+  const thisYearPayments = entries.filter(
+    (entry) => entry.type === 'PAYMENT' && entry.status === 'POSTED' && new Date(entry.effectiveDate).getFullYear() === currentYear
   );
   
   const totalRent = thisYearPayments.reduce(
-    (sum, p) => sum + Number(p.rentAmount || 0),
+    (sum, p) => sum + Number(p.paymentAmount || 0),
     0
   );
   
-  const totalFees = thisYearPayments.reduce(
-    (sum, p) => sum + Number(p.processingFee || 0),
-    0
-  );
+  const totalFees = 0;
   
-  const totalAmount = thisYearPayments.reduce(
-    (sum, p) => sum + Number(p.totalAmount || 0),
-    0
-  );
+  const totalAmount = totalRent;
   
   const monthlyAverage = thisYearPayments.length > 0 
     ? totalAmount / thisYearPayments.length 
@@ -182,7 +176,7 @@ export function calculateYearToDateSummary(payments: Payment[]): YearToDateSumma
  * For established tenants: shows last 6 months only
  */
 export function generatePaymentTimeline(
-  payments: Payment[],
+  entries: LedgerEntry[],
   dueDay: number,
   gracePeriodDays: number,
   moveInDate?: Date | string
@@ -230,17 +224,21 @@ export function generatePaymentTimeline(
       }
     }
     
-    const payment = payments.find(p => p.month === monthString && p.status === 'SUCCEEDED');
+    const monthPayments = entries.filter(
+      (entry) => entry.type === 'PAYMENT' && entry.status === 'POSTED' &&
+        `${new Date(entry.effectiveDate).getFullYear()}-${String(new Date(entry.effectiveDate).getMonth() + 1).padStart(2, '0')}` === monthString
+    );
+    const payment = monthPayments[0];
     
     if (payment) {
-      const paymentDate = new Date(payment.date);
-      const onTime = isPaymentOnTime(paymentDate, payment.month, dueDay, gracePeriodDays);
-      const daysLate = calculateDaysLate(paymentDate, payment.month, dueDay);
+      const paymentDate = new Date(payment.effectiveDate);
+      const onTime = isPaymentOnTime(paymentDate, monthString, dueDay, gracePeriodDays);
+      const daysLate = calculateDaysLate(paymentDate, monthString, dueDay);
       
       timeline.push({
         month: monthString,
         status: onTime ? 'on-time' : 'late',
-        amount: Number(payment.totalAmount || 0),
+        amount: monthPayments.reduce((sum, entry) => sum + Number(entry.paymentAmount || 0), 0),
         date: paymentDate,
         daysLate: daysLate,
       });
@@ -248,31 +246,11 @@ export function generatePaymentTimeline(
       // Check if this month is in the past, current, or future
       
       // Check for pending/failed payment
-      const pendingPayment = payments.find(p => p.month === monthString && p.status === 'PENDING');
-      const failedPayment = payments.find(p => p.month === monthString && p.status === 'FAILED');
-      
-      if (failedPayment) {
-        timeline.push({
-          month: monthString,
-          status: 'failed',
-          amount: Number(failedPayment.totalAmount || 0),
-          date: new Date(failedPayment.date),
-        });
-      } else if (pendingPayment) {
-        timeline.push({
-          month: monthString,
-          status: 'pending',
-          amount: Number(pendingPayment.totalAmount || 0),
-          date: new Date(pendingPayment.date),
-        });
-      } else {
-        // No payment found - show as pending (gray)
-        timeline.push({
-          month: monthString,
-          status: 'pending',
-          amount: 0,
-        });
-      }
+      timeline.push({
+        month: monthString,
+        status: 'pending',
+        amount: 0,
+      });
     }
   }
   

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
-import { AppState, UserRole, LandlordAccount, TenantMembership, Property, Unit, Payment } from '../types';
-import { initializeApi, fetchProperties, fetchUnits, fetchTenants, fetchPayments, getStripeConnectStatus } from '../services/api';
+import { AppState, UserRole, LandlordAccount, TenantMembership, Property, Unit } from '../types';
+import { initializeApi, fetchProperties, fetchUnits, fetchTenants, getStripeConnectStatus } from '../services/api';
 import { authService } from '../services/auth';
 
 interface AppContextType extends AppState {
@@ -143,13 +143,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const promises: [
           Promise<Property[]>,
           Promise<Unit[]>,
-          Promise<TenantMembership[]>,
-          Promise<Payment[]>
+          Promise<TenantMembership[]>
         ] = [
             fetchProperties(),
             fetchUnits(),
             fetchTenants(),
-            fetchPayments(),
           ];
 
         // Load Stripe status only for landlords (handled separately to avoid type issues)
@@ -169,16 +167,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           });
         }
 
-        const [properties, units, tenants, payments] = await Promise.all(promises);
+        const [properties, units, tenants] = await Promise.all(promises);
 
-        console.log('🔵 Data loaded:', { properties, units, tenants, payments });
+        console.log('🔵 Data loaded:', { properties, units, tenants });
 
         setState(prev => ({
           ...prev,
           properties,
           units,
           tenantMemberships: tenants,
-          payments,
         }));
         setDataLoaded(true);
       } catch (error) {

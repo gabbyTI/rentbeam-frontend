@@ -38,6 +38,19 @@ export const LandlordTenants: React.FC = () => {
     emergencyContactName: '',
     emergencyContactPhone: '',
     notes: '',
+    // Opening ledger entries (optional)
+    openingChargeEnabled: false,
+    openingChargeAmount: '',
+    openingChargeCode: 'RNTA',
+    openingChargeDescription: 'Opening Rent Charge',
+    openingCreditEnabled: false,
+    openingCreditAmount: '',
+    openingCreditCode: 'CONC',
+    openingCreditDescription: 'Opening Concession',
+    openingPaymentEnabled: false,
+    openingPaymentAmount: '',
+    openingPaymentDescription: 'Opening Manual Payment',
+    openingEffectiveDate: '',
   });
 
   const landlordProperties = useMemo(() => {
@@ -74,9 +87,13 @@ export const LandlordTenants: React.FC = () => {
   };
 
   const handleUnitChange = (unitId: string) => {
+    const selectedUnit = units.find((u) => u.id === unitId);
     setTenantForm({
       ...tenantForm,
       unitId,
+      openingChargeAmount: selectedUnit && !tenantForm.openingChargeAmount
+        ? String(selectedUnit.rentAmount)
+        : tenantForm.openingChargeAmount,
     });
   };
 
@@ -93,6 +110,43 @@ export const LandlordTenants: React.FC = () => {
 
     setAddingTenant(true);
     try {
+      const openingLedgerEntries: Array<{
+        type: 'CHARGE' | 'PAYMENT' | 'CREDIT';
+        amount: number;
+        description: string;
+        code?: string;
+        effectiveDate?: string;
+      }> = [];
+
+      if (tenantForm.openingChargeEnabled && tenantForm.openingChargeAmount) {
+        openingLedgerEntries.push({
+          type: 'CHARGE',
+          amount: parseFloat(tenantForm.openingChargeAmount),
+          code: tenantForm.openingChargeCode || 'RNTA',
+          description: tenantForm.openingChargeDescription || 'Opening Rent Charge',
+          effectiveDate: tenantForm.openingEffectiveDate || tenantForm.moveInDate || undefined,
+        });
+      }
+
+      if (tenantForm.openingCreditEnabled && tenantForm.openingCreditAmount) {
+        openingLedgerEntries.push({
+          type: 'CREDIT',
+          amount: parseFloat(tenantForm.openingCreditAmount),
+          code: tenantForm.openingCreditCode || 'CONC',
+          description: tenantForm.openingCreditDescription || 'Opening Concession',
+          effectiveDate: tenantForm.openingEffectiveDate || tenantForm.moveInDate || undefined,
+        });
+      }
+
+      if (tenantForm.openingPaymentEnabled && tenantForm.openingPaymentAmount) {
+        openingLedgerEntries.push({
+          type: 'PAYMENT',
+          amount: parseFloat(tenantForm.openingPaymentAmount),
+          description: tenantForm.openingPaymentDescription || 'Opening Manual Payment',
+          effectiveDate: tenantForm.openingEffectiveDate || tenantForm.moveInDate || undefined,
+        });
+      }
+
       await api.createTenant({
         email: tenantForm.email,
         firstName: tenantForm.firstName,
@@ -108,6 +162,7 @@ export const LandlordTenants: React.FC = () => {
         emergencyContactName: tenantForm.emergencyContactName || undefined,
         emergencyContactPhone: tenantForm.emergencyContactPhone || undefined,
         notes: tenantForm.notes || undefined,
+        openingLedgerEntries: openingLedgerEntries.length > 0 ? openingLedgerEntries : undefined,
       });
 
       showToast(`Tenant added successfully. Invite sent to ${tenantForm.email}`);
@@ -128,6 +183,18 @@ export const LandlordTenants: React.FC = () => {
         emergencyContactName: '',
         emergencyContactPhone: '',
         notes: '',
+        openingChargeEnabled: false,
+        openingChargeAmount: '',
+        openingChargeCode: 'RNTA',
+        openingChargeDescription: 'Opening Rent Charge',
+        openingCreditEnabled: false,
+        openingCreditAmount: '',
+        openingCreditCode: 'CONC',
+        openingCreditDescription: 'Opening Concession',
+        openingPaymentEnabled: false,
+        openingPaymentAmount: '',
+        openingPaymentDescription: 'Opening Manual Payment',
+        openingEffectiveDate: '',
       });
       window.location.reload();
     } catch (error: any) {
@@ -337,14 +404,13 @@ export const LandlordTenants: React.FC = () => {
           maxWidth="lg"
         >
           <div className="space-y-4">
-            {/* Info Banner */}
-            <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-              <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+              <svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
               <p>
-                <strong>Note:</strong> Rent for the move-in month will be marked as paid.
-                This assumes you've already collected the first month's rent before adding the tenant.
+                <strong>Ledger-first:</strong> No rent is assumed paid when creating a tenant.
+                Add opening entries below only if you want to seed an opening balance.
               </p>
             </div>
 
@@ -425,6 +491,119 @@ export const LandlordTenants: React.FC = () => {
                 setTenantForm({ ...tenantForm, moveInDate: e.target.value })
               }
             />
+
+            {/* Opening Ledger Entries */}
+            <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+              <h4 className="text-sm font-semibold text-gray-800">Opening Ledger Entries (optional)</h4>
+
+              <Input
+                label="Opening Effective Date (optional)"
+                type="date"
+                value={tenantForm.openingEffectiveDate}
+                onChange={(e) => setTenantForm({ ...tenantForm, openingEffectiveDate: e.target.value })}
+              />
+
+              <div className="space-y-2 border border-gray-100 rounded-lg p-3">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={tenantForm.openingChargeEnabled}
+                    onChange={(e) => setTenantForm({ ...tenantForm, openingChargeEnabled: e.target.checked })}
+                  />
+                  Add opening charge
+                </label>
+                {tenantForm.openingChargeEnabled && (
+                  <div className="grid grid-cols-3 gap-3">
+                    <Input
+                      label="Charge Code"
+                      type="text"
+                      value={tenantForm.openingChargeCode}
+                      onChange={(e) => setTenantForm({ ...tenantForm, openingChargeCode: e.target.value.toUpperCase() })}
+                      placeholder="RNTA"
+                    />
+                    <Input
+                      label="Amount"
+                      type="number"
+                      value={tenantForm.openingChargeAmount}
+                      onChange={(e) => setTenantForm({ ...tenantForm, openingChargeAmount: e.target.value })}
+                      placeholder="0.00"
+                    />
+                    <Input
+                      label="Description"
+                      type="text"
+                      value={tenantForm.openingChargeDescription}
+                      onChange={(e) => setTenantForm({ ...tenantForm, openingChargeDescription: e.target.value })}
+                      placeholder="Opening Rent Charge"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 border border-gray-100 rounded-lg p-3">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={tenantForm.openingCreditEnabled}
+                    onChange={(e) => setTenantForm({ ...tenantForm, openingCreditEnabled: e.target.checked })}
+                  />
+                  Add opening credit
+                </label>
+                {tenantForm.openingCreditEnabled && (
+                  <div className="grid grid-cols-3 gap-3">
+                    <Input
+                      label="Credit Code"
+                      type="text"
+                      value={tenantForm.openingCreditCode}
+                      onChange={(e) => setTenantForm({ ...tenantForm, openingCreditCode: e.target.value.toUpperCase() })}
+                      placeholder="CONC"
+                    />
+                    <Input
+                      label="Amount"
+                      type="number"
+                      value={tenantForm.openingCreditAmount}
+                      onChange={(e) => setTenantForm({ ...tenantForm, openingCreditAmount: e.target.value })}
+                      placeholder="0.00"
+                    />
+                    <Input
+                      label="Description"
+                      type="text"
+                      value={tenantForm.openingCreditDescription}
+                      onChange={(e) => setTenantForm({ ...tenantForm, openingCreditDescription: e.target.value })}
+                      placeholder="Opening Concession"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2 border border-gray-100 rounded-lg p-3">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={tenantForm.openingPaymentEnabled}
+                    onChange={(e) => setTenantForm({ ...tenantForm, openingPaymentEnabled: e.target.checked })}
+                  />
+                  Add opening payment (already paid)
+                </label>
+                {tenantForm.openingPaymentEnabled && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Input
+                      label="Amount"
+                      type="number"
+                      value={tenantForm.openingPaymentAmount}
+                      onChange={(e) => setTenantForm({ ...tenantForm, openingPaymentAmount: e.target.value })}
+                      placeholder="0.00"
+                    />
+                    <Input
+                      label="Description"
+                      type="text"
+                      value={tenantForm.openingPaymentDescription}
+                      onChange={(e) => setTenantForm({ ...tenantForm, openingPaymentDescription: e.target.value })}
+                      placeholder="Opening Manual Payment"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Additional Details — collapsible */}
             <div className="border border-gray-200 rounded-lg overflow-hidden">

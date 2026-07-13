@@ -92,12 +92,6 @@ export const getPaymentStatus = (
   // (rent for February is due on Feb 1st, not March 1st)
   const currentRentMonthString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
 
-  // Check if tenant's first payment cycle
-  const moveInDate = new Date(tenant.moveInDate);
-  const moveInYear = moveInDate.getFullYear();
-  const moveInMonth = moveInDate.getMonth();
-
-  // If tenant moved in this month, they already paid initial rent
   // Check if current month has a PROCESSING payment
   const hasProcessingPayment = payments.some(
     (p) => p.tenantMembershipId === tenant.id &&
@@ -164,14 +158,6 @@ export const getPaymentStatus = (
   }
 
   // Current month is NOT paid
-  // Check if tenant just moved in this month (initial payment already created)
-  if (moveInYear === currentYear && moveInMonth === currentMonth) {
-    // They should have an initial payment - if not, that's a bug but show as paid
-    // because initial payment is created on tenant creation
-    return 'paid';
-  }
-
-  // Current month is not paid and tenant didn't just move in
   // Determine status based on where we are in the billing cycle
   const dueDate = new Date(currentYear, currentMonth, dueDay);
   const paymentWindowOpenDate = new Date(dueDate);

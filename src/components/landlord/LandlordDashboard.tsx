@@ -9,14 +9,46 @@ import { Button } from '../ui/Button';
 import { MetricCard } from '../ui/MetricCard';
 import { ActivityFeed } from '../ui/ActivityFeed';
 import { formatCurrency } from '../../utils/helpers';
-import { getPaymentStatus, getCurrentRentMonth, formatRentMonth } from '../../utils/helpers';
+import { getCurrentRentMonth, formatRentMonth } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
+import { fetchLedgerBalance } from '../../services/api';
+
+type RentStatus = 'paid' | 'processing' | 'pending' | 'due' | 'late';
+
+const deriveRentStatus = (
+  currentBalance: number,
+  dueDay?: number,
+  gracePeriodDays?: number
+): RentStatus => {
+  if (currentBalance <= 0.005) {
+    return 'paid';
+  }
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const resolvedDueDay = dueDay ?? 1;
+  const resolvedGrace = gracePeriodDays ?? 0;
+
+  const dueDate = new Date(currentYear, currentMonth, resolvedDueDay);
+  const paymentWindowOpenDate = new Date(dueDate);
+  paymentWindowOpenDate.setDate(dueDate.getDate() - 5);
+
+  if (now < paymentWindowOpenDate) return 'pending';
+  if (now < dueDate) return 'pending';
+
+  const lateDate = new Date(dueDate);
+  lateDate.setDate(dueDate.getDate() + resolvedGrace);
+  if (now <= lateDate) return 'due';
+
+  return 'late';
+};
 
 export const LandlordDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser, tenants, properties, units, payments, loading } = useApp();
+  const { currentUser, tenants, properties, units, loading } = useApp();
   const api = useApi();
   const { showToast } = useToast();
   const { analytics, loading: analyticsLoading } = useDashboardAnalytics();
@@ -26,6 +58,33 @@ export const LandlordDashboard: React.FC = () => {
     new Date().toISOString().split('T')[0]
   );
   const [paymentNote, setPaymentNote] = useState('Paid via Interac e-Transfer');
+  const [ledgerBalances, setLedgerBalances] = useState<Record<string, number>>({});
+
+  React.useEffect(() => {
+    const loadLedgerBalances = async () => {
+      try {
+        const activeTenantIds = tenants
+          .filter((t) => t.landlordId === currentUser?.id && t.status === 'ACTIVE')
+          .map((t) => t.id);
+
+        const results = await Promise.all(
+          activeTenantIds.map(async (tenantId) => {
+            const summary = await fetchLedgerBalance(tenantId);
+            return [tenantId, summary.currentBalance] as const;
+          })
+        );
+
+        setLedgerBalances(Object.fromEntries(results));
+      } catch (error) {
+        console.error('Failed to load ledger balances for landlord dashboard', error);
+        setLedgerBalances({});
+      }
+    };
+
+    if (currentUser?.id && tenants.length > 0) {
+      loadLedgerBalances();
+    }
+  }, [currentUser?.id, tenants]);
 
   if (loading) {
     return (
@@ -46,7 +105,8 @@ export const LandlordDashboard: React.FC = () => {
       .map((tenant) => {
         const unit = units.find((u) => u.id === tenant.unitId);
         const property = properties.find((p) => p.id === unit?.propertyId);
-        const status = getPaymentStatus(tenant, payments, unit);
+        const currentBalance = ledgerBalances[tenant.id] ?? 0;
+        const rentStatus = deriveRentStatus(currentBalance, unit?.dueDay, unit?.gracePeriodDays);
         return {
           ...tenant,
           // Flatten user fields for backward compatibility
@@ -55,10 +115,12 @@ export const LandlordDashboard: React.FC = () => {
           phone: tenant.user.phone,
           unit,
           property,
-          status,
+          membershipStatus: tenant.status,
+          rentStatus,
+          currentBalance,
         };
       });
-  }, [tenants, units, properties, payments, currentUser]);
+  }, [tenants, units, properties, currentUser, ledgerBalances]);
 
   const handleMarkAsPaid = (tenantId: string) => {
     setMarkPaidModal(tenantId);
@@ -235,8 +297,8 @@ export const LandlordDashboard: React.FC = () => {
                       <p className="text-xs text-gray-500 mt-0.5">{tenant.email}</p>
                       <p className="mt-1 text-xs text-gray-600">Unit {tenant.unit?.name}</p>
                     </div>
-                    <Badge variant={tenant.status}>
-                      {tenant.status.charAt(0).toUpperCase() + tenant.status.slice(1)}
+                    <Badge variant={tenant.membershipStatus}>
+                      {tenant.membershipStatus.charAt(0).toUpperCase() + tenant.membershipStatus.slice(1)}
                     </Badge>
                   </div>
 
@@ -263,7 +325,7 @@ export const LandlordDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  {!tenant.autopayEnabled && tenant.status !== 'paid' && (
+                  {!tenant.autopayEnabled && tenant.rentStatus !== 'paid' && (
                     <Button
                       size="sm"
                       onClick={() => handleMarkAsPaid(tenant.id)}
@@ -272,7 +334,7 @@ export const LandlordDashboard: React.FC = () => {
                       Mark Paid
                     </Button>
                   )}
-                  {tenant.status === 'paid' && (
+                  {tenant.rentStatus === 'paid' && (
                     <div className="text-sm font-medium text-center text-green-600">
                       ✓ Received
                     </div>
@@ -337,8 +399,8 @@ export const LandlordDashboard: React.FC = () => {
                         Day {tenant.unit?.dueDay ?? 1}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={tenant.status}>
-                          {tenant.status.charAt(0).toUpperCase() + tenant.status.slice(1)}
+                        <Badge variant={tenant.membershipStatus}>
+                          {tenant.membershipStatus.charAt(0).toUpperCase() + tenant.membershipStatus.slice(1)}
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -347,7 +409,7 @@ export const LandlordDashboard: React.FC = () => {
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
-                        {!tenant.autopayEnabled && tenant.status !== 'paid' && (
+                        {!tenant.autopayEnabled && tenant.rentStatus !== 'paid' && (
                           <Button
                             size="sm"
                             onClick={() => handleMarkAsPaid(tenant.id)}
@@ -355,7 +417,7 @@ export const LandlordDashboard: React.FC = () => {
                             Mark Paid
                           </Button>
                         )}
-                        {tenant.status === 'paid' && (
+                        {tenant.rentStatus === 'paid' && (
                           <span className="text-green-600">✓ Received</span>
                         )}
                       </td>

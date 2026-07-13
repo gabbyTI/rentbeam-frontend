@@ -1,37 +1,41 @@
 import React, { useState } from 'react';
-import { Payment } from '../../types';
-import { formatCurrency, formatDate, wasPaymentLate } from '../../utils/helpers';
+import { LedgerEntry } from '../../types';
+import { formatCurrency, formatDate } from '../../utils/helpers';
 import { Badge } from './Badge';
 import { EmptyState } from './EmptyState';
+import { calculateDaysLate, isPaymentOnTime } from '../../utils/tenantAnalytics';
 
 interface PaymentHistoryListProps {
-  payments: Payment[];
+  entries: LedgerEntry[];
   dueDay: number;
   gracePeriodDays: number;
 }
 
 export const PaymentHistoryList: React.FC<PaymentHistoryListProps> = ({
-  payments,
+  entries,
   dueDay,
   gracePeriodDays
 }) => {
   const [showFailedPayments, setShowFailedPayments] = useState(false);
 
-  // Filter payments based on toggle
-  const filteredPayments = showFailedPayments
-    ? payments
-    : payments.filter(p => p.status !== 'FAILED');
+  const postedEntries = entries.filter((entry) => entry.type === 'PAYMENT' && entry.status === 'POSTED');
 
-  if (payments.length === 0) {
+  if (postedEntries.length === 0) {
     return (
       <EmptyState
         title="No payment history"
-        description="Payment records will appear here once rent is paid."
+        description="Ledger payment records will appear here once rent is paid."
       />
     );
   }
 
-  const failedPaymentsCount = payments.filter(p => p.status === 'FAILED').length;
+  const filteredEntries = showFailedPayments ? postedEntries : postedEntries;
+  const failedPaymentsCount = 0;
+
+  const monthString = (date: string) => {
+    const parsed = new Date(date);
+    return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}`;
+  };
 
   return (
     <div className="space-y-4">
@@ -54,92 +58,74 @@ export const PaymentHistoryList: React.FC<PaymentHistoryListProps> = ({
 
       {/* Payment List */}
       <div className="space-y-3">
-        {filteredPayments.length === 0 ? (
+        {filteredEntries.length === 0 ? (
           <EmptyState
             title="No payments to display"
-            description="All payments are filtered out."
+            description="All ledger payment entries are filtered out."
           />
         ) : (
-          filteredPayments.map((payment) => {
-            const isLate = wasPaymentLate(payment, dueDay, gracePeriodDays);
-            const isFailed = payment.status === 'FAILED';
+          filteredEntries.map((entry) => {
+            const effectiveDate = new Date(entry.effectiveDate);
+            const month = monthString(entry.effectiveDate);
+            const isLate = !isPaymentOnTime(effectiveDate, month, dueDay, gracePeriodDays);
+            const daysLate = calculateDaysLate(effectiveDate, month, dueDay);
+            const isManual = entry.source === 'MANUAL';
+            const amount = Number(entry.paymentAmount || 0);
 
-            // Calculate due date from payment month and dueDay
-            const [year, month] = payment.month.split('-');
-            const dueDate = new Date(parseInt(year), parseInt(month) - 1, dueDay);
-
-            // Determine payment method display
             let methodLabel = 'Card';
             let methodEmoji = '';
-            if (payment.method === 'MANUAL') {
-              if (payment.paymentMethod === 'Cash') {
+            if (isManual) {
+              if (entry.description.includes('Cash')) {
                 methodLabel = 'Cash';
                 methodEmoji = '💵';
-              } else if (payment.paymentMethod === 'Check') {
+              } else if (entry.description.includes('Check')) {
                 methodLabel = 'Check';
                 methodEmoji = '✓';
-              } else if (payment.paymentMethod === 'Zelle') {
+              } else if (entry.description.includes('Zelle')) {
                 methodLabel = 'Zelle';
                 methodEmoji = 'Ⓩ';
-              } else if (payment.paymentMethod === 'Venmo') {
+              } else if (entry.description.includes('Venmo')) {
                 methodLabel = 'Venmo';
                 methodEmoji = 'Ⓥ';
               } else {
-                methodLabel = payment.paymentMethod || 'Manual';
+                methodLabel = 'Manual';
                 methodEmoji = '';
               }
             }
 
             return (
               <div
-                key={payment.id}
-                className={`p-3 sm:p-4 rounded-lg ${isFailed ? 'bg-red-50 border border-red-200' : 'bg-gray-50'
-                  }`}
+                key={entry.id}
+                className="p-3 sm:p-4 rounded-lg bg-gray-50"
               >
                 <div className="flex flex-col gap-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    {payment.method === 'CARD' ? (
+                    {isManual ? (
+                      <span className="font-medium text-gray-900 text-sm sm:text-base">
+                        {formatCurrency(amount)}
+                      </span>
+                    ) : (
                       <div className="flex flex-wrap items-center gap-1 text-sm sm:text-base">
                         <span className="font-medium text-gray-900">
-                          {formatCurrency(payment.rentAmount || 0)}
-                        </span>
-                        <span className="text-xs sm:text-sm text-gray-500">rent</span>
-                        <span className="text-gray-400">+</span>
-                        <span className="text-xs sm:text-sm text-gray-600">
-                          {formatCurrency(payment.processingFee || 0)}
-                        </span>
-                        <span className="text-xs sm:text-sm text-gray-500">fee</span>
-                        <span className="text-gray-400">=</span>
-                        <span className="font-semibold text-gray-900">
-                          {formatCurrency(payment.totalAmount || 0)}
+                          {formatCurrency(amount)}
                         </span>
                       </div>
-                    ) : (
-                      <span className="font-medium text-gray-900 text-sm sm:text-base">
-                        {formatCurrency(payment.amount)}
-                      </span>
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={payment.method === 'CARD' ? 'autopay' : 'manual'}>
-                      {payment.method === 'CARD' ? 'Card' : `${methodEmoji} ${methodLabel}`}
+                    <Badge variant={isManual ? 'manual' : 'autopay'}>
+                      {isManual ? `${methodEmoji} ${methodLabel}` : 'Card'}
                     </Badge>
-                    {isFailed ? (
-                      <Badge variant="late">
-                        ❌ Failed
-                      </Badge>
-                    ) : (
-                      <Badge variant={isLate ? 'late' : 'paid'}>
-                        {isLate ? 'Late' : 'On Time'}
-                      </Badge>
-                    )}
+                    <Badge variant={isLate ? 'late' : 'paid'}>
+                      {isLate ? `Late${daysLate > 0 ? ` (${daysLate} days)` : ''}` : 'On Time'}
+                    </Badge>
                   </div>
                   <p className="text-xs sm:text-sm text-gray-500">
-                    Due: {formatDate(dueDate.toISOString())} • {isFailed ? 'Attempted' : 'Paid'}: {formatDate(payment.date)}
+                    Paid: {formatDate(entry.effectiveDate)}
                   </p>
-                  {payment.note && (
-                    <p className={`text-xs sm:text-sm italic ${isFailed ? 'text-red-700 font-medium' : 'text-gray-600'}`}>
-                      {payment.note}
+                  {entry.description && (
+                    <p className="text-xs sm:text-sm italic text-gray-600">
+                      {entry.description}
                     </p>
                   )}
                 </div>

@@ -693,6 +693,14 @@ export const createTenant = async (
     rentDeposit?: number; dateOfBirth?: string;
     emergencyContactName?: string; emergencyContactPhone?: string;
     notes?: string;
+    // Optional opening ledger entries posted at tenant creation
+    openingLedgerEntries?: Array<{
+      type: 'CHARGE' | 'PAYMENT' | 'CREDIT';
+      amount: number;
+      description: string;
+      code?: string;
+      effectiveDate?: string;
+    }>;
   }
 ): Promise<any> => {
   const token = authService.getAccessToken();
