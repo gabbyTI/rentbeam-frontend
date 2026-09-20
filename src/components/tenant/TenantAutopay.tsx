@@ -7,7 +7,7 @@ import { Modal } from '../ui/Modal';
 import { FeeBreakdown } from '../ui/FeeBreakdown';
 import { useToast } from '../../context/ToastContext';
 import { useApp } from '../../context/AppContext';
-import { getTenantMembership, TenantMembershipDetails } from '../../services/api';
+import { fetchLedgerBalance, getTenantMembership, TenantMembershipDetails } from '../../services/api';
 import { calculateProcessingFee, formatCurrency } from '../../utils/stripe';
 import api from '../../services/api';
 
@@ -18,6 +18,7 @@ export const TenantAutopay: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [tenantData, setTenantData] = useState<TenantMembershipDetails | null>(null);
+  const [outstandingBalance, setOutstandingBalance] = useState(0);
   const [showRemoveCardModal, setShowRemoveCardModal] = useState(false);
   const [showDisableModal, setShowDisableModal] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
@@ -32,8 +33,12 @@ export const TenantAutopay: React.FC = () => {
         }
 
         const membershipId = currentUser.id;
-        const membership = await getTenantMembership(membershipId);
+        const [membership, ledgerSummary] = await Promise.all([
+          getTenantMembership(membershipId),
+          fetchLedgerBalance(membershipId),
+        ]);
         setTenantData(membership);
+        setOutstandingBalance(Math.max(ledgerSummary.currentBalance || 0, 0));
       } catch (err: any) {
         showToast(err.message || 'Failed to load tenant data', 'error');
         navigate('/tenant/dashboard');
@@ -60,8 +65,12 @@ export const TenantAutopay: React.FC = () => {
       showToast('Autopay enabled successfully!', 'success');
 
       const membershipId = tenantData!.id;
-      const membership = await getTenantMembership(membershipId);
+      const [membership, ledgerSummary] = await Promise.all([
+        getTenantMembership(membershipId),
+        fetchLedgerBalance(membershipId),
+      ]);
       setTenantData(membership);
+      setOutstandingBalance(Math.max(ledgerSummary.currentBalance || 0, 0));
       setConsentChecked(false);
     } catch (err: any) {
       showToast(err.response?.data?.error || 'Failed to enable autopay', 'error');
@@ -81,8 +90,12 @@ export const TenantAutopay: React.FC = () => {
       setShowDisableModal(false);
 
       const membershipId = tenantData!.id;
-      const membership = await getTenantMembership(membershipId);
+      const [membership, ledgerSummary] = await Promise.all([
+        getTenantMembership(membershipId),
+        fetchLedgerBalance(membershipId),
+      ]);
       setTenantData(membership);
+      setOutstandingBalance(Math.max(ledgerSummary.currentBalance || 0, 0));
     } catch (err: any) {
       showToast(err.response?.data?.error || 'Failed to disable autopay', 'error');
     } finally {
@@ -141,8 +154,8 @@ export const TenantAutopay: React.FC = () => {
   }
 
   const { unit } = tenantData;
-  const rentAmount = Number(unit.rentAmount);
-  const { totalAmount } = calculateProcessingFee(rentAmount, tenantData.paymentMethodType || 'card');
+  const ledgerAmount = outstandingBalance;
+  const { totalAmount } = calculateProcessingFee(ledgerAmount, tenantData.paymentMethodType || 'card');
 
   const getNextChargeDate = () => {
     const today = new Date();
@@ -247,7 +260,7 @@ export const TenantAutopay: React.FC = () => {
                         <span className="font-medium">{getNextChargeDate()}</span>
                       </div>
                       <FeeBreakdown
-                        rentAmount={rentAmount}
+                        rentAmount={ledgerAmount}
                         paymentMethodType={tenantData.paymentMethodType || undefined}
                       />
                     </div>
@@ -278,7 +291,7 @@ export const TenantAutopay: React.FC = () => {
                     <h3 className="font-medium mb-3">Your Monthly Charge</h3>
                     <div className="bg-gray-50 rounded-lg p-4">
                       <FeeBreakdown
-                        rentAmount={rentAmount}
+                        rentAmount={ledgerAmount}
                         paymentMethodType={tenantData.paymentMethodType || undefined}
                       />
                     </div>

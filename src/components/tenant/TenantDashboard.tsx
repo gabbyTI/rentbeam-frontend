@@ -275,7 +275,7 @@ export const TenantDashboard: React.FC = () => {
                 {paymentStatus === 'paid'
                     ? currentBalance < 0
                       ? `Credit ${formatCurrency(Math.abs(currentBalance))}`
-                      : `Paid - ${formatCurrency(outstandingBalance || unit.rentAmount)}`
+                      : `Paid - ${formatCurrency(outstandingBalance)}`
                     : outstandingBalance > 0
                       ? `Pay Now - ${formatCurrency(outstandingBalance)}`
                       : 'No Balance Due'}
@@ -284,7 +284,7 @@ export const TenantDashboard: React.FC = () => {
                 {paymentStatus === 'paid'
                     ? currentBalance < 0
                       ? `Credit ${formatCurrency(Math.abs(currentBalance))}`
-                      : `Paid - ${formatCurrency(outstandingBalance || unit.rentAmount)}`
+                      : `Paid - ${formatCurrency(outstandingBalance)}`
                     : outstandingBalance > 0
                       ? `Pay ${formatCurrency(outstandingBalance)}`
                       : 'No Balance'}
