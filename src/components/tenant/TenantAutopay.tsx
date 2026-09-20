@@ -247,7 +247,7 @@ export const TenantAutopay: React.FC = () => {
                       <span className="font-medium text-green-900">Autopay Active</span>
                     </div>
                     <p className="text-sm text-green-800">
-                      Your rent will be automatically charged on the {unit.dueDay}
+                      Your ledger balance will be automatically charged on the {unit.dueDay}
                       {unit.dueDay === 1 ? 'st' : unit.dueDay === 2 ? 'nd' : unit.dueDay === 3 ? 'rd' : 'th'} of each month.
                     </p>
                   </div>

@@ -169,7 +169,7 @@ export const PaymentDueCard: React.FC<PaymentDueCardProps> = ({
                             <span className="text-lg font-semibold text-green-700">Autopay Enabled</span>
                         </div>
                         <p className="text-sm text-gray-600">
-                            Your payment will be automatically charged on day {dueDay}.
+                            Your ledger balance will be automatically charged on day {dueDay}.
                         </p>
                         {paymentMethodLabel && (
                             <p className="text-xs text-gray-500 mt-1">Using {paymentMethodLabel}</p>

@@ -369,7 +369,7 @@ export const TenantDashboard: React.FC = () => {
                       <span className="text-xs font-medium text-green-700 sm:text-sm">Active</span>
                     </div>
                     <p className="mb-3 text-xs text-gray-600 sm:text-sm sm:mb-4">
-                      Rent will be automatically charged on the {unit.dueDay}
+                      Ledger balance will be automatically charged on the {unit.dueDay}
                       {unit.dueDay === 1 ? 'st' : unit.dueDay === 2 ? 'nd' : unit.dueDay === 3 ? 'rd' : 'th'} of each month.
                     </p>
                     <p className="mb-3 text-xs text-gray-500 sm:text-sm sm:mb-4">
