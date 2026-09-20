@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStripe } from '@stripe/react-stripe-js';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
@@ -28,10 +28,23 @@ export const PayNowModal: React.FC<PayNowModalProps> = ({
   const stripe = useStripe();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [customAmount, setCustomAmount] = useState(rentAmount);
+
+  useEffect(() => {
+    setCustomAmount(rentAmount);
+  }, [rentAmount, isOpen]);
+
+  const maxAllowedAmount = Math.max(rentAmount, 0);
+  const normalizedAmount = Math.min(Math.max(customAmount, 0), maxAllowedAmount);
 
   const handlePayNow = async () => {
     if (!stripe) {
       showToast('Stripe is not loaded', 'error');
+      return;
+    }
+
+    if (normalizedAmount <= 0 || normalizedAmount > maxAllowedAmount) {
+      showToast('Please enter a valid payment amount within the outstanding balance.', 'error');
       return;
     }
 
@@ -42,6 +55,7 @@ export const PayNowModal: React.FC<PayNowModalProps> = ({
       const response = await api.post('/api/stripe/payment-intent', {
         month,
         membershipId,
+        amount: normalizedAmount,
       });
 
       const { clientSecret } = response.data;
@@ -86,8 +100,20 @@ export const PayNowModal: React.FC<PayNowModalProps> = ({
         {/* Fee Breakdown */}
         <div>
           <label className="text-sm text-gray-600 block mb-3">Payment Details</label>
+          <div className="mb-3">
+            <label className="block text-xs text-gray-600 mb-2">Custom Amount (up to {`$${rentAmount.toFixed(2)}`})</label>
+            <input
+              type="number"
+              min="0"
+              max={maxAllowedAmount}
+              step="0.01"
+              value={customAmount}
+              onChange={(e) => setCustomAmount(Number(e.target.value || 0))}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            />
+          </div>
           <div className="bg-gray-50 rounded-lg p-4">
-            <FeeBreakdown rentAmount={rentAmount} />
+            <FeeBreakdown rentAmount={normalizedAmount} />
           </div>
         </div>
 

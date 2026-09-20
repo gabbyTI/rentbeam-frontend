@@ -144,6 +144,13 @@ export const TenantDashboard: React.FC = () => {
       navigate('/tenant/payment-method');
       return;
     }
+
+    const outstandingBalance = Math.max(currentBalance, 0);
+    if (outstandingBalance <= 0) {
+      showToast('There is no outstanding balance to pay right now', 'error');
+      return;
+    }
+
     setShowPayNowModal(true);
   };
 
@@ -203,6 +210,7 @@ export const TenantDashboard: React.FC = () => {
   const dueDay = unit.dueDay;
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
+  const outstandingBalance = Math.max(currentBalance, 0);
 
   let dueDate = new Date(currentYear, currentMonth, dueDay);
   if (today.getDate() > dueDay) {
@@ -261,21 +269,25 @@ export const TenantDashboard: React.FC = () => {
               className="w-full text-sm sm:text-base"
               size="lg"
               onClick={handlePayNowClick}
-              disabled={paymentStatus === 'paid'}
+              disabled={paymentStatus === 'paid' || outstandingBalance <= 0}
             >
               <span className="hidden sm:inline">
                 {paymentStatus === 'paid'
                     ? currentBalance < 0
                       ? `Credit ${formatCurrency(Math.abs(currentBalance))}`
-                      : `Paid - ${formatCurrency(unit.rentAmount)}`
-                    : `Pay Now - ${formatCurrency(unit.rentAmount)}`}
+                      : `Paid - ${formatCurrency(outstandingBalance || unit.rentAmount)}`
+                    : outstandingBalance > 0
+                      ? `Pay Now - ${formatCurrency(outstandingBalance)}`
+                      : 'No Balance Due'}
               </span>
               <span className="sm:hidden">
                 {paymentStatus === 'paid'
                     ? currentBalance < 0
                       ? `Credit ${formatCurrency(Math.abs(currentBalance))}`
-                      : `Paid - ${formatCurrency(unit.rentAmount)}`
-                    : `Pay ${formatCurrency(unit.rentAmount)}`}
+                      : `Paid - ${formatCurrency(outstandingBalance || unit.rentAmount)}`
+                    : outstandingBalance > 0
+                      ? `Pay ${formatCurrency(outstandingBalance)}`
+                      : 'No Balance'}
               </span>
             </Button>
             <p className="mt-2 text-xs text-center text-gray-500">
@@ -288,7 +300,7 @@ export const TenantDashboard: React.FC = () => {
           <div className={acceptsOnlinePayments ? "lg:col-span-2" : "lg:col-span-3"}>
             <RentStatusCard
               paymentStatus={paymentStatus}
-              rentAmount={Number(unit.rentAmount)}
+              rentAmount={outstandingBalance}
               dueDay={unit.dueDay}
               gracePeriodDays={gracePeriodDays}
               propertyName={property.name}
@@ -375,7 +387,7 @@ export const TenantDashboard: React.FC = () => {
             isOpen={showPayNowModal}
             onClose={() => setShowPayNowModal(false)}
             onSuccess={handlePaymentSuccess}
-            rentAmount={Number(unit.rentAmount)}
+            rentAmount={outstandingBalance}
             paymentMethodLabel={tenantData.paymentMethodLabel || 'Card'}
             month={getCurrentMonth()}
             membershipId={tenantData.id}

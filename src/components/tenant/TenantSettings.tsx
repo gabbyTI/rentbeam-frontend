@@ -8,7 +8,7 @@ import { Modal } from '../ui/Modal';
 import { FeeBreakdown } from '../ui/FeeBreakdown';
 import { useToast } from '../../context/ToastContext';
 import { useApp } from '../../context/AppContext';
-import api, { getCurrentUser, changePassword, initiateNotificationEmailChange, confirmNotificationEmailChange, resendNotificationEmailCode, getTenantMembership, TenantMembershipDetails } from '../../services/api';
+import api, { getCurrentUser, changePassword, initiateNotificationEmailChange, confirmNotificationEmailChange, resendNotificationEmailCode, getTenantMembership, fetchLedgerBalance, TenantMembershipDetails } from '../../services/api';
 import { calculateProcessingFee, formatCurrency } from '../../utils/stripe';
 
 export const TenantSettings: React.FC = () => {
@@ -33,6 +33,7 @@ export const TenantSettings: React.FC = () => {
 
   // Tenant membership data for autopay
   const [tenantData, setTenantData] = useState<TenantMembershipDetails | null>(null);
+  const [outstandingBalance, setOutstandingBalance] = useState(0);
 
   // Notification email verification flow
   const [verificationStep, setVerificationStep] = useState<'initial' | 'code-sent' | 'verifying'>('initial');
@@ -77,6 +78,7 @@ export const TenantSettings: React.FC = () => {
           console.log('[TenantSettings] Fetching membership:', membershipId);
 
           const membership = await getTenantMembership(membershipId);
+          const ledgerSummary = await fetchLedgerBalance(membershipId);
           console.log('[TenantSettings] Membership data received:', {
             id: membership.id,
             defaultPaymentMethodId: membership.defaultPaymentMethodId,
@@ -86,6 +88,7 @@ export const TenantSettings: React.FC = () => {
           });
 
           setTenantData(membership);
+          setOutstandingBalance(Math.max(ledgerSummary.currentBalance || 0, 0));
         } else {
           console.log('[TenantSettings] No tenant role in currentUser');
         }
@@ -98,6 +101,8 @@ export const TenantSettings: React.FC = () => {
 
     loadUserData();
   }, [showToast, location.key]); // location.key triggers refetch on navigation
+
+  const scheduledChargeAmount = Math.max(outstandingBalance, 0);
 
   const handleSaveAccount = async () => {
     const trimmedEmail = notificationEmail.trim();
@@ -842,7 +847,7 @@ export const TenantSettings: React.FC = () => {
                             <span className="text-sm sm:text-base font-medium">{getNextChargeDate()}</span>
                           </div>
                           <FeeBreakdown
-                            rentAmount={Number(tenantData.unit.rentAmount)}
+                            rentAmount={scheduledChargeAmount}
                             paymentMethodType={tenantData.paymentMethodType || undefined}
                           />
                         </div>
@@ -875,7 +880,7 @@ export const TenantSettings: React.FC = () => {
                         <h3 className="text-sm sm:text-base font-medium mb-2 sm:mb-3">Your Monthly Charge</h3>
                         <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
                           <FeeBreakdown
-                            rentAmount={Number(tenantData.unit.rentAmount)}
+                            rentAmount={scheduledChargeAmount}
                             paymentMethodType={tenantData.paymentMethodType || undefined}
                           />
                         </div>
@@ -891,7 +896,7 @@ export const TenantSettings: React.FC = () => {
                           />
                           <span className="text-xs sm:text-sm text-gray-700">
                             I authorize RentBeam to automatically charge my payment method for
-                            {' '}{formatCurrency(calculateProcessingFee(Number(tenantData.unit.rentAmount), tenantData.paymentMethodType || 'card').totalAmount)} on the {tenantData.unit.dueDay}
+                            {' '}{formatCurrency(calculateProcessingFee(scheduledChargeAmount, tenantData.paymentMethodType || 'card').totalAmount)} on the {tenantData.unit.dueDay}
                             {tenantData.unit.dueDay === 1 ? 'st' : tenantData.unit.dueDay === 2 ? 'nd' : tenantData.unit.dueDay === 3 ? 'rd' : 'th'} of each month.
                             I understand I can disable autopay at any time.
                           </span>
