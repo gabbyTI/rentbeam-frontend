@@ -25,7 +25,7 @@ export function FeeBreakdown({
   return (
     <div className="space-y-2 text-sm">
       <div className="flex justify-between">
-        <span className="text-gray-600">Rent amount</span>
+        <span className="text-gray-600">Balance amount</span>
         <span className="font-medium">{formatCurrency(rentAmount)}</span>
       </div>
 

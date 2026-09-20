@@ -359,7 +359,7 @@ export const TenantDashboard: React.FC = () => {
                       <span className="text-xs font-medium text-gray-700 sm:text-sm">Inactive</span>
                     </div>
                     <p className="mb-3 text-xs text-gray-600 sm:text-sm sm:mb-4">
-                      Enable autopay to automatically pay your rent each month.
+                      Enable autopay to automatically pay your posted balance on the due date each month.
                     </p>
                     <Button size="sm" onClick={() => navigate('/tenant/settings')} className="w-full">
                       <span className="hidden sm:inline">Enable Autopay</span>

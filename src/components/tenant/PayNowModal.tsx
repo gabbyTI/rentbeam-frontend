@@ -120,7 +120,7 @@ export const PayNowModal: React.FC<PayNowModalProps> = ({
         {/* Confirmation Message */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-sm text-blue-900">
-            Your rent payment will be processed immediately. You'll receive a confirmation once
+            Your payment will be processed immediately. You'll receive a confirmation once
             the payment is complete.
           </p>
         </div>
