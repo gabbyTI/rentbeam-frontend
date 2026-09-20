@@ -115,13 +115,10 @@ export const Login: React.FC = () => {
       }
     } catch (error: any) {
       console.error('🔴 Login error:', error);
-      const errorMessage = error.message || 'Login failed';
-
-      if (errorMessage.includes('not confirmed') || errorMessage.includes('verify')) {
-        showToast('Please verify your email first', 'error');
-        navigate('/verify-email', { state: { email } });
+      if (error.status === 401) {
+        showToast('Invalid email or password', 'error');
       } else {
-        showToast(errorMessage, 'error');
+        showToast(error.message || 'Login failed', 'error');
       }
     } finally {
       setLoading(false);

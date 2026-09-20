@@ -86,7 +86,9 @@ const handleApiError = async (response: Response, isAuthEndpoint: boolean = fals
     console.error('🔴 Token expired or invalid - logging out');
     authService.clearAuth();
     window.location.href = '/login';
-    throw new Error('Session expired. Please login again.');
+    const error = new Error('Session expired. Please login again.') as Error & { status?: number };
+    error.status = response.status;
+    throw error;
   }
 
   // For other errors (including 401 on auth endpoints), try to get error message from response
@@ -95,12 +97,16 @@ const handleApiError = async (response: Response, isAuthEndpoint: boolean = fals
     errorData = await response.json();
   } catch (jsonError) {
     // If response body isn't JSON, use generic message
-    throw new Error(`Request failed with status ${response.status}`);
+    const error = new Error(`Request failed with status ${response.status}`) as Error & { status?: number };
+    error.status = response.status;
+    throw error;
   }
 
   // Throw the actual error message from backend (prioritize message over error object)
   const errorMessage = errorData.message || errorData.error || `Request failed with status ${response.status}`;
-  throw new Error(errorMessage);
+  const error = new Error(errorMessage) as Error & { status?: number };
+  error.status = response.status;
+  throw error;
 };
 
 // Helper to ensure API is initialized
