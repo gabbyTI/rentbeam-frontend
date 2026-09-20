@@ -13,7 +13,9 @@ export function FeeBreakdown({
   platformFee = 0,
   paymentMethodType = 'card',
 }: FeeBreakdownProps) {
-  const { processingFee, totalAmount } = calculateProcessingFee(rentAmount, paymentMethodType);
+  const hasBalance = rentAmount > 0;
+  const calculatedFees = hasBalance ? calculateProcessingFee(rentAmount, paymentMethodType) : { processingFee: 0, totalAmount: 0 };
+  const { processingFee, totalAmount } = calculatedFees;
   const finalTotal = totalAmount + (showPlatformFee ? platformFee : 0);
 
   const rateText = paymentMethodType === 'acss_debit'
@@ -27,13 +29,15 @@ export function FeeBreakdown({
         <span className="font-medium">{formatCurrency(rentAmount)}</span>
       </div>
 
-      <div className="flex justify-between">
-        <span className="text-gray-600">
-          Processing fee{' '}
-          <span className="text-xs text-gray-500">{rateText}</span>
-        </span>
-        <span className="font-medium">{formatCurrency(processingFee)}</span>
-      </div>
+      {hasBalance && (
+        <div className="flex justify-between">
+          <span className="text-gray-600">
+            Processing fee{' '}
+            <span className="text-xs text-gray-500">{rateText}</span>
+          </span>
+          <span className="font-medium">{formatCurrency(processingFee)}</span>
+        </div>
+      )}
 
       {showPlatformFee && platformFee > 0 && (
         <div className="flex justify-between">
@@ -49,9 +53,11 @@ export function FeeBreakdown({
         </span>
       </div>
 
-      <p className="text-xs text-gray-500 mt-2">
-        💡 The processing fee costs are charged by Stripe.
-      </p>
+      {hasBalance && (
+        <p className="text-xs text-gray-500 mt-2">
+          💡 The processing fee costs are charged by Stripe.
+        </p>
+      )}
     </div>
   );
 }

@@ -288,12 +288,17 @@ export const TenantAutopay: React.FC = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-medium mb-3">Your Monthly Charge</h3>
+                    <h3 className="font-medium mb-3">Current Ledger Balance</h3>
                     <div className="bg-gray-50 rounded-lg p-4">
                       <FeeBreakdown
                         rentAmount={ledgerAmount}
                         paymentMethodType={tenantData.paymentMethodType || undefined}
                       />
+                      {ledgerAmount <= 0 && (
+                        <p className="mt-3 text-sm text-gray-600">
+                          No balance is currently posted. Autopay will charge future posted ledger balances on the due date.
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -307,7 +312,7 @@ export const TenantAutopay: React.FC = () => {
                       />
                       <span className="text-sm text-gray-700">
                         I authorize RentBeam to automatically charge my payment method for
-                        {' '}{formatCurrency(totalAmount)} on the {unit.dueDay}
+                        {ledgerAmount > 0 ? ` ${formatCurrency(totalAmount)} currently owed` : ' future posted ledger balances'} on the {unit.dueDay}
                         {unit.dueDay === 1 ? 'st' : unit.dueDay === 2 ? 'nd' : unit.dueDay === 3 ? 'rd' : 'th'} of each month.
                         I understand I can disable autopay at any time.
                       </span>
