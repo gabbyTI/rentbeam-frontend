@@ -62,6 +62,8 @@ export const TenantDashboard: React.FC = () => {
   const location = useLocation();
   const [showDisableModal, setShowDisableModal] = useState(false);
   const [showPayNowModal, setShowPayNowModal] = useState(false);
+  const [autopayActionLoading, setAutopayActionLoading] = useState(false);
+  const [autopayConsentChecked, setAutopayConsentChecked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tenantData, setTenantData] = useState<TenantMembershipDetails | null>(null);
   const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
@@ -157,7 +159,7 @@ export const TenantDashboard: React.FC = () => {
   const handleDisableAutopay = async () => {
     if (!tenantData) return;
 
-    setLoading(true);
+    setAutopayActionLoading(true);
     try {
       await api.patch(`/api/tenants/${tenantData.id}/autopay`, {
         autopayEnabled: false,
@@ -172,7 +174,38 @@ export const TenantDashboard: React.FC = () => {
       const errorMsg = err.response?.data?.error || err.message || 'Failed to disable autopay';
       showToast(errorMsg, 'error');
     } finally {
-      setLoading(false);
+      setAutopayActionLoading(false);
+    }
+  };
+
+  const handleEnableAutopay = async () => {
+    if (!tenantData) return;
+
+    if (!tenantData.defaultPaymentMethodId) {
+      showToast('Please add a payment method before enabling autopay', 'error');
+      navigate('/tenant/payment-method');
+      return;
+    }
+
+    if (!autopayConsentChecked) {
+      showToast('Please agree to the autopay terms', 'error');
+      return;
+    }
+
+    setAutopayActionLoading(true);
+    try {
+      await api.patch(`/api/tenants/${tenantData.id}/autopay`, {
+        autopayEnabled: true,
+      });
+
+      showToast('Autopay enabled successfully', 'success');
+      setAutopayConsentChecked(false);
+      await handlePaymentSuccess();
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.error || err.message || 'Failed to enable autopay';
+      showToast(errorMsg, 'error');
+    } finally {
+      setAutopayActionLoading(false);
     }
   };
 
@@ -346,6 +379,7 @@ export const TenantDashboard: React.FC = () => {
                       variant="secondary"
                       size="sm"
                       onClick={() => setShowDisableModal(true)}
+                      disabled={autopayActionLoading}
                       className="w-full"
                     >
                       <span className="hidden sm:inline">Disable Autopay</span>
@@ -361,7 +395,24 @@ export const TenantDashboard: React.FC = () => {
                     <p className="mb-3 text-xs text-gray-600 sm:text-sm sm:mb-4">
                       Enable autopay to automatically pay your posted balance on the due date each month.
                     </p>
-                    <Button size="sm" onClick={() => navigate('/tenant/settings')} className="w-full">
+                    <label className="mb-3 flex items-start gap-2 text-xs text-gray-600 sm:text-sm sm:mb-4">
+                      <input
+                        type="checkbox"
+                        checked={autopayConsentChecked}
+                        onChange={(event) => setAutopayConsentChecked(event.target.checked)}
+                        disabled={autopayActionLoading}
+                        className="mt-0.5 flex-shrink-0"
+                      />
+                      <span>
+                        I authorize RentBeam to charge my payment method for posted ledger balances on the due date.
+                      </span>
+                    </label>
+                    <Button
+                      size="sm"
+                      onClick={handleEnableAutopay}
+                      disabled={!autopayConsentChecked || autopayActionLoading}
+                      className="w-full"
+                    >
                       <span className="hidden sm:inline">Enable Autopay</span>
                       <span className="sm:hidden">Enable</span>
                     </Button>
@@ -408,9 +459,13 @@ export const TenantDashboard: React.FC = () => {
           <Button variant="secondary" size="sm" onClick={() => setShowDisableModal(false)} className="flex-1">
             Cancel
           </Button>
-          <Button size="sm" onClick={handleDisableAutopay} className="flex-1">
-            <span className="hidden sm:inline">Disable Autopay</span>
-            <span className="sm:hidden">Disable</span>
+          <Button size="sm" onClick={handleDisableAutopay} disabled={autopayActionLoading} className="flex-1">
+            {autopayActionLoading ? 'Disabling...' : (
+              <>
+                <span className="hidden sm:inline">Disable Autopay</span>
+                <span className="sm:hidden">Disable</span>
+              </>
+            )}
           </Button>
         </div>
       </Modal>
