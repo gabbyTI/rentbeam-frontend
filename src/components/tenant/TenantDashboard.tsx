@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Elements } from '@stripe/react-stripe-js';
 import stripePromise from '../../utils/stripeLoader';
@@ -7,48 +7,18 @@ import { AppShell } from '../ui/AppShell';
 import { Card, CardHeader, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
-import { PaymentHistoryList } from '../ui/PaymentHistoryList';
 import { LedgerStatement } from '../ui/LedgerStatement';
-import { TenantMetricCard } from '../ui/TenantMetricCard';
-import { PaymentTimeline } from '../ui/PaymentTimeline';
 import { PayNowModal } from './PayNowModal';
 import { RentStatusCard } from './RentStatusCard';
-import { PaymentDueCard } from './PaymentDueCard';
 import { formatCurrency } from '../../utils/helpers';
-import { calculateTenantPaymentSummary, calculateYearToDateSummary, generatePaymentTimeline } from '../../utils/tenantAnalytics';
 import { useToast } from '../../context/ToastContext';
 import { getTenantMembership, TenantMembershipDetails, fetchLedgerBalance, fetchLedgerStatement } from '../../services/api';
 import api from '../../services/api';
-import { LedgerEntry, Payment, PaymentStatus } from '../../types';
+import { LedgerEntry, PaymentStatus } from '../../types';
 
 const toMonthString = (isoDate: string) => {
   const date = new Date(isoDate);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-};
-
-const toPaymentHistoryRows = (membershipId: string, entries: LedgerEntry[]): Payment[] => {
-  return entries
-    .filter((e) => e.type === 'PAYMENT' && e.status === 'POSTED' && (e.paymentAmount ?? 0) > 0)
-    .map((e) => {
-      const amount = Number(e.paymentAmount || 0);
-      const method: 'CARD' | 'MANUAL' = e.source === 'STRIPE' ? 'CARD' : 'MANUAL';
-      const status: 'SUCCEEDED' = 'SUCCEEDED';
-      return {
-        id: e.id,
-        tenantMembershipId: membershipId,
-        amount,
-        method,
-        date: e.effectiveDate,
-        month: toMonthString(e.effectiveDate),
-        status,
-        note: e.description,
-        rentAmount: amount,
-        processingFee: 0,
-        totalAmount: amount,
-        createdAt: e.createdAt,
-      };
-    })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };
 
 const getPaymentStatusFromLedger = (
@@ -75,9 +45,10 @@ const getPaymentStatusFromLedger = (
   const monthReductions = monthEntries
     .filter((e) => e.type === 'PAYMENT' || e.type === 'CREDIT')
     .reduce((sum, e) => sum + Number(e.paymentAmount || 0), 0);
+  const hasPostedCharges = entries.some((e) => e.status === 'POSTED' && e.type === 'CHARGE');
 
   if (monthCharges > 0 && monthReductions >= monthCharges) return 'paid';
-  if (currentBalance <= 0.005) return 'paid';
+  if (hasPostedCharges && currentBalance <= 0.005) return 'paid';
   if (moveIn > paymentWindowOpenDate) return 'pending';
   if (now < dueDate) return 'pending';
   if (now <= graceDueDate) return 'due';
@@ -94,8 +65,7 @@ export const TenantDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [tenantData, setTenantData] = useState<TenantMembershipDetails | null>(null);
   const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('paid');
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('pending');
   const [currentBalance, setCurrentBalance] = useState(0);
 
   useEffect(() => {
@@ -118,9 +88,6 @@ export const TenantDashboard: React.FC = () => {
         ]);
 
         setLedgerEntries(ledgerEntries);
-
-        const tenantPayments = toPaymentHistoryRows(membershipId, ledgerEntries);
-        setPayments(tenantPayments);
         setCurrentBalance(ledgerSummary.currentBalance);
 
         const status = getPaymentStatusFromLedger(
@@ -142,31 +109,6 @@ export const TenantDashboard: React.FC = () => {
     loadTenantData();
   }, [navigate, showToast, currentUser, location.key]); // location.key changes on each navigation
 
-  // Calculate analytics using useMemo for performance
-  const paymentSummary = useMemo(() => {
-    if (!tenantData || ledgerEntries.length === 0) return null;
-    return calculateTenantPaymentSummary(
-      ledgerEntries,
-      tenantData.unit.dueDay,
-      tenantData.unit.gracePeriodDays
-    );
-  }, [ledgerEntries, tenantData]);
-
-  const ytdSummary = useMemo(() => {
-    if (ledgerEntries.length === 0) return null;
-    return calculateYearToDateSummary(ledgerEntries);
-  }, [ledgerEntries]);
-
-  const paymentTimeline = useMemo(() => {
-    if (!tenantData || ledgerEntries.length === 0) return [];
-    return generatePaymentTimeline(
-      ledgerEntries,
-      tenantData.unit.dueDay,
-      tenantData.unit.gracePeriodDays,
-      tenantData.moveInDate
-    );
-  }, [ledgerEntries, tenantData]);
-
   const handlePaymentSuccess = async () => {
     try {
       if (!currentUser || currentUser.role !== 'tenant') return;
@@ -181,9 +123,6 @@ export const TenantDashboard: React.FC = () => {
       ]);
 
       setLedgerEntries(ledgerEntries);
-
-      const tenantPayments = toPaymentHistoryRows(membershipId, ledgerEntries);
-      setPayments(tenantPayments);
       setCurrentBalance(ledgerSummary.currentBalance);
 
       const status = getPaymentStatusFromLedger(
@@ -238,7 +177,7 @@ export const TenantDashboard: React.FC = () => {
   if (loading) {
     return (
       <AppShell title="Dashboard">
-        <div className="text-center py-12">
+        <div className="py-12 text-center">
           <p className="text-gray-500">Loading...</p>
         </div>
       </AppShell>
@@ -248,7 +187,7 @@ export const TenantDashboard: React.FC = () => {
   if (!tenantData) {
     return (
       <AppShell title="Dashboard">
-        <div className="text-center py-12">
+        <div className="py-12 text-center">
           <p className="text-gray-500">Tenant data not found</p>
         </div>
       </AppShell>
@@ -282,12 +221,12 @@ export const TenantDashboard: React.FC = () => {
   return (
     <AppShell title="Dashboard">
       <div className="space-y-4 sm:space-y-6">{acceptsOnlinePayments && !tenantData.defaultPaymentMethodId && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+        <div className="p-3 border border-blue-200 rounded-lg bg-blue-50 sm:p-4">
           <div className="flex items-start gap-2 sm:gap-3">
             <span className="text-xl sm:text-2xl">💳</span>
             <div className="flex-1">
-              <h4 className="text-sm sm:text-base font-medium text-blue-900 mb-1">Add a payment method</h4>
-              <p className="text-xs sm:text-sm text-blue-800 mb-3">
+              <h4 className="mb-1 text-sm font-medium text-blue-900 sm:text-base">Add a payment method</h4>
+              <p className="mb-3 text-xs text-blue-800 sm:text-sm">
                 Set up your card or bank account to pay rent online with ease. Processing fees apply.
               </p>
               <Button
@@ -303,12 +242,12 @@ export const TenantDashboard: React.FC = () => {
       )}
 
         {!acceptsOnlinePayments && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 sm:p-4">
+          <div className="p-3 border border-gray-200 rounded-lg bg-gray-50 sm:p-4">
             <div className="flex items-start gap-2 sm:gap-3">
               <span className="text-xl sm:text-2xl">💵</span>
               <div className="flex-1">
-                <h4 className="text-sm sm:text-base font-medium text-gray-900 mb-1">Manual Payments</h4>
-                <p className="text-xs sm:text-sm text-gray-700">
+                <h4 className="mb-1 text-sm font-medium text-gray-900 sm:text-base">Manual Payments</h4>
+                <p className="text-xs text-gray-700 sm:text-sm">
                   Payments are arranged directly with your landlord. Online card payments are not available for this property.
                 </p>
               </div>
@@ -316,137 +255,36 @@ export const TenantDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Payment Summary Analytics */}
-        {paymentSummary && payments.length > 0 && (
-          <div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Payment Summary</h3>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <TenantMetricCard
-                title="On-Time Rate"
-                value={`${paymentSummary.onTimeRate}%`}
-                subtitle={`${paymentSummary.onTimePayments} of ${paymentSummary.totalPayments} payments`}
-                variant={paymentSummary.onTimeRate >= 90 ? 'success' : paymentSummary.onTimeRate >= 70 ? 'warning' : 'default'}
-              />
-              <TenantMetricCard
-                title="Payment Streak"
-                value={paymentSummary.currentStreak.toString()}
-                subtitle={paymentSummary.currentStreak === 1 ? "month on time" : "months on time"}
-                variant={paymentSummary.currentStreak >= 3 ? 'success' : 'info'}
-              />
-              <TenantMetricCard
-                title="Paid This Year"
-                value={`$${paymentSummary.totalPaidThisYear.toLocaleString()}`}
-                subtitle="Total rent paid"
-                variant="default"
-              />
-              <TenantMetricCard
-                title="Fees This Year"
-                value={`$${paymentSummary.totalFeesThisYear.toFixed(2)}`}
-                subtitle="Processing fees"
-                variant="info"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Payment Timeline */}
-        {paymentTimeline.length > 0 && (
-          <div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Payment History</h3>
-            <PaymentTimeline timeline={paymentTimeline} />
-          </div>
-        )}
-
-        {/* Year-to-Date Cost Summary */}
-        {ytdSummary && ytdSummary.paymentsCount > 0 && (
-          <Card>
-            <div className="p-4 sm:p-6">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Year-to-Date Summary</h3>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Rent</p>
-                  <p className="text-lg sm:text-xl font-semibold text-gray-900">${ytdSummary.totalRent.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Fees</p>
-                  <p className="text-lg sm:text-xl font-semibold text-gray-900">${ytdSummary.totalFees.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Paid</p>
-                  <p className="text-lg sm:text-xl font-semibold text-gray-900">${ytdSummary.totalAmount.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Monthly Average</p>
-                  <p className="text-lg sm:text-xl font-semibold text-gray-900">${ytdSummary.monthlyAverage.toFixed(2)}</p>
-                </div>
-              </div>
-              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200">
-                <p className="text-xs sm:text-sm text-gray-600">
-                  Based on {ytdSummary.paymentsCount} {ytdSummary.paymentsCount === 1 ? 'payment' : 'payments'} in {new Date().getFullYear()}
-                </p>
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {acceptsOnlinePayments && (
+        {acceptsOnlinePayments && tenantData.defaultPaymentMethodId && (
           <div className="mt-4 sm:mt-6">
             <Button
               className="w-full text-sm sm:text-base"
               size="lg"
               onClick={handlePayNowClick}
-              disabled={!tenantData.defaultPaymentMethodId || paymentStatus === 'paid'}
+              disabled={paymentStatus === 'paid'}
             >
               <span className="hidden sm:inline">
-                {!tenantData.defaultPaymentMethodId
-                  ? 'Add Payment Method to Pay'
-                  : paymentStatus === 'paid'
+                {paymentStatus === 'paid'
                     ? currentBalance < 0
                       ? `Credit ${formatCurrency(Math.abs(currentBalance))}`
                       : `Paid - ${formatCurrency(unit.rentAmount)}`
                     : `Pay Now - ${formatCurrency(unit.rentAmount)}`}
               </span>
               <span className="sm:hidden">
-                {!tenantData.defaultPaymentMethodId
-                  ? 'Add Payment Method'
-                  : paymentStatus === 'paid'
+                {paymentStatus === 'paid'
                     ? currentBalance < 0
                       ? `Credit ${formatCurrency(Math.abs(currentBalance))}`
                       : `Paid - ${formatCurrency(unit.rentAmount)}`
                     : `Pay ${formatCurrency(unit.rentAmount)}`}
               </span>
             </Button>
-            {tenantData.defaultPaymentMethodId && (
-              <p className="text-xs text-gray-500 text-center mt-2">
-                Using {tenantData.paymentMethodLabel}
-              </p>
-            )}
+            <p className="mt-2 text-xs text-center text-gray-500">
+              Using {tenantData.paymentMethodLabel}
+            </p>
           </div>
         )}
 
-        {/* Payment Due Card - Only shows when payment is due */}
-        {acceptsOnlinePayments && paymentStatus !== 'paid' && (
-          <PaymentDueCard
-            paymentStatus={paymentStatus}
-            rentAmount={Number(unit.rentAmount)}
-            dueDay={unit.dueDay}
-            gracePeriodDays={gracePeriodDays}
-            propertyName={property.name}
-            unitName={unit.name}
-            daysUntilDue={diffDays}
-            daysGraceRemaining={graceDaysRemaining}
-            daysOverdue={Math.abs(graceDaysRemaining)}
-            hasPaymentMethod={!!tenantData.defaultPaymentMethodId}
-            paymentMethodLabel={tenantData.paymentMethodLabel}
-            paymentMethodType={tenantData.paymentMethodType}
-            autopayEnabled={tenantData.autopayEnabled}
-            onPayNow={handlePayNowClick}
-            onSetupPayment={() => navigate('/tenant/payment-method')}
-            onEnableAutopay={() => navigate('/tenant/settings')}
-          />
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 sm:gap-6">
           <div className={acceptsOnlinePayments ? "lg:col-span-2" : "lg:col-span-3"}>
             <RentStatusCard
               paymentStatus={paymentStatus}
@@ -459,10 +297,10 @@ export const TenantDashboard: React.FC = () => {
               landlordName={landlord.user.displayName || landlord.user.name}
               moveInDate={tenantData.moveInDate}
               paidMonthName={
-                payments.find(p => p.status === 'SUCCEEDED')
+                ledgerEntries.find(e => e.status === 'POSTED' && e.type === 'PAYMENT' && Number(e.paymentAmount || 0) > 0)
                   ? new Date(
-                    Number(payments.find(p => p.status === 'SUCCEEDED')!.month.split('-')[0]),
-                    Number(payments.find(p => p.status === 'SUCCEEDED')!.month.split('-')[1]) - 1
+                    Number(toMonthString(ledgerEntries.find(e => e.status === 'POSTED' && e.type === 'PAYMENT' && Number(e.paymentAmount || 0) > 0)!.effectiveDate).split('-')[0]),
+                    Number(toMonthString(ledgerEntries.find(e => e.status === 'POSTED' && e.type === 'PAYMENT' && Number(e.paymentAmount || 0) > 0)!.effectiveDate).split('-')[1]) - 1
                   ).toLocaleString('default', { month: 'long' })
                   : undefined
               }
@@ -476,20 +314,20 @@ export const TenantDashboard: React.FC = () => {
           {acceptsOnlinePayments && (
             <Card>
               <CardHeader>
-                <h3 className="text-base sm:text-lg font-semibold">Autopay</h3>
+                <h3 className="text-base font-semibold sm:text-lg">Autopay</h3>
               </CardHeader>
               <CardContent>
                 {tenantData.autopayEnabled ? (
                   <>
                     <div className="flex items-center gap-2 mb-3 sm:mb-4">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-xs sm:text-sm font-medium text-green-700">Active</span>
+                      <span className="text-xs font-medium text-green-700 sm:text-sm">Active</span>
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+                    <p className="mb-3 text-xs text-gray-600 sm:text-sm sm:mb-4">
                       Rent will be automatically charged on the {unit.dueDay}
                       {unit.dueDay === 1 ? 'st' : unit.dueDay === 2 ? 'nd' : unit.dueDay === 3 ? 'rd' : 'th'} of each month.
                     </p>
-                    <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">
+                    <p className="mb-3 text-xs text-gray-500 sm:text-sm sm:mb-4">
                       Payment method: {tenantData.paymentMethodLabel || 'Card'}
                     </p>
                     <Button
@@ -506,9 +344,9 @@ export const TenantDashboard: React.FC = () => {
                   <>
                     <div className="flex items-center gap-2 mb-3 sm:mb-4">
                       <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                      <span className="text-xs sm:text-sm font-medium text-gray-700">Inactive</span>
+                      <span className="text-xs font-medium text-gray-700 sm:text-sm">Inactive</span>
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+                    <p className="mb-3 text-xs text-gray-600 sm:text-sm sm:mb-4">
                       Enable autopay to automatically pay your rent each month.
                     </p>
                     <Button size="sm" onClick={() => navigate('/tenant/settings')} className="w-full">
@@ -528,19 +366,6 @@ export const TenantDashboard: React.FC = () => {
               isLandlord={false}
             />
           </div>
-
-          <Card className="lg:col-span-3">
-            <CardHeader>
-              <h3 className="text-base sm:text-lg font-semibold">Payment History</h3>
-            </CardHeader>
-            <CardContent>
-              <PaymentHistoryList
-                  entries={ledgerEntries}
-                dueDay={unit.dueDay}
-                gracePeriodDays={unit.gracePeriodDays}
-              />
-            </CardContent>
-          </Card>
         </div>
       </div>
 
@@ -563,11 +388,11 @@ export const TenantDashboard: React.FC = () => {
         onClose={() => setShowDisableModal(false)}
         title="Disable Autopay"
       >
-        <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
+        <p className="mb-4 text-sm text-gray-600 sm:text-base sm:mb-6">
           Are you sure you want to disable autopay? You'll need to manually pay your rent
           each month.
         </p>
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
           <Button variant="secondary" size="sm" onClick={() => setShowDisableModal(false)} className="flex-1">
             Cancel
           </Button>

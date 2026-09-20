@@ -14,16 +14,19 @@ import { useToast } from '../../context/ToastContext';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { fetchLedgerBalance } from '../../services/api';
+import { LedgerSummary } from '../../types';
 
 type RentStatus = 'paid' | 'processing' | 'pending' | 'due' | 'late';
 
 const deriveRentStatus = (
-  currentBalance: number,
+  summary: LedgerSummary | undefined,
   dueDay?: number,
-  gracePeriodDays?: number
+  gracePeriodDays?: number,
+  moveInDate?: string
 ): RentStatus => {
-  if (currentBalance <= 0.005) {
-    return 'paid';
+  // Unknown/unloaded summary should never render as paid.
+  if (!summary) {
+    return 'pending';
   }
 
   const now = new Date();
@@ -35,6 +38,19 @@ const deriveRentStatus = (
   const dueDate = new Date(currentYear, currentMonth, resolvedDueDay);
   const paymentWindowOpenDate = new Date(dueDate);
   paymentWindowOpenDate.setDate(dueDate.getDate() - 5);
+
+  // If no charges have been posted at all, tenant cannot be marked as paid.
+  // Fall through to billing-window status below.
+  if ((summary.totalCharged ?? 0) > 0 && summary.currentBalance <= 0.005) {
+    return 'paid';
+  }
+
+  if (moveInDate) {
+    const moveIn = new Date(moveInDate);
+    if (moveIn > paymentWindowOpenDate) {
+      return 'pending';
+    }
+  }
 
   if (now < paymentWindowOpenDate) return 'pending';
   if (now < dueDate) return 'pending';
@@ -58,7 +74,7 @@ export const LandlordDashboard: React.FC = () => {
     new Date().toISOString().split('T')[0]
   );
   const [paymentNote, setPaymentNote] = useState('Paid via Interac e-Transfer');
-  const [ledgerBalances, setLedgerBalances] = useState<Record<string, number>>({});
+  const [ledgerSummaries, setLedgerSummaries] = useState<Record<string, LedgerSummary>>({});
 
   React.useEffect(() => {
     const loadLedgerBalances = async () => {
@@ -70,14 +86,14 @@ export const LandlordDashboard: React.FC = () => {
         const results = await Promise.all(
           activeTenantIds.map(async (tenantId) => {
             const summary = await fetchLedgerBalance(tenantId);
-            return [tenantId, summary.currentBalance] as const;
+            return [tenantId, summary] as const;
           })
         );
 
-        setLedgerBalances(Object.fromEntries(results));
+        setLedgerSummaries(Object.fromEntries(results));
       } catch (error) {
         console.error('Failed to load ledger balances for landlord dashboard', error);
-        setLedgerBalances({});
+        setLedgerSummaries({});
       }
     };
 
@@ -105,8 +121,9 @@ export const LandlordDashboard: React.FC = () => {
       .map((tenant) => {
         const unit = units.find((u) => u.id === tenant.unitId);
         const property = properties.find((p) => p.id === unit?.propertyId);
-        const currentBalance = ledgerBalances[tenant.id] ?? 0;
-        const rentStatus = deriveRentStatus(currentBalance, unit?.dueDay, unit?.gracePeriodDays);
+        const summary = ledgerSummaries[tenant.id];
+        const currentBalance = summary?.currentBalance ?? 0;
+        const rentStatus = deriveRentStatus(summary, unit?.dueDay, unit?.gracePeriodDays, tenant.moveInDate);
         return {
           ...tenant,
           // Flatten user fields for backward compatibility
@@ -120,7 +137,7 @@ export const LandlordDashboard: React.FC = () => {
           currentBalance,
         };
       });
-  }, [tenants, units, properties, currentUser, ledgerBalances]);
+  }, [tenants, units, properties, currentUser, ledgerSummaries]);
 
   const handleMarkAsPaid = (tenantId: string) => {
     setMarkPaidModal(tenantId);
