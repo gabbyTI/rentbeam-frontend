@@ -247,7 +247,7 @@ export const TenantAutopay: React.FC = () => {
                       <span className="font-medium text-green-900">Autopay Active</span>
                     </div>
                     <p className="text-sm text-green-800">
-                      Your ledger balance will be automatically charged on the {unit.dueDay}
+                      Your posted ledger balance, including rent, fees, and adjustments, will be automatically charged on the {unit.dueDay}
                       {unit.dueDay === 1 ? 'st' : unit.dueDay === 2 ? 'nd' : unit.dueDay === 3 ? 'rd' : 'th'} of each month.
                     </p>
                   </div>
@@ -282,7 +282,7 @@ export const TenantAutopay: React.FC = () => {
                       <span className="font-medium text-gray-900">Autopay Inactive</span>
                     </div>
                     <p className="text-sm text-gray-700">
-                      Enable autopay to automatically charge your card on the {unit.dueDay}
+                      Enable Autopay to charge posted ledger balances, including rent, fees, and adjustments, on the {unit.dueDay}
                       {unit.dueDay === 1 ? 'st' : unit.dueDay === 2 ? 'nd' : unit.dueDay === 3 ? 'rd' : 'th'} of each month.
                     </p>
                   </div>
@@ -312,7 +312,7 @@ export const TenantAutopay: React.FC = () => {
                       />
                       <span className="text-sm text-gray-700">
                         I authorize RentBeam to automatically charge my payment method for
-                        {ledgerAmount > 0 ? ` ${formatCurrency(totalAmount)} currently owed` : ' future posted ledger balances'} on the {unit.dueDay}
+                        {ledgerAmount > 0 ? ` ${formatCurrency(totalAmount)} currently owed` : ' future posted ledger balances, including rent, fees, and adjustments'} on the {unit.dueDay}
                         {unit.dueDay === 1 ? 'st' : unit.dueDay === 2 ? 'nd' : unit.dueDay === 3 ? 'rd' : 'th'} of each month.
                         I understand I can disable autopay at any time.
                       </span>

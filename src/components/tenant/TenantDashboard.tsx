@@ -369,7 +369,7 @@ export const TenantDashboard: React.FC = () => {
                       <span className="text-xs font-medium text-green-700 sm:text-sm">Active</span>
                     </div>
                     <p className="mb-3 text-xs text-gray-600 sm:text-sm sm:mb-4">
-                      Ledger balance will be automatically charged on the {unit.dueDay}
+                      Your posted ledger balance, including rent, fees, and adjustments, will be automatically charged on the {unit.dueDay}
                       {unit.dueDay === 1 ? 'st' : unit.dueDay === 2 ? 'nd' : unit.dueDay === 3 ? 'rd' : 'th'} of each month.
                     </p>
                     <p className="mb-3 text-xs text-gray-500 sm:text-sm sm:mb-4">
@@ -393,7 +393,7 @@ export const TenantDashboard: React.FC = () => {
                       <span className="text-xs font-medium text-gray-700 sm:text-sm">Inactive</span>
                     </div>
                     <p className="mb-3 text-xs text-gray-600 sm:text-sm sm:mb-4">
-                      Enable autopay to automatically pay your posted balance on the due date each month.
+                      Enable Autopay to pay posted ledger balances, including rent, fees, and adjustments, on the due date.
                     </p>
                     <label className="mb-3 flex items-start gap-2 text-xs text-gray-600 sm:text-sm sm:mb-4">
                       <input
@@ -404,7 +404,7 @@ export const TenantDashboard: React.FC = () => {
                         className="mt-0.5 flex-shrink-0"
                       />
                       <span>
-                        I authorize RentBeam to charge my payment method for posted ledger balances on the due date.
+                        I authorize RentBeam to charge my payment method for posted ledger balances, including rent, fees, and adjustments, on the due date.
                       </span>
                     </label>
                     <Button
