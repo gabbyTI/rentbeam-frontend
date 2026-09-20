@@ -34,8 +34,8 @@ export const PayNowModal: React.FC<PayNowModalProps> = ({
     setCustomAmount(rentAmount);
   }, [rentAmount, isOpen]);
 
-  const maxAllowedAmount = Math.max(rentAmount, 0);
-  const normalizedAmount = Math.min(Math.max(customAmount, 0), maxAllowedAmount);
+  const maxAllowedAmount = Math.max(Number(rentAmount.toFixed(2)), 0);
+  const normalizedAmount = Number(Math.min(Math.max(customAmount, 0), maxAllowedAmount).toFixed(2));
 
   const handlePayNow = async () => {
     if (!stripe) {
