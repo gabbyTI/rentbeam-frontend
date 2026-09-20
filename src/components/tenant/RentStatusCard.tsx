@@ -123,7 +123,7 @@ export const RentStatusCard: React.FC<RentStatusCardProps> = ({
             <CardHeader>
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                     <div>
-                        <h3 className="text-base sm:text-lg font-semibold">Current Rent</h3>
+                        <h3 className="text-base sm:text-lg font-semibold">Current Balance</h3>
                         <p className="text-xs sm:text-sm text-gray-500 mt-1">
                             {propertyName} - {unitName}
                         </p>
@@ -136,7 +136,7 @@ export const RentStatusCard: React.FC<RentStatusCardProps> = ({
             <CardContent>
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
                     <div>
-                        <label className="text-xs sm:text-sm text-gray-500">Monthly Rent</label>
+                        <label className="text-xs sm:text-sm text-gray-500">Balance Due</label>
                         <p className="text-xl sm:text-2xl font-semibold">
                             {formatCurrency(rentAmount)}
                         </p>
