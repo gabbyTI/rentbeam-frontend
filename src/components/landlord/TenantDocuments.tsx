@@ -145,7 +145,10 @@ export const TenantDocuments: React.FC<TenantDocumentsProps> = ({
     return (
         <div className="mt-6">
             <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Documents</h3>
+                <div>
+                    <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Documents</h3>
+                    <p className="text-xs text-gray-500 mt-1">Optional lease and supporting files</p>
+                </div>
                 {isLandlord && (
                     <Button
                         size="sm"

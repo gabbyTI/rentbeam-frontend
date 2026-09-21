@@ -38,6 +38,7 @@ export const LandlordTenants: React.FC = () => {
     emergencyContactName: '',
     emergencyContactPhone: '',
     notes: '',
+    sendInvite: false,
     // Opening ledger entries (optional)
     openingChargeEnabled: false,
     openingChargeAmount: '',
@@ -162,10 +163,15 @@ export const LandlordTenants: React.FC = () => {
         emergencyContactName: tenantForm.emergencyContactName || undefined,
         emergencyContactPhone: tenantForm.emergencyContactPhone || undefined,
         notes: tenantForm.notes || undefined,
+        sendInvite: tenantForm.sendInvite,
         openingLedgerEntries: openingLedgerEntries.length > 0 ? openingLedgerEntries : undefined,
       });
 
-      showToast(`Tenant added successfully. Invite sent to ${tenantForm.email}`);
+      const inviteMessage = tenantForm.sendInvite
+        ? `Tenant added successfully. Invite sent to ${tenantForm.email}`
+        : 'Tenant added successfully. Portal invite skipped.';
+
+      showToast(inviteMessage);
       setIsAdding(false);
       setTenantForm({
         firstName: '',
@@ -183,6 +189,7 @@ export const LandlordTenants: React.FC = () => {
         emergencyContactName: '',
         emergencyContactPhone: '',
         notes: '',
+        sendInvite: false,
         openingChargeEnabled: false,
         openingChargeAmount: '',
         openingChargeCode: 'RNTA',
@@ -409,7 +416,7 @@ export const LandlordTenants: React.FC = () => {
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
               <p>
-                <strong>Ledger-first:</strong> No rent is assumed paid when creating a tenant.
+                <strong>Default flow:</strong> the tenant is created as active immediately. The portal invite and lease upload are optional.
                 Add opening entries below only if you want to seed an opening balance.
               </p>
             </div>
@@ -455,6 +462,20 @@ export const LandlordTenants: React.FC = () => {
               placeholder="(555) 123-4567"
             />
 
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={tenantForm.sendInvite}
+                  onChange={(e) => setTenantForm({ ...tenantForm, sendInvite: e.target.checked })}
+                />
+                Send tenant portal invite
+              </label>
+              <p className="mt-1 text-xs text-gray-500">
+                Leave this off if the tenant will be managed entirely by the landlord.
+              </p>
+            </div>
+
             <Select
               label="Property"
               value={tenantForm.propertyId}
@@ -494,10 +515,13 @@ export const LandlordTenants: React.FC = () => {
 
             {/* Opening Ledger Entries */}
             <div className="border border-gray-200 rounded-lg p-4 space-y-3">
-              <h4 className="text-sm font-semibold text-gray-800">Opening Ledger Entries (optional)</h4>
+              <h4 className="text-sm font-semibold text-gray-800">Opening balance (optional)</h4>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Use this only if the tenant had rent history before they were added to RentBeam. These entries are posted straight to the ledger.
+              </p>
 
               <Input
-                label="Opening Effective Date (optional)"
+                label="Date for this opening balance"
                 type="date"
                 value={tenantForm.openingEffectiveDate}
                 onChange={(e) => setTenantForm({ ...tenantForm, openingEffectiveDate: e.target.value })}
@@ -510,30 +534,24 @@ export const LandlordTenants: React.FC = () => {
                     checked={tenantForm.openingChargeEnabled}
                     onChange={(e) => setTenantForm({ ...tenantForm, openingChargeEnabled: e.target.checked })}
                   />
-                  Add opening charge
+                  Tenant owes money already
                 </label>
+                <p className="text-[11px] text-gray-500">This adds a charge to the ledger and increases what they owe.</p>
                 {tenantForm.openingChargeEnabled && (
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <Input
-                      label="Charge Code"
-                      type="text"
-                      value={tenantForm.openingChargeCode}
-                      onChange={(e) => setTenantForm({ ...tenantForm, openingChargeCode: e.target.value.toUpperCase() })}
-                      placeholder="RNTA"
-                    />
-                    <Input
-                      label="Amount"
+                      label="Amount owed"
                       type="number"
                       value={tenantForm.openingChargeAmount}
                       onChange={(e) => setTenantForm({ ...tenantForm, openingChargeAmount: e.target.value })}
                       placeholder="0.00"
                     />
                     <Input
-                      label="Description"
+                      label="What this is for"
                       type="text"
                       value={tenantForm.openingChargeDescription}
                       onChange={(e) => setTenantForm({ ...tenantForm, openingChargeDescription: e.target.value })}
-                      placeholder="Opening Rent Charge"
+                      placeholder="Past due rent"
                     />
                   </div>
                 )}
@@ -546,30 +564,24 @@ export const LandlordTenants: React.FC = () => {
                     checked={tenantForm.openingCreditEnabled}
                     onChange={(e) => setTenantForm({ ...tenantForm, openingCreditEnabled: e.target.checked })}
                   />
-                  Add opening credit
+                  Tenant already has a credit
                 </label>
+                <p className="text-[11px] text-gray-500">This reduces what they owe and can create a credit balance.</p>
                 {tenantForm.openingCreditEnabled && (
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <Input
-                      label="Credit Code"
-                      type="text"
-                      value={tenantForm.openingCreditCode}
-                      onChange={(e) => setTenantForm({ ...tenantForm, openingCreditCode: e.target.value.toUpperCase() })}
-                      placeholder="CONC"
-                    />
-                    <Input
-                      label="Amount"
+                      label="Credit amount"
                       type="number"
                       value={tenantForm.openingCreditAmount}
                       onChange={(e) => setTenantForm({ ...tenantForm, openingCreditAmount: e.target.value })}
                       placeholder="0.00"
                     />
                     <Input
-                      label="Description"
+                      label="Why the credit exists"
                       type="text"
                       value={tenantForm.openingCreditDescription}
                       onChange={(e) => setTenantForm({ ...tenantForm, openingCreditDescription: e.target.value })}
-                      placeholder="Opening Concession"
+                      placeholder="Concession or credit"
                     />
                   </div>
                 )}
@@ -582,23 +594,24 @@ export const LandlordTenants: React.FC = () => {
                     checked={tenantForm.openingPaymentEnabled}
                     onChange={(e) => setTenantForm({ ...tenantForm, openingPaymentEnabled: e.target.checked })}
                   />
-                  Add opening payment (already paid)
+                  Tenant already paid some money
                 </label>
+                <p className="text-[11px] text-gray-500">This records an earlier payment. If it is more than the opening balance, the tenant will be in credit.</p>
                 {tenantForm.openingPaymentEnabled && (
                   <div className="grid grid-cols-2 gap-3">
                     <Input
-                      label="Amount"
+                      label="Amount paid"
                       type="number"
                       value={tenantForm.openingPaymentAmount}
                       onChange={(e) => setTenantForm({ ...tenantForm, openingPaymentAmount: e.target.value })}
                       placeholder="0.00"
                     />
                     <Input
-                      label="Description"
+                      label="How it was paid"
                       type="text"
                       value={tenantForm.openingPaymentDescription}
                       onChange={(e) => setTenantForm({ ...tenantForm, openingPaymentDescription: e.target.value })}
-                      placeholder="Opening Manual Payment"
+                      placeholder="Cash payment received"
                     />
                   </div>
                 )}
@@ -612,12 +625,17 @@ export const LandlordTenants: React.FC = () => {
                 onClick={() => setShowAdditionalDetails(!showAdditionalDetails)}
                 className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
               >
-                <span>Additional Details (optional)</span>
+                <span>Lease & Details (optional)</span>
                 <span className="text-gray-400 text-xs">{showAdditionalDetails ? '▲ Hide' : '▼ Show'}</span>
               </button>
 
               {showAdditionalDetails && (
                 <div className="p-4 space-y-3 border-t border-gray-200">
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Lease documents are optional. Upload a lease later from the tenant details page if needed.
+                    This stays lightweight and does not require a separate approval workflow.
+                  </p>
+
                   <div className="grid grid-cols-2 gap-3">
                     <Input
                       label="Lease Start Date"

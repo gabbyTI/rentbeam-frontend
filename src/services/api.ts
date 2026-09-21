@@ -694,6 +694,7 @@ export const createTenant = async (
   tenant: {
     email: string; firstName: string; lastName: string; phone?: string;
     unitId: string; moveInDate?: string;
+    sendInvite?: boolean;
     // Optional profile fields
     leaseStartDate?: string; leaseEndDate?: string; leaseType?: string;
     rentDeposit?: number; dateOfBirth?: string;

@@ -421,6 +421,10 @@ export const TenantDetails: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
+              {!tenant.leaseType && !tenant.leaseStartDate && !tenant.rentDeposit && !tenant.emergencyContactName && !tenant.notes && (
+                <p className="text-sm text-gray-400">No lease or profile details recorded.</p>
+              )}
+
               {tenant.leaseType && (
                 <div>
                   <label className="text-xs sm:text-sm text-gray-500">Lease Type</label>
@@ -462,9 +466,6 @@ export const TenantDetails: React.FC = () => {
                   <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap">{tenant.notes}</p>
                 </div>
               )}
-              {!tenant.leaseType && !tenant.leaseStartDate && !tenant.emergencyContactName && !tenant.notes && (
-                <p className="text-sm text-gray-400">No additional details recorded.</p>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -472,9 +473,13 @@ export const TenantDetails: React.FC = () => {
         {/* Documents */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <h3 className="text-base sm:text-lg font-semibold">Documents</h3>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-base sm:text-lg font-semibold">Documents</h3>
+              <span className="text-[10px] uppercase tracking-wide text-gray-500">Optional</span>
+            </div>
           </CardHeader>
           <CardContent>
+            <p className="text-xs text-gray-500 mb-3">Attach lease or supporting documents if needed. This is optional and does not block tenant activity.</p>
             <TenantDocuments
               tenantMembershipId={tenant.id}
               isLandlord={true}
