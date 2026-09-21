@@ -1,79 +1,19 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
-import { useApi } from '../../hooks/useApi';
 import { useDashboardAnalytics } from '../../hooks/useDashboardAnalytics';
 import { AppShell } from '../ui/AppShell';
-import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { MetricCard } from '../ui/MetricCard';
 import { ActivityFeed } from '../ui/ActivityFeed';
 import { formatCurrency } from '../../utils/helpers';
-import { getCurrentRentMonth, formatRentMonth } from '../../utils/helpers';
-import { useToast } from '../../context/ToastContext';
-import { Modal } from '../ui/Modal';
-import { Input } from '../ui/Input';
 import { fetchLedgerBalance } from '../../services/api';
 import { LedgerSummary } from '../../types';
-
-type RentStatus = 'paid' | 'processing' | 'pending' | 'due' | 'late';
-
-const deriveRentStatus = (
-  summary: LedgerSummary | undefined,
-  dueDay?: number,
-  gracePeriodDays?: number,
-  moveInDate?: string
-): RentStatus => {
-  // Unknown/unloaded summary should never render as paid.
-  if (!summary) {
-    return 'pending';
-  }
-
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
-  const resolvedDueDay = dueDay ?? 1;
-  const resolvedGrace = gracePeriodDays ?? 0;
-
-  const dueDate = new Date(currentYear, currentMonth, resolvedDueDay);
-  const paymentWindowOpenDate = new Date(dueDate);
-  paymentWindowOpenDate.setDate(dueDate.getDate() - 5);
-
-  // If no charges have been posted at all, tenant cannot be marked as paid.
-  // Fall through to billing-window status below.
-  if ((summary.totalCharged ?? 0) > 0 && summary.currentBalance <= 0.005) {
-    return 'paid';
-  }
-
-  if (moveInDate) {
-    const moveIn = new Date(moveInDate);
-    if (moveIn > paymentWindowOpenDate) {
-      return 'pending';
-    }
-  }
-
-  if (now < paymentWindowOpenDate) return 'pending';
-  if (now < dueDate) return 'pending';
-
-  const lateDate = new Date(dueDate);
-  lateDate.setDate(dueDate.getDate() + resolvedGrace);
-  if (now <= lateDate) return 'due';
-
-  return 'late';
-};
 
 export const LandlordDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser, tenants, properties, units, loading } = useApp();
-  const api = useApi();
-  const { showToast } = useToast();
   const { analytics, loading: analyticsLoading } = useDashboardAnalytics();
-  const [markPaidModal, setMarkPaidModal] = useState<string | null>(null);
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentDate, setPaymentDate] = useState(
-    new Date().toISOString().split('T')[0]
-  );
-  const [paymentNote, setPaymentNote] = useState('Paid via Interac e-Transfer');
   const [ledgerSummaries, setLedgerSummaries] = useState<Record<string, LedgerSummary>>({});
 
   React.useEffect(() => {
@@ -123,7 +63,6 @@ export const LandlordDashboard: React.FC = () => {
         const property = properties.find((p) => p.id === unit?.propertyId);
         const summary = ledgerSummaries[tenant.id];
         const currentBalance = summary?.currentBalance ?? 0;
-        const rentStatus = deriveRentStatus(summary, unit?.dueDay, unit?.gracePeriodDays, tenant.moveInDate);
         return {
           ...tenant,
           // Flatten user fields for backward compatibility
@@ -133,70 +72,17 @@ export const LandlordDashboard: React.FC = () => {
           unit,
           property,
           membershipStatus: tenant.status,
-          rentStatus,
           currentBalance,
+          totalPaid: summary?.totalPaid ?? 0,
+          lastPostedDate: summary?.lastPostedDate ?? null,
         };
       });
   }, [tenants, units, properties, currentUser, ledgerSummaries]);
 
-  const handleMarkAsPaid = (tenantId: string) => {
-    setMarkPaidModal(tenantId);
-    const tenant = landlordTenants.find((t) => t.id === tenantId);
-    if (tenant) {
-      setPaymentAmount(tenant.unit!.rentAmount.toString());
-    }
-  };
 
-  const confirmMarkAsPaid = async () => {
-    if (!markPaidModal || !paymentAmount) {
-      showToast('Please fill in all fields', 'error');
-      return;
-    }
-
-    try {
-      const tenant = landlordTenants.find((t) => t.id === markPaidModal);
-      if (!tenant || !tenant.unit) {
-        showToast('Tenant or unit not found', 'error');
-        return;
-      }
-
-      const paymentData = {
-        tenantMembershipId: markPaidModal,
-        amount: parseFloat(paymentAmount),
-        date: paymentDate,
-        method: 'MANUAL' as const,
-        month: getCurrentRentMonth(tenant.unit),
-        note: paymentNote || undefined,
-      };
-
-      await api.createPayment(paymentData);
-
-      showToast('Payment marked as paid');
-      setMarkPaidModal(null);
-      setPaymentAmount('');
-      setPaymentNote('Paid via Interac e-Transfer');
-    } catch (error: any) {
-      showToast(error.message || 'Failed to record payment', 'error');
-    }
-  };
-
-
-
-  const groupedByProperty = useMemo(() => {
-    const groups: Record<string, typeof landlordTenants> = {};
-    landlordTenants.forEach((tenant) => {
-      const propertyName = tenant.property?.name || 'Unknown Property';
-      if (!groups[propertyName]) {
-        groups[propertyName] = [];
-      }
-      groups[propertyName].push(tenant);
-    });
-    return groups;
-  }, [landlordTenants]);
 
   return (
     <AppShell title="Dashboard">
-      {/* Analytics Section */}
       {analyticsLoading ? (
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
@@ -206,288 +92,97 @@ export const LandlordDashboard: React.FC = () => {
         </div>
       ) : analytics ? (
         <>
-          {/* Top Row - Key Metrics */}
-          <div className="grid grid-cols-1 gap-6 mb-6 md:grid-cols-3">
+          <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">Payment overview</h1>
+              <p className="mt-1 text-sm text-gray-600">See who has paid, who has a balance, and what needs recording.</p>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={() => navigate('/landlord/tenants')}>Add tenant</Button>
+            </div>
+          </div>
+
+          <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
             <MetricCard
-              title="Occupancy Rate"
-              value={analytics.occupancy.total === 0 ? '—' : `${analytics.occupancy.rate.toFixed(1)}%`}
-              subValue={`${analytics.occupancy.occupied}/${analytics.occupancy.total} units`}
-              icon="🏠"
-              variant={analytics.occupancy.total === 0 ? 'neutral' : analytics.occupancy.rate >= 90 ? 'success' : analytics.occupancy.rate >= 70 ? 'warning' : 'danger'}
-              size="large"
-              progressBar={{ value: analytics.occupancy.occupied, max: analytics.occupancy.total }}
-              footer={
-                analytics.occupancy.total === 0 ? (
-                  <span className="text-sm text-gray-600">Add your first property to get started</span>
-                ) : analytics.occupancy.vacant > 0 ? (
-                  <span className="text-sm text-gray-600">
-                    {analytics.occupancy.vacant} vacant unit{analytics.occupancy.vacant !== 1 ? 's' : ''}
-                  </span>
-                ) : (
-                  <span className="text-sm text-green-600">✓ Fully occupied</span>
-                )
-              }
-            />
-            <MetricCard
-              title="Monthly Revenue"
+              title="Collected this month"
               value={formatCurrency(analytics.revenue.collected)}
-              subValue={`of ${formatCurrency(analytics.revenue.expected)} expected`}
+              subValue="Posted payments"
               icon="💰"
-              variant={analytics.revenue.rate >= 90 ? 'success' : analytics.revenue.rate >= 70 ? 'warning' : 'danger'}
+              variant="success"
               size="large"
-              progressBar={{ value: analytics.revenue.collected, max: analytics.revenue.expected }}
-              footer={
-                <span className="text-sm text-gray-600">
-                  {analytics.revenue.rate.toFixed(1)}% collection rate
-                </span>
-              }
+              footer={<span className="text-sm text-gray-600">{analytics.recentActivity.length} recent payment{analytics.recentActivity.length === 1 ? '' : 's'}</span>}
             />
             <MetricCard
-              title="Outstanding Balance"
+              title="Still owed"
               value={formatCurrency(analytics.outstanding.amount)}
-              subValue={`${analytics.outstanding.tenantCount} tenant${analytics.outstanding.tenantCount !== 1 ? 's' : ''} overdue`}
-              icon="⚠️"
-              variant={analytics.outstanding.amount === 0 ? 'success' : analytics.outstanding.amount < 1000 ? 'warning' : 'danger'}
+              subValue="Across active tenants"
+              icon="↗"
+              variant={analytics.outstanding.amount > 0 ? 'warning' : 'success'}
               size="large"
-              footer={
-                analytics.outstanding.amount === 0 ? (
-                  <span className="text-sm text-green-600">✓ No overdue payments</span>
-                ) : (
-                  <span className="text-sm text-red-600">Requires attention</span>
-                )
-              }
+              footer={<span className="text-sm text-gray-600">Based on posted ledger balances</span>}
+            />
+            <MetricCard
+              title="Tenants with a balance"
+              value={analytics.outstanding.tenantCount.toString()}
+              subValue="Need payment follow-up"
+              icon="👥"
+              variant={analytics.outstanding.tenantCount > 0 ? 'warning' : 'success'}
+              size="large"
+              footer={<span className="text-sm text-gray-600">{analytics.activeTenants.total} active tenant{analytics.activeTenants.total === 1 ? '' : 's'}</span>}
             />
           </div>
 
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_0.6fr]">
+            <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Tenants</h2>
+                  <p className="text-sm text-gray-500">Balances and recent account activity</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/landlord/tenants')}>View all</Button>
+              </div>
+              {landlordTenants.length === 0 ? (
+                <div className="px-5 py-12 text-center">
+                  <p className="font-medium text-gray-900">No tenants yet</p>
+                  <p className="mt-1 text-sm text-gray-500">Add your first tenant to start tracking payments.</p>
+                  <Button className="mt-4" size="sm" onClick={() => navigate('/landlord/tenants')}>Add tenant</Button>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {landlordTenants.map((tenant) => (
+                    <div key={tenant.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                      <button type="button" className="text-left" onClick={() => navigate(`/landlord/tenants/${tenant.id}`)}>
+                        <p className="font-medium text-gray-900">{tenant.name}</p>
+                        <p className="mt-1 text-sm text-gray-500">{tenant.property?.name || 'No property'} · {tenant.unit?.name || 'No unit'}</p>
+                      </button>
+                      <div className="flex items-center justify-between gap-4 sm:justify-end">
+                        <div className="text-left sm:text-right">
+                          <p className={`font-semibold ${tenant.currentBalance > 0 ? 'text-amber-700' : 'text-gray-900'}`}>
+                            {formatCurrency(tenant.currentBalance)}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {tenant.lastPostedDate ? `Last activity ${new Date(tenant.lastPostedDate).toLocaleDateString()}` : 'No ledger activity'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
 
-          {/* Bottom Row - Tenants & Recent Activity */}
-          <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2">
-            <MetricCard
-              title="Tenants"
-              value={analytics.activeTenants.total.toString()}
-              subValue={`${analytics.activeTenants.autopayEnabled} with autopay enabled`}
-              icon="👥"
-              variant="neutral"
-              size="medium"
-              footer={
-                analytics.activeTenants.pendingInvites > 0 ? (
-                  <span className="text-sm text-gray-600">
-                    {analytics.activeTenants.pendingInvites} pending invite{analytics.activeTenants.pendingInvites !== 1 ? 's' : ''}
-                  </span>
-                ) : undefined
-              }
-            />
             <ActivityFeed
               activities={analytics.recentActivity}
               maxItems={5}
-              showViewAll={true}
-              onViewAll={() => navigate('/landlord/tenants')}
+              title="Recent payments"
+              showStatus={false}
             />
-          </div>
-
-          {/* Info Note */}
-          <div className="mb-6">
-            <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
-              <p className="text-sm text-blue-800">
-                💡 <strong>Autopay payouts</strong> typically deposit to your bank in 2–5
-                business days after tenants are automatically charged on their due date.
-              </p>
-            </div>
           </div>
         </>
       ) : null}
 
-      {/* Tenants by Property */}
-      {Object.entries(groupedByProperty).map(([propertyName, propertyTenants]) => (
-        <div key={propertyName} className="mb-8">
-          <h2 className="mb-4 text-base font-semibold sm:text-lg">{propertyName}</h2>
+      {/* The dashboard is intentionally summary-first. Detailed per-property tables are removed from the home screen. */}
 
-          {/* Mobile Card View */}
-          <div className="block space-y-3 lg:hidden">
-            {propertyTenants.map((tenant) => {
-              const rentMonth = formatRentMonth(getCurrentRentMonth(tenant.unit));
-              return (
-                <div key={tenant.id} className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-gray-900">{tenant.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{tenant.email}</p>
-                      <p className="mt-1 text-xs text-gray-600">Unit {tenant.unit?.name}</p>
-                    </div>
-                    <Badge variant={tenant.membershipStatus}>
-                      {tenant.membershipStatus.charAt(0).toUpperCase() + tenant.membershipStatus.slice(1)}
-                    </Badge>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
-                    <div>
-                      <span className="text-gray-500">Rent Month</span>
-                      <p className="font-medium text-gray-900">{rentMonth}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Amount</span>
-                      <p className="font-medium text-gray-900">{formatCurrency(tenant.unit!.rentAmount)}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Due Day</span>
-                      <p className="font-medium text-gray-900">Day {tenant.unit?.dueDay ?? 1}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Payment</span>
-                      <div className="mt-0.5">
-                        <Badge variant={tenant.autopayEnabled ? 'autopay' : 'manual'}>
-                          {tenant.autopayEnabled ? 'Autopay' : 'Manual'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-
-                  {!tenant.autopayEnabled && tenant.rentStatus !== 'paid' && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleMarkAsPaid(tenant.id)}
-                      className="w-full"
-                    >
-                      Mark Paid
-                    </Button>
-                  )}
-                  {tenant.rentStatus === 'paid' && (
-                    <div className="text-sm font-medium text-center text-green-600">
-                      ✓ Received
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Desktop Table View */}
-          <div className="hidden overflow-hidden bg-white border border-gray-200 rounded-lg shadow-sm lg:block">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                    Tenant
-                  </th>
-                  <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                    Unit
-                  </th>
-                  <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                    Rent Month
-                  </th>
-                  <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                    Amount
-                  </th>
-                  <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                    Due Day
-                  </th>
-                  <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
-                    Payment Method
-                  </th>
-                  <th className="px-6 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {propertyTenants.map((tenant) => {
-                  const rentMonth = formatRentMonth(getCurrentRentMonth(tenant.unit));
-                  return (
-                    <tr key={tenant.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {tenant.name}
-                        </div>
-                        <div className="text-sm text-gray-500">{tenant.email}</div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
-                        {tenant.unit?.name}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
-                        {rentMonth}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
-                        {formatCurrency(tenant.unit!.rentAmount)}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
-                        Day {tenant.unit?.dueDay ?? 1}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={tenant.membershipStatus}>
-                          {tenant.membershipStatus.charAt(0).toUpperCase() + tenant.membershipStatus.slice(1)}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={tenant.autopayEnabled ? 'autopay' : 'manual'}>
-                          {tenant.autopayEnabled ? 'Autopay' : 'Manual'}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
-                        {!tenant.autopayEnabled && tenant.rentStatus !== 'paid' && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleMarkAsPaid(tenant.id)}
-                          >
-                            Mark Paid
-                          </Button>
-                        )}
-                        {tenant.rentStatus === 'paid' && (
-                          <span className="text-green-600">✓ Received</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ))}
-
-      {/* Mark as Paid Modal */}
-      {markPaidModal && (
-        <Modal
-          isOpen={true}
-          onClose={() => setMarkPaidModal(null)}
-          title="Mark Payment as Received"
-        >
-          <div className="space-y-4">
-            <Input
-              label="Amount"
-              type="number"
-              value={paymentAmount}
-              onChange={(e) => setPaymentAmount(e.target.value)}
-            />
-            <Input
-              label="Payment Date"
-              type="date"
-              value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-            />
-            <Input
-              label="Note (optional)"
-              value={paymentNote}
-              onChange={(e) => setPaymentNote(e.target.value)}
-              placeholder="Paid via Interac e-Transfer"
-            />
-            <div className="flex space-x-3">
-              <Button
-                variant="secondary"
-                onClick={() => setMarkPaidModal(null)}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button onClick={confirmMarkAsPaid} className="flex-1">
-                Confirm
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
     </AppShell>
   );
 };

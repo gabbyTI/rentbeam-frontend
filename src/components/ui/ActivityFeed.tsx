@@ -7,6 +7,8 @@ import { RecentActivityItem } from '../../types';
 interface ActivityFeedProps {
   activities: RecentActivityItem[];
   maxItems?: number;
+  title?: string;
+  showStatus?: boolean;
   showViewAll?: boolean;
   onViewAll?: () => void;
 }
@@ -14,6 +16,8 @@ interface ActivityFeedProps {
 export const ActivityFeed: React.FC<ActivityFeedProps> = ({
   activities,
   maxItems = 10,
+  title = 'Recent Activity',
+  showStatus = true,
   showViewAll = false,
   onViewAll
 }) => {
@@ -23,7 +27,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
     return (
       <Card>
         <CardHeader>
-          <h3 className="text-lg font-semibold">Recent Activity</h3>
+          <h3 className="text-lg font-semibold">{title}</h3>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-gray-500">
@@ -38,7 +42,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Recent Activity</h3>
+          <h3 className="text-lg font-semibold">{title}</h3>
           {showViewAll && onViewAll && (
             <button
               onClick={onViewAll}
@@ -67,11 +71,13 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
                   {formatCurrency(activity.amount)} • {formatDate(activity.date)}
                 </p>
               </div>
-              <div className="ml-2 sm:ml-3 flex-shrink-0">
-                <Badge variant={activity.status === 'paid' ? 'accepted' : 'pending'}>
-                  {activity.status === 'paid' ? '✓ Paid' : '⚠️ Late'}
-                </Badge>
-              </div>
+              {showStatus && (
+                <div className="ml-2 sm:ml-3 flex-shrink-0">
+                  <Badge variant={activity.status === 'paid' ? 'accepted' : 'pending'}>
+                    {activity.status === 'paid' ? '✓ Paid' : '⚠️ Late'}
+                  </Badge>
+                </div>
+              )}
             </div>
           ))}
         </div>

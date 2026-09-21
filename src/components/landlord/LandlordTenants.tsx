@@ -263,6 +263,10 @@ export const LandlordTenants: React.FC = () => {
                     <span className="text-gray-500">Rent</span>
                     <p className="font-medium text-gray-900">{formatCurrency(tenant.unit!.rentAmount)}</p>
                   </div>
+                  <div>
+                    <span className="text-gray-500">Balance</span>
+                    <p className="font-medium text-gray-900">{formatCurrency(tenant.unit ? 0 : 0)}</p>
+                  </div>
                   {tenant.status === 'ACTIVE' && (
                     <div>
                       <span className="text-gray-500">Portal</span>
@@ -273,24 +277,14 @@ export const LandlordTenants: React.FC = () => {
                       </div>
                     </div>
                   )}
-                  {tenant.defaultPaymentMethodId && (
-                    <div>
-                      <span className="text-gray-500">Payment</span>
-                      <p className="font-medium text-gray-900">
-                        💳 {tenant.paymentMethodLabel}
-                      </p>
+                  <div>
+                    <span className="text-gray-500">Status</span>
+                    <div className="mt-0.5">
+                      <Badge variant={tenant.status === 'ACTIVE' ? 'current' : 'past'}>
+                        {tenant.status === 'ACTIVE' ? 'Active' : 'Archive'}
+                      </Badge>
                     </div>
-                  )}
-                  {tenant.inviteStatus === 'ACCEPTED' && tenant.status === 'ACTIVE' && (
-                    <div>
-                      <span className="text-gray-500">Autopay</span>
-                      <div className="mt-0.5">
-                        <Badge variant={tenant.autopayEnabled ? 'autopay' : 'manual'}>
-                          {tenant.autopayEnabled ? 'Enabled' : 'Disabled'}
-                        </Badge>
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
 
                 <Button
@@ -314,22 +308,19 @@ export const LandlordTenants: React.FC = () => {
                     Tenant
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Property & Unit
+                    Unit
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Rent
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Residency
+                    Balance
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Portal Access
+                    Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Payment Method
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Autopay
+                    Portal
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -354,9 +345,12 @@ export const LandlordTenants: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {formatCurrency(tenant.unit!.rentAmount)}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatCurrency(0)}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Badge variant={tenant.status === 'ACTIVE' ? 'current' : 'past'}>
-                        {tenant.status === 'ACTIVE' ? 'Current' : 'Past'}
+                        {tenant.status === 'ACTIVE' ? 'Active' : 'Archive'}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -366,23 +360,6 @@ export const LandlordTenants: React.FC = () => {
                         </Badge>
                       ) : (
                         <span className="text-sm text-gray-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {tenant.defaultPaymentMethodId ? (
-                        <div className="flex items-center gap-1">
-                          <span>💳</span>
-                          <span className="text-gray-900">{tenant.paymentMethodLabel}</span>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">No card</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {tenant.inviteStatus === 'ACCEPTED' && tenant.status === 'ACTIVE' && (
-                        <Badge variant={tenant.autopayEnabled ? 'autopay' : 'manual'}>
-                          {tenant.autopayEnabled ? 'Enabled' : 'Disabled'}
-                        </Badge>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
