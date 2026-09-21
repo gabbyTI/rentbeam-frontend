@@ -10,6 +10,7 @@ import { Modal } from '../ui/Modal';
 import { EmptyState } from '../ui/EmptyState';
 import { formatCurrency } from '../../utils/helpers';
 import { useToast } from '../../context/ToastContext';
+import { downloadLandlordLedgerCsv } from '../../services/api';
 
 export const LandlordTenants: React.FC = () => {
   const { currentUser, tenants, properties, units } = useApp();
@@ -20,6 +21,13 @@ export const LandlordTenants: React.FC = () => {
   const [addingTenant, setAddingTenant] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportTenantId, setExportTenantId] = useState('');
+  const [exportPropertyId, setExportPropertyId] = useState('');
+  const [exportType, setExportType] = useState<'' | 'CHARGE' | 'PAYMENT' | 'CREDIT'>('');
+  const [exportFromDate, setExportFromDate] = useState('');
+  const [exportToDate, setExportToDate] = useState('');
 
   const [tenantForm, setTenantForm] = useState({
     firstName: '',
@@ -78,6 +86,30 @@ export const LandlordTenants: React.FC = () => {
         return { ...tenant, unit, property };
       });
   }, [tenants, units, properties, currentUser, showArchive]);
+
+  const handleExportLedger = async () => {
+    if (exportFromDate && exportToDate && exportFromDate > exportToDate) {
+      showToast('Start date cannot be after end date', 'error');
+      return;
+    }
+
+    setExporting(true);
+    try {
+      await downloadLandlordLedgerCsv({
+        tenantMembershipId: exportTenantId || undefined,
+        propertyId: exportPropertyId || undefined,
+        type: exportType || undefined,
+        fromDate: exportFromDate || undefined,
+        toDate: exportToDate || undefined,
+      });
+      showToast('Ledger export downloaded', 'success');
+      setShowExportModal(false);
+    } catch (error: any) {
+      showToast(error.message || 'Failed to export ledger', 'error');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handlePropertyChange = (propertyId: string) => {
     setTenantForm({
@@ -225,10 +257,15 @@ export const LandlordTenants: React.FC = () => {
             <span className="sm:hidden">{showArchive ? 'Current' : 'Archive'}</span>
           </Button>
         </div>
-        <Button onClick={() => setIsAdding(true)} size="sm">
-          <span className="hidden sm:inline">Add Tenant</span>
-          <span className="sm:hidden">Add</span>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setShowExportModal(true)} size="sm">
+            Export ledger
+          </Button>
+          <Button onClick={() => setIsAdding(true)} size="sm">
+            <span className="hidden sm:inline">Add Tenant</span>
+            <span className="sm:hidden">Add</span>
+          </Button>
+        </div>
       </div>
 
       {landlordTenants.length === 0 ? (
@@ -377,6 +414,48 @@ export const LandlordTenants: React.FC = () => {
             </table>
           </div>
         </>
+      )}
+
+      {showExportModal && (
+        <Modal
+          isOpen={true}
+          onClose={() => setShowExportModal(false)}
+          title="Export ledger"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Download posted ledger entries for your active tenants as a CSV file.
+            </p>
+            <Select label="Tenant" value={exportTenantId} onChange={(e) => setExportTenantId(e.target.value)}>
+              <option value="">All tenants</option>
+              {landlordTenants.map((tenant) => (
+                <option key={tenant.id} value={tenant.id}>{tenant.user?.name}</option>
+              ))}
+            </Select>
+            <Select label="Property" value={exportPropertyId} onChange={(e) => setExportPropertyId(e.target.value)}>
+              <option value="">All properties</option>
+              {landlordProperties.map((property) => (
+                <option key={property.id} value={property.id}>{property.name}</option>
+              ))}
+            </Select>
+            <Select label="Entry type" value={exportType} onChange={(e) => setExportType(e.target.value as typeof exportType)}>
+              <option value="">All entries</option>
+              <option value="CHARGE">Charges</option>
+              <option value="PAYMENT">Payments</option>
+              <option value="CREDIT">Credits</option>
+            </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <Input label="From date" type="date" value={exportFromDate} onChange={(e) => setExportFromDate(e.target.value)} />
+              <Input label="To date" type="date" value={exportToDate} onChange={(e) => setExportToDate(e.target.value)} />
+            </div>
+            <div className="flex gap-3">
+              <Button variant="secondary" onClick={() => setShowExportModal(false)} className="flex-1">Cancel</Button>
+              <Button onClick={handleExportLedger} disabled={exporting} className="flex-1">
+                {exporting ? 'Preparing...' : 'Download CSV'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {/* Add Tenant Modal */}

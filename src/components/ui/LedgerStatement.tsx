@@ -6,6 +6,7 @@ import {
   postLedgerCharge,
   postLedgerPayment,
   postLedgerCredit,
+  downloadLedgerCsv,
 } from '../../services/api';
 import { Card, CardHeader, CardContent } from './Card';
 import { Button } from './Button';
@@ -67,6 +68,7 @@ export const LedgerStatement: React.FC<LedgerStatementProps> = ({
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [summary, setSummary] = useState<LedgerSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
 
   // Post charge modal
   const [showChargeModal, setShowChargeModal] = useState(false);
@@ -107,6 +109,17 @@ export const LedgerStatement: React.FC<LedgerStatementProps> = ({
   }, [tenantMembershipId]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleDownload = async () => {
+    try {
+      setDownloading(true);
+      await downloadLedgerCsv(tenantMembershipId);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to download statement', 'error');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   // ── Post charge ─────────────────────────────────────────────────────────────
   const handlePostCharge = async () => {
@@ -250,9 +263,14 @@ export const LedgerStatement: React.FC<LedgerStatementProps> = ({
       {/* Statement table */}
       <Card>
         <CardHeader>
-          <h3 className="text-base font-semibold text-gray-900">
-            {tenantName ? `${tenantName} — Resident Ledger` : 'Resident Ledger'}
-          </h3>
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-base font-semibold text-gray-900">
+              {tenantName ? `${tenantName} — Resident Ledger` : 'Resident Ledger'}
+            </h3>
+            <Button variant="secondary" size="sm" onClick={handleDownload} disabled={downloading}>
+              {downloading ? 'Preparing...' : 'Download statement'}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (

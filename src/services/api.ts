@@ -1153,6 +1153,64 @@ export const fetchLedgerBalance = async (tenantMembershipId: string): Promise<Le
   return result.data || result;
 };
 
+export const downloadLedgerCsv = async (
+  tenantMembershipId: string,
+  options?: { fromDate?: string; toDate?: string }
+): Promise<void> => {
+  const token = authService.getAccessToken();
+  const params = new URLSearchParams();
+  if (options?.fromDate) params.set('fromDate', options.fromDate);
+  if (options?.toDate) params.set('toDate', options.toDate);
+
+  const qs = params.toString();
+  const response = await fetch(
+    `${API_BASE_URL}/api/ledger/${tenantMembershipId}/export${qs ? `?${qs}` : ''}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!response.ok) await handleApiError(response);
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = response.headers.get('Content-Disposition')?.match(/filename="?([^";]+)"?/)?.[1] || 'rentbeam-ledger.csv';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
+export const downloadLandlordLedgerCsv = async (options?: {
+  tenantMembershipId?: string;
+  propertyId?: string;
+  type?: 'CHARGE' | 'PAYMENT' | 'CREDIT';
+  fromDate?: string;
+  toDate?: string;
+}): Promise<void> => {
+  const token = authService.getAccessToken();
+  const params = new URLSearchParams();
+  if (options?.tenantMembershipId) params.set('tenantMembershipId', options.tenantMembershipId);
+  if (options?.propertyId) params.set('propertyId', options.propertyId);
+  if (options?.type) params.set('type', options.type);
+  if (options?.fromDate) params.set('fromDate', options.fromDate);
+  if (options?.toDate) params.set('toDate', options.toDate);
+
+  const response = await fetch(`${API_BASE_URL}/api/ledger/export?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) await handleApiError(response);
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = response.headers.get('Content-Disposition')?.match(/filename="?([^";]+)"?/)?.[1] || 'rentbeam-ledger.csv';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+
 export const postLedgerCharge = async (
   tenantMembershipId: string,
   payload: { code: string; description: string; amount: number; effectiveDate?: string }
