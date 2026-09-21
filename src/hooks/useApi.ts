@@ -56,8 +56,8 @@ export const useApi = () => {
     deleteTenant: (tenantId: string) =>
       api.deleteTenant(tenantId, state.tenants),
     
-    transferTenant: (tenant: Parameters<typeof api.transferTenant>[0], newTenantRecord: Parameters<typeof api.transferTenant>[1]) =>
-      api.transferTenant(tenant, newTenantRecord, state.tenants),
+    transferTenant: (tenantId: Parameters<typeof api.transferTenant>[0], newUnitId: Parameters<typeof api.transferTenant>[1]) =>
+      api.transferTenant(tenantId, newUnitId, state.tenants),
 
     // Payments
     createPayment: (payment: Parameters<typeof api.createPayment>[0]) =>

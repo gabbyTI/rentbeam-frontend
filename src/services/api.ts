@@ -1020,8 +1020,8 @@ export const moveOutTenant = async (
 };
 
 export const transferTenant = async (
-  tenant: Tenant,
-  newTenantData: { email: string; name: string; phone?: string; unitId: string; moveInDate?: string },
+  tenantId: string,
+  newUnitId: string,
   existingTenants: Tenant[]
 ): Promise<Tenant> => {
   const token = authService.getAccessToken();
@@ -1032,8 +1032,8 @@ export const transferTenant = async (
       'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify({
-      tenantId: tenant.id,
-      newUnitId: newTenantData.unitId
+      tenantId,
+      newUnitId,
     })
   });
 
@@ -1042,20 +1042,15 @@ export const transferTenant = async (
   }
 
   const result = await response.json();
-  const data = result.data || result;
-  const oldMembership = data.oldMembership || data.old;
-  const newMembership = data.newMembership || data.new;
+  const updatedMembership = result.data || result;
 
-  // Update old tenant's status to INACTIVE and add new tenant
   const updatedTenants = existingTenants.map((t) =>
-    t.id === tenant.id ? oldMembership : t
+    t.id === tenantId ? updatedMembership : t
   );
 
-  getUpdateState()({
-    tenants: [...updatedTenants, newMembership],
-  });
+  getUpdateState()({ tenants: updatedTenants });
 
-  return newMembership;
+  return updatedMembership;
 };
 
 // ==================== Payments ====================

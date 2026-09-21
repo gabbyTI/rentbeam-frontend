@@ -92,17 +92,7 @@ export const TenantDetails: React.FC = () => {
 
     setSaving(true);
     try {
-      await transferTenant(
-        tenant,
-        {
-          email: tenant.user?.email || '',
-          name: tenant.user?.name || '',
-          phone: tenant.user?.phone,
-          unitId: transferUnitId,
-          moveInDate: new Date().toISOString().split('T')[0],
-        },
-        tenants
-      );
+      await transferTenant(tenant.id, transferUnitId, tenants);
 
       showToast('Tenant transferred successfully');
       setShowTransferModal(false);
@@ -552,6 +542,9 @@ export const TenantDetails: React.FC = () => {
             <p className="text-gray-700">
               Transfer <strong>{tenant?.user?.name}</strong> to a different unit
             </p>
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+              The tenant, ledger balance, payment history, portal access, and autopay settings will stay unchanged. Only the unit assignment will change.
+            </div>
 
             <Select
               label="Property"
@@ -587,7 +580,7 @@ export const TenantDetails: React.FC = () => {
             {transferUnitId && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <p className="text-sm text-blue-900">
-                  Rent amount and due date will be updated to match the new unit's settings.
+                  Future charges will use the new unit's rent and due-date settings.
                 </p>
               </div>
             )}
