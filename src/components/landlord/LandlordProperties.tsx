@@ -420,13 +420,33 @@ export const LandlordProperties: React.FC = () => {
                   <div className="space-y-3">
                     {property.units.map((unit) => {
                       const rules = unitRecurringCharges[unit.id] ?? [];
+                      const isOccupied = tenants.some((tenant) => tenant.unitId === unit.id && tenant.status === 'ACTIVE');
+                      const assignedTenant = tenants.find((tenant) => tenant.unitId === unit.id && tenant.status === 'ACTIVE');
 
                       return (
                         <div key={unit.id} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <p className="text-lg font-semibold text-gray-900">{unit.name}</p>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-lg font-semibold text-gray-900">{unit.name}</p>
+                                <span
+                                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                    isOccupied
+                                      ? 'bg-emerald-100 text-emerald-700'
+                                      : 'bg-slate-100 text-slate-600'
+                                  }`}
+                                >
+                                  {isOccupied ? 'Occupied' : 'Vacant'}
+                                </span>
+                              </div>
                               <p className="text-sm text-gray-500">${Number(unit.rentAmount).toFixed(2)}/month • Due day {unit.dueDay}</p>
+                              {isOccupied && assignedTenant ? (
+                                <p className="mt-1 text-xs text-gray-500">
+                                  Tenant: {assignedTenant.user?.name || 'Active tenant'}
+                                </p>
+                              ) : (
+                                <p className="mt-1 text-xs text-gray-500">No active tenant assigned</p>
+                              )}
                             </div>
                             <div className="flex items-center gap-2">
                               <Button size="sm" variant="ghost" onClick={() => handleEditUnit(unit)}>Edit</Button>
