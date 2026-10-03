@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { useApi } from '../../hooks/useApi';
 import { AppShell } from '../ui/AppShell';
@@ -8,6 +8,15 @@ import { Card, CardHeader, CardContent } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 import { EmptyState } from '../ui/EmptyState';
 import { useToast } from '../../context/ToastContext';
+import {
+  getRecurringChargeTypes,
+  getUnitRecurringCharges,
+  createUnitRecurringCharge,
+  updateUnitRecurringCharge,
+  deleteUnitRecurringCharge,
+  type RecurringChargeRule,
+  type RecurringChargeType,
+} from '../../services/api';
 
 export const LandlordProperties: React.FC = () => {
   const { currentUser, properties, units, tenants, stripeOnboarded } = useApp();
@@ -34,6 +43,43 @@ export const LandlordProperties: React.FC = () => {
     dueDay: '1',
     gracePeriodDays: '5',
   });
+
+  const [chargeTypes, setChargeTypes] = useState<RecurringChargeType[]>([]);
+  const [unitRecurringCharges, setUnitRecurringCharges] = useState<Record<string, RecurringChargeRule[]>>({});
+  const [recurringChargeModal, setRecurringChargeModal] = useState<{ unitId: string | null; ruleId: string | null }>({
+    unitId: null,
+    ruleId: null,
+  });
+  const [recurringChargeForm, setRecurringChargeForm] = useState({
+    chargeTypeId: '',
+    amount: '',
+    frequency: 'MONTHLY' as 'MONTHLY' | 'WEEKLY',
+    dueDay: '1',
+    effectiveDate: new Date().toISOString().slice(0, 10),
+    endDate: '',
+    description: '',
+    active: true,
+  });
+
+  useEffect(() => {
+    getRecurringChargeTypes().then(setChargeTypes).catch(() => setChargeTypes([]));
+  }, []);
+
+  useEffect(() => {
+    if (!units.length) return;
+
+    const unitIds = units.map((unit) => unit.id);
+    Promise.all(
+      unitIds.map(async (unitId) => {
+        try {
+          const rules = await getUnitRecurringCharges(unitId);
+          setUnitRecurringCharges((prev) => ({ ...prev, [unitId]: rules }));
+        } catch {
+          setUnitRecurringCharges((prev) => ({ ...prev, [unitId]: [] }));
+        }
+      })
+    );
+  }, [units]);
 
   const landlordProperties = useMemo(() => {
     return properties
@@ -210,6 +256,90 @@ export const LandlordProperties: React.FC = () => {
     }
   };
 
+  const loadRecurringCharges = async (unitId: string) => {
+    try {
+      const rules = await getUnitRecurringCharges(unitId);
+      setUnitRecurringCharges((prev) => ({ ...prev, [unitId]: rules }));
+    } catch (error: any) {
+      showToast(error.message || 'Failed to load recurring charges', 'error');
+      setUnitRecurringCharges((prev) => ({ ...prev, [unitId]: [] }));
+    }
+  };
+
+  const openRecurringChargeModal = (unitId: string, rule?: RecurringChargeRule) => {
+    setRecurringChargeModal({ unitId, ruleId: rule?.id ?? null });
+    setRecurringChargeForm({
+      chargeTypeId: rule?.chargeTypeId ?? chargeTypes[0]?.id ?? '',
+      amount: rule ? String(rule.amount) : '',
+      frequency: rule?.frequency ?? 'MONTHLY',
+      dueDay: rule ? String(rule.dueDay) : '1',
+      effectiveDate: rule?.effectiveDate ? rule.effectiveDate.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      endDate: rule?.endDate ? rule.endDate.slice(0, 10) : '',
+      description: rule?.description ?? '',
+      active: rule?.active ?? true,
+    });
+  };
+
+  const handleSaveRecurringCharge = async () => {
+    const unitId = recurringChargeModal.unitId;
+    const ruleId = recurringChargeModal.ruleId;
+
+    if (!unitId) return;
+
+    if (!recurringChargeForm.chargeTypeId || !recurringChargeForm.amount || !recurringChargeForm.effectiveDate) {
+      showToast('Please fill in the charge type, amount, and effective date', 'error');
+      return;
+    }
+
+    const payload = {
+      chargeTypeId: recurringChargeForm.chargeTypeId,
+      amount: Number(recurringChargeForm.amount),
+      frequency: recurringChargeForm.frequency,
+      dueDay: Number(recurringChargeForm.dueDay),
+      effectiveDate: recurringChargeForm.effectiveDate,
+      endDate: recurringChargeForm.endDate || null,
+      description: recurringChargeForm.description || undefined,
+      active: recurringChargeForm.active,
+    };
+
+    try {
+      if (ruleId) {
+        await updateUnitRecurringCharge(unitId, ruleId, payload);
+        showToast('Recurring charge updated');
+      } else {
+        await createUnitRecurringCharge(unitId, payload);
+        showToast('Recurring charge added');
+      }
+
+      setRecurringChargeModal({ unitId: null, ruleId: null });
+      setRecurringChargeForm({
+        chargeTypeId: chargeTypes[0]?.id ?? '',
+        amount: '',
+        frequency: 'MONTHLY',
+        dueDay: '1',
+        effectiveDate: new Date().toISOString().slice(0, 10),
+        endDate: '',
+        description: '',
+        active: true,
+      });
+      await loadRecurringCharges(unitId);
+    } catch (error: any) {
+      showToast(error.message || 'Failed to save recurring charge', 'error');
+    }
+  };
+
+  const handleDeleteRecurringCharge = async (unitId: string, ruleId: string) => {
+    if (!confirm('Delete this recurring charge?')) return;
+
+    try {
+      await deleteUnitRecurringCharge(unitId, ruleId);
+      showToast('Recurring charge removed');
+      await loadRecurringCharges(unitId);
+    } catch (error: any) {
+      showToast(error.message || 'Failed to delete recurring charge', 'error');
+    }
+  };
+
   return (
     <AppShell title="Properties">
       <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -307,6 +437,50 @@ export const LandlordProperties: React.FC = () => {
                     ))}
                   </div>
                 )}
+
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Recurring charges</p>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => openRecurringChargeModal(property.units[0]?.id ?? '', undefined)}
+                    >
+                      Add rule
+                    </Button>
+                  </div>
+
+                  {property.units.length === 0 ? (
+                    <p className="text-xs text-gray-500">Add a unit to configure recurring charges.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {property.units.flatMap((unit) => {
+                        const rules = unitRecurringCharges[unit.id] ?? [];
+                        return rules.length === 0
+                          ? [
+                              <div key={`${unit.id}-empty`} className="flex items-center justify-between rounded-md border border-dashed border-gray-200 p-2 text-xs text-gray-500">
+                                <span>{unit.name}: no recurring charges</span>
+                                <Button size="sm" variant="ghost" onClick={() => openRecurringChargeModal(unit.id)}>Add</Button>
+                              </div>,
+                            ]
+                          : rules.map((rule) => (
+                              <div key={rule.id} className="flex items-center justify-between gap-2 rounded-md border border-gray-200 bg-white p-2">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-gray-800 truncate">{rule.chargeType.name} · {rule.description || 'Recurring charge'}</p>
+                                  <p className="text-xs text-gray-500">
+                                    ${Number(rule.amount).toFixed(2)} • {rule.frequency} • Due day {rule.dueDay}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  <Button size="sm" variant="ghost" onClick={() => openRecurringChargeModal(unit.id, rule)}>Edit</Button>
+                                  <Button size="sm" variant="danger" onClick={() => handleDeleteRecurringCharge(unit.id, rule.id)}>Delete</Button>
+                                </div>
+                              </div>
+                            ));
+                      })}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -666,6 +840,105 @@ export const LandlordProperties: React.FC = () => {
               </Button>
               <Button onClick={handleUpdateUnit} className="flex-1">
                 Update Unit
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {recurringChargeModal.unitId && (
+        <Modal
+          isOpen={true}
+          onClose={() => setRecurringChargeModal({ unitId: null, ruleId: null })}
+          title={recurringChargeModal.ruleId ? 'Edit recurring charge' : 'Add recurring charge'}
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Charge type</label>
+              <select
+                value={recurringChargeForm.chargeTypeId}
+                onChange={(e) => setRecurringChargeForm({ ...recurringChargeForm, chargeTypeId: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+              >
+                <option value="">Select a charge type</option>
+                {chargeTypes.map((type) => (
+                  <option key={type.id} value={type.id}>{type.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <Input
+              label="Amount ($)"
+              type="number"
+              min="0"
+              step="0.01"
+              value={recurringChargeForm.amount}
+              onChange={(e) => setRecurringChargeForm({ ...recurringChargeForm, amount: e.target.value })}
+            />
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
+                <select
+                  value={recurringChargeForm.frequency}
+                  onChange={(e) => setRecurringChargeForm({ ...recurringChargeForm, frequency: e.target.value as 'MONTHLY' | 'WEEKLY' })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                >
+                  <option value="MONTHLY">Monthly</option>
+                  <option value="WEEKLY">Weekly</option>
+                </select>
+              </div>
+              <Input
+                label="Due day"
+                type="number"
+                min="1"
+                max="31"
+                value={recurringChargeForm.dueDay}
+                onChange={(e) => setRecurringChargeForm({ ...recurringChargeForm, dueDay: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Effective date"
+                type="date"
+                value={recurringChargeForm.effectiveDate}
+                onChange={(e) => setRecurringChargeForm({ ...recurringChargeForm, effectiveDate: e.target.value })}
+              />
+              <Input
+                label="End date (optional)"
+                type="date"
+                value={recurringChargeForm.endDate}
+                onChange={(e) => setRecurringChargeForm({ ...recurringChargeForm, endDate: e.target.value })}
+              />
+            </div>
+
+            <Input
+              label="Description (optional)"
+              value={recurringChargeForm.description}
+              onChange={(e) => setRecurringChargeForm({ ...recurringChargeForm, description: e.target.value })}
+              placeholder="Parking, storage, pet fee..."
+            />
+
+            <label className="flex items-center justify-between rounded-lg border border-gray-200 p-3">
+              <div>
+                <span className="text-sm font-medium text-gray-700">Active</span>
+                <p className="text-xs text-gray-500">Generate this charge while the rule is active.</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={recurringChargeForm.active}
+                onChange={(e) => setRecurringChargeForm({ ...recurringChargeForm, active: e.target.checked })}
+                className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+              />
+            </label>
+
+            <div className="flex space-x-3">
+              <Button variant="secondary" onClick={() => setRecurringChargeModal({ unitId: null, ruleId: null })} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={handleSaveRecurringCharge} className="flex-1">
+                {recurringChargeModal.ruleId ? 'Update rule' : 'Add rule'}
               </Button>
             </div>
           </div>

@@ -146,6 +146,29 @@ export interface StripeConnectStatus {
   disabledReason: string | null;
 }
 
+export interface RecurringChargeType {
+  id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  active: boolean;
+}
+
+export interface RecurringChargeRule {
+  id: string;
+  unitId: string;
+  chargeTypeId: string;
+  chargeType: RecurringChargeType;
+  amount: number;
+  frequency: 'MONTHLY' | 'WEEKLY';
+  dueDay: number;
+  effectiveDate: string;
+  endDate?: string | null;
+  active: boolean;
+  description?: string | null;
+  lastGeneratedAt?: string | null;
+}
+
 export const signupLandlord = async (data: SignupLandlordRequest): Promise<SignupLandlordResponse> => {
   const response = await fetch(`${API_BASE_URL}/api/auth/signup-landlord`, {
     method: 'POST',
@@ -469,6 +492,110 @@ export const connectStripe = async (refreshUrl: string, returnUrl: string): Prom
 
   const result = await response.json();
   return result.data || result;
+};
+
+export const getRecurringChargeTypes = async (): Promise<RecurringChargeType[]> => {
+  const token = authService.getAccessToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/units/recurring-charge-types`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  return result.data || result;
+};
+
+export const getUnitRecurringCharges = async (unitId: string): Promise<RecurringChargeRule[]> => {
+  const token = authService.getAccessToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/units/${unitId}/recurring-charges`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  return result.data || result;
+};
+
+export const createUnitRecurringCharge = async (unitId: string, data: Partial<RecurringChargeRule> & { chargeTypeId: string; amount: number; effectiveDate: string; dueDay?: number; frequency?: 'MONTHLY' | 'WEEKLY'; description?: string; active?: boolean; endDate?: string | null; }): Promise<RecurringChargeRule> => {
+  const token = authService.getAccessToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/units/${unitId}/recurring-charges`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  return result.data || result;
+};
+
+export const updateUnitRecurringCharge = async (unitId: string, ruleId: string, data: Partial<RecurringChargeRule>): Promise<RecurringChargeRule> => {
+  const token = authService.getAccessToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/units/${unitId}/recurring-charges/${ruleId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
+
+  const result = await response.json();
+  return result.data || result;
+};
+
+export const deleteUnitRecurringCharge = async (unitId: string, ruleId: string): Promise<void> => {
+  const token = authService.getAccessToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/units/${unitId}/recurring-charges/${ruleId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    await handleApiError(response);
+  }
 };
 
 // ==================== Properties ====================
