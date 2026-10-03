@@ -12,6 +12,8 @@ export interface User {
   email: string;
   notificationEmail?: string;
   name: string;
+  firstName?: string | null;
+  lastName?: string | null;
   phone?: string;
   createdAt: string;
   updatedAt: string;

@@ -981,8 +981,20 @@ export const resendTenantInvite = async (tenantId: string): Promise<void> => {
 
 export const updateTenantInfo = async (
   tenantId: string,
-  data: { name?: string; phone?: string }
-): Promise<void> => {
+  data: {
+    firstName: string;
+    lastName: string;
+    phone: string | null;
+    leaseStartDate: string | null;
+    leaseEndDate: string | null;
+    leaseType: 'FIXED_TERM' | 'MONTH_TO_MONTH';
+    rentDeposit: number | null;
+    dateOfBirth: string | null;
+    emergencyContactName: string | null;
+    emergencyContactPhone: string | null;
+    notes: string | null;
+  }
+): Promise<Tenant> => {
   const token = authService.getAccessToken();
   const response = await fetch(`${API_BASE_URL}/api/tenants/${tenantId}/user-info`, {
     method: 'PATCH',
@@ -996,6 +1008,9 @@ export const updateTenantInfo = async (
   if (!response.ok) {
     await handleApiError(response);
   }
+
+  const result = await response.json();
+  return result.data || result;
 };
 
 // ==================== Invites ====================

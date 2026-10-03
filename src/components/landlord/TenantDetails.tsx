@@ -25,8 +25,19 @@ export const TenantDetails: React.FC = () => {
   const [showMarkAsPaidModal, setShowMarkAsPaidModal] = useState(false);
   const [transferPropertyId, setTransferPropertyId] = useState('');
   const [transferUnitId, setTransferUnitId] = useState('');
-  const [editName, setEditName] = useState('');
-  const [editPhone, setEditPhone] = useState('');
+  const [editForm, setEditForm] = useState({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    leaseStartDate: '',
+    leaseEndDate: '',
+    leaseType: 'FIXED_TERM' as 'FIXED_TERM' | 'MONTH_TO_MONTH',
+    rentDeposit: '',
+    dateOfBirth: '',
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+    notes: '',
+  });
   const [saving, setSaving] = useState(false);
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -119,39 +130,60 @@ export const TenantDetails: React.FC = () => {
 
   const handleEdit = () => {
     if (!tenant) return;
-    setEditName(tenant.user?.name || '');
-    setEditPhone(tenant.user?.phone || '');
+    const nameParts = (tenant.user?.name || '').trim().split(/\s+/);
+    setEditForm({
+      firstName: tenant.user?.firstName || nameParts[0] || '',
+      lastName: tenant.user?.lastName || nameParts.slice(1).join(' '),
+      phone: tenant.user?.phone || '',
+      leaseStartDate: tenant.leaseStartDate?.slice(0, 10) || '',
+      leaseEndDate: tenant.leaseEndDate?.slice(0, 10) || '',
+      leaseType: tenant.leaseType || 'FIXED_TERM',
+      rentDeposit: tenant.rentDeposit == null ? '' : String(tenant.rentDeposit),
+      dateOfBirth: tenant.dateOfBirth?.slice(0, 10) || '',
+      emergencyContactName: tenant.emergencyContactName || '',
+      emergencyContactPhone: tenant.emergencyContactPhone || '',
+      notes: tenant.notes || '',
+    });
     setShowEditModal(true);
   };
 
   const handleSaveEdit = async () => {
     if (!tenant) return;
 
-    // Validation
-    if (!editName.trim()) {
-      showToast('Name is required', 'error');
+    if (!editForm.firstName.trim() || !editForm.lastName.trim()) {
+      showToast('First and last name are required', 'error');
+      return;
+    }
+
+    const rentDeposit = editForm.rentDeposit.trim() ? Number(editForm.rentDeposit) : null;
+    if (rentDeposit !== null && (!Number.isFinite(rentDeposit) || rentDeposit < 0)) {
+      showToast('Security deposit must be zero or a positive amount', 'error');
+      return;
+    }
+
+    if (editForm.leaseStartDate && editForm.leaseEndDate && editForm.leaseEndDate < editForm.leaseStartDate) {
+      showToast('Lease end date cannot be before lease start date', 'error');
       return;
     }
 
     setSaving(true);
     try {
-      await updateTenantInfo(tenant.id, {
-        name: editName,
-        phone: editPhone || undefined,
+      const updatedTenant = await updateTenantInfo(tenant.id, {
+        firstName: editForm.firstName.trim(),
+        lastName: editForm.lastName.trim(),
+        phone: editForm.phone.trim() || null,
+        leaseStartDate: editForm.leaseStartDate || null,
+        leaseEndDate: editForm.leaseEndDate || null,
+        leaseType: editForm.leaseType,
+        rentDeposit,
+        dateOfBirth: editForm.dateOfBirth || null,
+        emergencyContactName: editForm.emergencyContactName.trim() || null,
+        emergencyContactPhone: editForm.emergencyContactPhone.trim() || null,
+        notes: editForm.notes.trim() || null,
       });
 
-      // Update local state
       const updatedTenants = tenants.map((t) =>
-        t.id === tenant.id
-          ? {
-            ...t,
-            user: {
-              ...t.user!,
-              name: editName,
-              phone: editPhone || undefined,
-            },
-          }
-          : t
+        t.id === tenant.id ? updatedTenant : t
       );
       updateState({ tenantMemberships: updatedTenants });
 
@@ -411,7 +443,7 @@ export const TenantDetails: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {!tenant.leaseType && !tenant.leaseStartDate && !tenant.rentDeposit && !tenant.emergencyContactName && !tenant.notes && (
+              {!tenant.leaseType && !tenant.leaseStartDate && !tenant.leaseEndDate && tenant.rentDeposit == null && !tenant.dateOfBirth && !tenant.emergencyContactName && !tenant.emergencyContactPhone && !tenant.notes && (
                 <p className="text-sm text-gray-400">No lease or profile details recorded.</p>
               )}
 
@@ -433,6 +465,12 @@ export const TenantDetails: React.FC = () => {
                 <div>
                   <label className="text-xs sm:text-sm text-gray-500">Lease End</label>
                   <p className="font-medium text-sm sm:text-base">{new Date(tenant.leaseEndDate).toLocaleDateString()}</p>
+                </div>
+              )}
+              {tenant.dateOfBirth && (
+                <div>
+                  <label className="text-xs sm:text-sm text-gray-500">Date of Birth</label>
+                  <p className="font-medium text-sm sm:text-base">{new Date(tenant.dateOfBirth).toLocaleDateString()}</p>
                 </div>
               )}
               {tenant.rentDeposit != null && (
@@ -610,57 +648,140 @@ export const TenantDetails: React.FC = () => {
         <Modal
           isOpen={true}
           onClose={() => !saving && setShowEditModal(false)}
-          title="Edit Tenant Information"
+          title="Edit Tenant Details"
         >
-          <div className="space-y-4">
-            <Input
-              label="Full Name"
-              type="text"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              placeholder="Enter tenant name"
-              disabled={saving}
-              required
-            />
+          <div className="max-h-[75vh] space-y-5 overflow-y-auto px-1">
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-gray-900">Contact information</h4>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Input
+                  label="First name"
+                  type="text"
+                  value={editForm.firstName}
+                  onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
+                  disabled={saving}
+                  required
+                />
+                <Input
+                  label="Last name"
+                  type="text"
+                  value={editForm.lastName}
+                  onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+                  disabled={saving}
+                  required
+                />
+              </div>
 
-            <div>
-              <Input
-                label="Login Email"
-                type="email"
-                value={tenant.user?.email || ''}
-                disabled
-                className="bg-gray-50"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                This is the tenant's login email and cannot be changed.
-              </p>
-            </div>
-
-            {tenant.user?.notificationEmail && (
               <div>
                 <Input
-                  label="Notification Email"
+                  label="Login email"
                   type="email"
-                  value={tenant.user.notificationEmail}
+                  value={tenant.user?.email || ''}
                   disabled
                   className="bg-gray-50"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Tenant can update this in their settings.
+                <p className="mt-1 text-xs text-gray-500">
+                  The tenant manages their login email through their account.
                 </p>
               </div>
-            )}
 
-            <Input
-              label="Phone Number (Optional)"
-              type="tel"
-              value={editPhone}
-              onChange={(e) => setEditPhone(e.target.value)}
-              placeholder="Enter phone number"
-              disabled={saving}
-            />
+              <div>
+                <Input
+                  label="Notification email"
+                  type="email"
+                  value={tenant.user?.notificationEmail || ''}
+                  disabled
+                  className="bg-gray-50"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  The tenant manages their notification email in their settings.
+                </p>
+              </div>
 
-            <div className="flex space-x-3 pt-4">
+              <Input
+                label="Phone number (optional)"
+                type="tel"
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                placeholder="Enter phone number"
+                disabled={saving}
+              />
+            </div>
+
+            <div className="space-y-3 border-t border-gray-200 pt-4">
+              <h4 className="text-sm font-semibold text-gray-900">Lease & profile</h4>
+              <Select
+                label="Lease type"
+                value={editForm.leaseType}
+                onChange={(e) => setEditForm({ ...editForm, leaseType: e.target.value as 'FIXED_TERM' | 'MONTH_TO_MONTH' })}
+                disabled={saving}
+              >
+                <option value="FIXED_TERM">Fixed term</option>
+                <option value="MONTH_TO_MONTH">Month-to-month</option>
+              </Select>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Input
+                  label="Lease start date"
+                  type="date"
+                  value={editForm.leaseStartDate}
+                  onChange={(e) => setEditForm({ ...editForm, leaseStartDate: e.target.value })}
+                  disabled={saving}
+                />
+                <Input
+                  label="Lease end date"
+                  type="date"
+                  value={editForm.leaseEndDate}
+                  onChange={(e) => setEditForm({ ...editForm, leaseEndDate: e.target.value })}
+                  disabled={saving}
+                />
+                <Input
+                  label="Security deposit"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editForm.rentDeposit}
+                  onChange={(e) => setEditForm({ ...editForm, rentDeposit: e.target.value })}
+                  disabled={saving}
+                />
+                <Input
+                  label="Date of birth"
+                  type="date"
+                  value={editForm.dateOfBirth}
+                  onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
+                  disabled={saving}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Input
+                  label="Emergency contact name"
+                  value={editForm.emergencyContactName}
+                  onChange={(e) => setEditForm({ ...editForm, emergencyContactName: e.target.value })}
+                  disabled={saving}
+                />
+                <Input
+                  label="Emergency contact phone"
+                  type="tel"
+                  value={editForm.emergencyContactPhone}
+                  onChange={(e) => setEditForm({ ...editForm, emergencyContactPhone: e.target.value })}
+                  disabled={saving}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">Notes</label>
+                <textarea
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  disabled={saving}
+                  rows={3}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-50"
+                />
+              </div>
+            </div>
+
+            <div className="flex space-x-3 border-t border-gray-200 pt-4">
               <Button
                 variant="secondary"
                 onClick={() => setShowEditModal(false)}
