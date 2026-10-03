@@ -65,6 +65,7 @@ export const LandlordProperties: React.FC = () => {
     () => chargeTypes.filter((type) => type.active !== false),
     [chargeTypes]
   );
+  const recurringChargeUnit = units.find((unit) => unit.id === recurringChargeModal.unitId);
 
   useEffect(() => {
     getRecurringChargeTypes().then(setChargeTypes).catch(() => setChargeTypes([]));
@@ -283,13 +284,14 @@ export const LandlordProperties: React.FC = () => {
 
   const openRecurringChargeModal = (unitId: string, rule?: RecurringChargeRule) => {
     const defaultChargeTypeId = rule?.chargeTypeId ?? recurringChargeOptions[0]?.id ?? '';
+    const unitDueDay = units.find((unit) => unit.id === unitId)?.dueDay ?? 1;
 
     setRecurringChargeModal({ unitId, ruleId: rule?.id ?? null });
     setRecurringChargeForm({
       chargeTypeId: defaultChargeTypeId,
       amount: rule ? String(rule.amount) : '',
       frequency: rule?.frequency ?? 'MONTHLY',
-      dueDay: rule ? String(rule.dueDay) : '1',
+      dueDay: rule ? String(rule.dueDay) : String(unitDueDay),
       effectiveDate: rule?.effectiveDate ? rule.effectiveDate.slice(0, 10) : new Date().toISOString().slice(0, 10),
       endDate: rule?.endDate ? rule.endDate.slice(0, 10) : '',
       description: rule?.description ?? '',
@@ -317,7 +319,7 @@ export const LandlordProperties: React.FC = () => {
       chargeTypeId: recurringChargeForm.chargeTypeId,
       amount: Number(recurringChargeForm.amount),
       frequency: recurringChargeForm.frequency,
-      dueDay: Number(recurringChargeForm.dueDay),
+      dueDay: recurringChargeForm.frequency === 'WEEKLY' ? Number(recurringChargeForm.dueDay) : undefined,
       effectiveDate: recurringChargeForm.effectiveDate,
       endDate: recurringChargeForm.endDate || null,
       description: recurringChargeForm.description || undefined,
@@ -458,14 +460,14 @@ export const LandlordProperties: React.FC = () => {
                             <div className="mb-3 flex items-center justify-between gap-2">
                               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Recurring charges</p>
                               <Button size="sm" variant="ghost" onClick={() => openRecurringChargeModal(unit.id)}>
-                                Add charge
+                                Add recurring charge
                               </Button>
                             </div>
 
                             {rules.length === 0 ? (
                               <div className="flex items-center justify-between gap-3 rounded-md border border-dashed border-gray-200 p-3 text-sm text-gray-500">
                                 <span>No recurring charges for this unit.</span>
-                                <Button size="sm" variant="ghost" onClick={() => openRecurringChargeModal(unit.id)}>Add</Button>
+                                <Button size="sm" variant="ghost" onClick={() => openRecurringChargeModal(unit.id)}>Add recurring charge</Button>
                               </div>
                             ) : (
                               <div className="space-y-2">
@@ -474,7 +476,9 @@ export const LandlordProperties: React.FC = () => {
                                     <div className="min-w-0">
                                       <p className="text-sm font-medium text-gray-800">{rule.chargeType.name}</p>
                                       <p className="text-xs text-gray-500">
-                                        {rule.description || 'Recurring charge'} • ${Number(rule.amount).toFixed(2)} • {rule.frequency} • Due day {rule.dueDay}
+                                        {rule.description || 'Recurring charge'} • ${Number(rule.amount).toFixed(2)} • {rule.frequency === 'MONTHLY'
+                                          ? `follows rent due day (${unit.dueDay})`
+                                          : `due day ${rule.dueDay}`}
                                       </p>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -892,7 +896,7 @@ export const LandlordProperties: React.FC = () => {
               onChange={(e) => setRecurringChargeForm({ ...recurringChargeForm, amount: e.target.value })}
             />
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className={`grid ${recurringChargeForm.frequency === 'WEEKLY' ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
                 <select
@@ -904,15 +908,22 @@ export const LandlordProperties: React.FC = () => {
                   <option value="WEEKLY">Weekly</option>
                 </select>
               </div>
-              <Input
-                label="Due day"
-                type="number"
-                min="1"
-                max="31"
-                value={recurringChargeForm.dueDay}
-                onChange={(e) => setRecurringChargeForm({ ...recurringChargeForm, dueDay: e.target.value })}
-              />
+              {recurringChargeForm.frequency === 'WEEKLY' && (
+                <Input
+                  label="Due day"
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={recurringChargeForm.dueDay}
+                  onChange={(e) => setRecurringChargeForm({ ...recurringChargeForm, dueDay: e.target.value })}
+                />
+              )}
             </div>
+            {recurringChargeForm.frequency === 'MONTHLY' && (
+              <p className="text-xs text-gray-500">
+                Monthly charges follow this unit&apos;s rent due day ({recurringChargeUnit?.dueDay ?? 1}). The first cycle is prorated from the effective date; full charges begin with the next cycle.
+              </p>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <Input
@@ -939,7 +950,7 @@ export const LandlordProperties: React.FC = () => {
             <label className="flex items-center justify-between rounded-lg border border-gray-200 p-3">
               <div>
                 <span className="text-sm font-medium text-gray-700">Active</span>
-                <p className="text-xs text-gray-500">Generate this charge while the rule is active.</p>
+                <p className="text-xs text-gray-500">Generate this recurring charge while it is active.</p>
               </div>
               <input
                 type="checkbox"
