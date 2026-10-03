@@ -390,119 +390,87 @@ export const LandlordProperties: React.FC = () => {
       ) : (
         <div className="space-y-6">
           {landlordProperties.map((property) => (
-            <Card key={property.id}>
+            <Card key={property.id} className="overflow-hidden">
               <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-base sm:text-lg font-semibold truncate">{property.name}</h3>
-                    <p className="text-xs sm:text-sm text-gray-500 truncate">{property.address ?? `${property.streetAddress}, ${property.city}, ${property.province}`}</p>
+                    <h3 className="text-xl font-semibold text-gray-900 truncate">{property.name}</h3>
+                    <p className="text-sm text-gray-500 truncate">{property.address ?? `${property.streetAddress}, ${property.city}, ${property.province}`}</p>
                   </div>
-                  <div className="flex space-x-1 sm:space-x-2 flex-shrink-0">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleEditProperty(property.id)}
-                    >
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Button size="sm" variant="ghost" onClick={() => handleEditProperty(property.id)}>
                       Edit
                     </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => setIsAddingUnit(property.id)}
-                    >
-                      <span className="hidden sm:inline">Add Unit</span>
-                      <span className="sm:hidden">+</span>
+                    <Button size="sm" onClick={() => setIsAddingUnit(property.id)}>
+                      Add unit
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      onClick={() => handleDeleteProperty(property.id)}
-                    >
-                      <span className="hidden sm:inline">Delete</span>
-                      <span className="sm:hidden">×</span>
+                    <Button size="sm" variant="danger" onClick={() => handleDeleteProperty(property.id)}>
+                      Delete
                     </Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+
+              <CardContent className="space-y-5">
                 {property.units.length === 0 ? (
-                  <p className="text-xs sm:text-sm text-gray-500">No units yet</p>
+                  <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
+                    No units yet for this property.
+                  </div>
                 ) : (
-                  <div className="space-y-2">
-                    {property.units.map((unit) => (
-                      <div
-                        key={unit.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0 p-3 rounded-lg bg-gray-50"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm sm:text-base font-medium truncate">{unit.name}</p>
-                          <p className="text-xs sm:text-sm text-gray-500">
-                            ${unit.rentAmount}/month • Due day {unit.dueDay}
-                          </p>
+                  <div className="space-y-3">
+                    {property.units.map((unit) => {
+                      const rules = unitRecurringCharges[unit.id] ?? [];
+
+                      return (
+                        <div key={unit.id} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="text-lg font-semibold text-gray-900">{unit.name}</p>
+                              <p className="text-sm text-gray-500">${Number(unit.rentAmount).toFixed(2)}/month • Due day {unit.dueDay}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button size="sm" variant="ghost" onClick={() => handleEditUnit(unit)}>Edit</Button>
+                              <Button size="sm" variant="danger" onClick={() => handleDeleteUnit(unit.id)}>Delete</Button>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 rounded-lg border border-gray-200 bg-white p-3">
+                            <div className="mb-3 flex items-center justify-between gap-2">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Recurring charges</p>
+                              <Button size="sm" variant="ghost" onClick={() => openRecurringChargeModal(unit.id)}>
+                                Add charge
+                              </Button>
+                            </div>
+
+                            {rules.length === 0 ? (
+                              <div className="flex items-center justify-between gap-3 rounded-md border border-dashed border-gray-200 p-3 text-sm text-gray-500">
+                                <span>No recurring charges for this unit.</span>
+                                <Button size="sm" variant="ghost" onClick={() => openRecurringChargeModal(unit.id)}>Add</Button>
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                {rules.map((rule) => (
+                                  <div key={rule.id} className="flex flex-col gap-2 rounded-md border border-gray-200 bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-medium text-gray-800">{rule.chargeType.name}</p>
+                                      <p className="text-xs text-gray-500">
+                                        {rule.description || 'Recurring charge'} • ${Number(rule.amount).toFixed(2)} • {rule.frequency} • Due day {rule.dueDay}
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Button size="sm" variant="ghost" onClick={() => openRecurringChargeModal(unit.id, rule)}>Edit</Button>
+                                      <Button size="sm" variant="danger" onClick={() => handleDeleteRecurringCharge(unit.id, rule.id)}>Delete</Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex space-x-2 flex-shrink-0">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEditUnit(unit)}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            onClick={() => handleDeleteUnit(unit.id)}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
-
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Recurring charges</p>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => openRecurringChargeModal(property.units[0]?.id ?? '', undefined)}
-                    >
-                      Add rule
-                    </Button>
-                  </div>
-
-                  {property.units.length === 0 ? (
-                    <p className="text-xs text-gray-500">Add a unit to configure recurring charges.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {property.units.flatMap((unit) => {
-                        const rules = unitRecurringCharges[unit.id] ?? [];
-                        return rules.length === 0
-                          ? [
-                              <div key={`${unit.id}-empty`} className="flex items-center justify-between rounded-md border border-dashed border-gray-200 p-2 text-xs text-gray-500">
-                                <span>{unit.name}: no recurring charges</span>
-                                <Button size="sm" variant="ghost" onClick={() => openRecurringChargeModal(unit.id)}>Add</Button>
-                              </div>,
-                            ]
-                          : rules.map((rule) => (
-                              <div key={rule.id} className="flex items-center justify-between gap-2 rounded-md border border-gray-200 bg-white p-2">
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium text-gray-800 truncate">{rule.chargeType.name} · {rule.description || 'Recurring charge'}</p>
-                                  <p className="text-xs text-gray-500">
-                                    ${Number(rule.amount).toFixed(2)} • {rule.frequency} • Due day {rule.dueDay}
-                                  </p>
-                                </div>
-                                <div className="flex items-center gap-1 flex-shrink-0">
-                                  <Button size="sm" variant="ghost" onClick={() => openRecurringChargeModal(unit.id, rule)}>Edit</Button>
-                                  <Button size="sm" variant="danger" onClick={() => handleDeleteRecurringCharge(unit.id, rule.id)}>Delete</Button>
-                                </div>
-                              </div>
-                            ));
-                      })}
-                    </div>
-                  )}
-                </div>
               </CardContent>
             </Card>
           ))}
@@ -966,7 +934,7 @@ export const LandlordProperties: React.FC = () => {
                 Cancel
               </Button>
               <Button onClick={handleSaveRecurringCharge} className="flex-1">
-                {recurringChargeModal.ruleId ? 'Update rule' : 'Add rule'}
+                {recurringChargeModal.ruleId ? 'Update charge' : 'Add charge'}
               </Button>
             </div>
           </div>
