@@ -61,9 +61,24 @@ export const LandlordProperties: React.FC = () => {
     active: true,
   });
 
+  const recurringChargeOptions = useMemo(
+    () => chargeTypes.filter((type) => type.active !== false),
+    [chargeTypes]
+  );
+
   useEffect(() => {
     getRecurringChargeTypes().then(setChargeTypes).catch(() => setChargeTypes([]));
   }, []);
+
+  useEffect(() => {
+    if (!recurringChargeModal.unitId || !recurringChargeOptions.length) return;
+    if (!recurringChargeForm.chargeTypeId) {
+      setRecurringChargeForm((prev) => ({
+        ...prev,
+        chargeTypeId: recurringChargeOptions[0].id,
+      }));
+    }
+  }, [recurringChargeModal.unitId, recurringChargeOptions, recurringChargeForm.chargeTypeId]);
 
   useEffect(() => {
     if (!units.length) return;
@@ -267,9 +282,11 @@ export const LandlordProperties: React.FC = () => {
   };
 
   const openRecurringChargeModal = (unitId: string, rule?: RecurringChargeRule) => {
+    const defaultChargeTypeId = rule?.chargeTypeId ?? recurringChargeOptions[0]?.id ?? '';
+
     setRecurringChargeModal({ unitId, ruleId: rule?.id ?? null });
     setRecurringChargeForm({
-      chargeTypeId: rule?.chargeTypeId ?? chargeTypes[0]?.id ?? '',
+      chargeTypeId: defaultChargeTypeId,
       amount: rule ? String(rule.amount) : '',
       frequency: rule?.frequency ?? 'MONTHLY',
       dueDay: rule ? String(rule.dueDay) : '1',
@@ -285,6 +302,11 @@ export const LandlordProperties: React.FC = () => {
     const ruleId = recurringChargeModal.ruleId;
 
     if (!unitId) return;
+
+    if (!recurringChargeOptions.length) {
+      showToast('No charge types are available. Please add one from the backend seed or configuration.', 'error');
+      return;
+    }
 
     if (!recurringChargeForm.chargeTypeId || !recurringChargeForm.amount || !recurringChargeForm.effectiveDate) {
       showToast('Please fill in the charge type, amount, and effective date', 'error');
@@ -855,16 +877,22 @@ export const LandlordProperties: React.FC = () => {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Charge type</label>
-              <select
-                value={recurringChargeForm.chargeTypeId}
-                onChange={(e) => setRecurringChargeForm({ ...recurringChargeForm, chargeTypeId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-              >
-                <option value="">Select a charge type</option>
-                {chargeTypes.map((type) => (
-                  <option key={type.id} value={type.id}>{type.name}</option>
-                ))}
-              </select>
+              {recurringChargeOptions.length === 0 ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                  No recurring charge types are available yet.
+                </div>
+              ) : (
+                <select
+                  value={recurringChargeForm.chargeTypeId}
+                  onChange={(e) => setRecurringChargeForm({ ...recurringChargeForm, chargeTypeId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
+                >
+                  <option value="">Select a charge type</option>
+                  {recurringChargeOptions.map((type) => (
+                    <option key={type.id} value={type.id}>{type.name}</option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <Input
