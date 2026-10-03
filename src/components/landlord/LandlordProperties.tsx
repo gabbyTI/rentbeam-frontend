@@ -26,6 +26,15 @@ export const LandlordProperties: React.FC = () => {
   const [isAddingUnit, setIsAddingUnit] = useState<string | null>(null);
   const [isEditingProperty, setIsEditingProperty] = useState<string | null>(null);
   const [isEditingUnit, setIsEditingUnit] = useState<string | null>(null);
+  const [propertyView, setPropertyView] = useState<'grid' | 'list'>(() => {
+    try {
+      return window.localStorage.getItem('rentbeam:landlord-properties-view') === 'list' ? 'list' : 'grid';
+    } catch (error) {
+      console.warn('Unable to read saved property layout preference', error);
+      return 'grid';
+    }
+  });
+  const [expandedProperties, setExpandedProperties] = useState<string[]>([]);
 
   const [propertyForm, setPropertyForm] = useState({
     name: '',
@@ -66,6 +75,14 @@ export const LandlordProperties: React.FC = () => {
     [chargeTypes]
   );
   const recurringChargeUnit = units.find((unit) => unit.id === recurringChargeModal.unitId);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('rentbeam:landlord-properties-view', propertyView);
+    } catch (error) {
+      console.warn('Unable to save property layout preference', error);
+    }
+  }, [propertyView]);
 
   useEffect(() => {
     getRecurringChargeTypes().then(setChargeTypes).catch(() => setChargeTypes([]));
@@ -364,17 +381,44 @@ export const LandlordProperties: React.FC = () => {
     }
   };
 
+  const togglePropertyExpanded = (propertyId: string) => {
+    setExpandedProperties((expanded) => expanded.includes(propertyId)
+      ? expanded.filter((id) => id !== propertyId)
+      : [...expanded, propertyId]);
+  };
+
   return (
     <AppShell title="Properties">
-      <div className="flex items-center justify-between mb-4 sm:mb-6">
+      <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl sm:text-2xl font-bold">Properties</h2>
-        <Button
-          onClick={() => setIsAddingProperty(true)}
-          size="sm"
-        >
-          <span className="hidden sm:inline">Add Property</span>
-          <span className="sm:hidden">Add</span>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1" role="group" aria-label="Property layout">
+            <Button
+              type="button"
+              size="sm"
+              variant={propertyView === 'grid' ? 'secondary' : 'ghost'}
+              aria-pressed={propertyView === 'grid'}
+              onClick={() => setPropertyView('grid')}
+              className="px-3"
+            >
+              Grid
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={propertyView === 'list' ? 'secondary' : 'ghost'}
+              aria-pressed={propertyView === 'list'}
+              onClick={() => setPropertyView('list')}
+              className="px-3"
+            >
+              List
+            </Button>
+          </div>
+          <Button onClick={() => setIsAddingProperty(true)} size="sm">
+            <span className="hidden sm:inline">Add Property</span>
+            <span className="sm:hidden">Add</span>
+          </Button>
+        </div>
       </div>
 
       {landlordProperties.length === 0 ? (
@@ -390,15 +434,35 @@ export const LandlordProperties: React.FC = () => {
           }
         />
       ) : (
-        <div className="space-y-6">
+        <div className={propertyView === 'grid'
+          ? 'grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3'
+          : 'space-y-3'}>
           {landlordProperties.map((property) => (
-            <Card key={property.id} className="overflow-hidden">
+            <Card key={property.id} className={`overflow-hidden ${propertyView === 'grid' ? 'flex h-full flex-col' : ''}`}>
               <CardHeader>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-xl font-semibold text-gray-900 truncate">{property.name}</h3>
-                    <p className="text-sm text-gray-500 truncate">{property.address ?? `${property.streetAddress}, ${property.city}, ${property.province}`}</p>
-                  </div>
+                  {propertyView === 'list' ? (
+                    <button
+                      type="button"
+                      aria-expanded={expandedProperties.includes(property.id)}
+                      aria-controls={`property-details-${property.id}`}
+                      onClick={() => togglePropertyExpanded(property.id)}
+                      className="min-w-0 flex-1 rounded-md text-left focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                    >
+                      <span className="block truncate text-lg font-semibold text-gray-900">{property.name}</span>
+                      <span className="block truncate text-sm text-gray-500">{property.address ?? `${property.streetAddress}, ${property.city}, ${property.province}`}</span>
+                      <span className="mt-1 block text-xs text-gray-500">
+                        {property.units.length} {property.units.length === 1 ? 'unit' : 'units'}
+                        <span aria-hidden="true"> · </span>
+                        {expandedProperties.includes(property.id) ? 'Hide details' : 'Show details'}
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-xl font-semibold text-gray-900">{property.name}</h3>
+                      <p className="truncate text-sm text-gray-500">{property.address ?? `${property.streetAddress}, ${property.city}, ${property.province}`}</p>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <Button size="sm" variant="ghost" onClick={() => handleEditProperty(property.id)}>
                       Edit
@@ -413,7 +477,12 @@ export const LandlordProperties: React.FC = () => {
                 </div>
               </CardHeader>
 
-              <CardContent className="space-y-5">
+              <div
+                id={`property-details-${property.id}`}
+                hidden={propertyView === 'list' && !expandedProperties.includes(property.id)}
+                className={propertyView === 'grid' ? 'flex flex-1 flex-col' : ''}
+              >
+              <CardContent className={`space-y-5 ${propertyView === 'grid' ? 'flex-1' : ''}`}>
                 {property.units.length === 0 ? (
                   <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
                     No units yet for this property.
@@ -496,6 +565,7 @@ export const LandlordProperties: React.FC = () => {
                   </div>
                 )}
               </CardContent>
+              </div>
             </Card>
           ))}
         </div>
